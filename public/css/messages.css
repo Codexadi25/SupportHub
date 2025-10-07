@@ -91,7 +91,7 @@
     width: 100%;
     margin-bottom: 0.75rem;
     max-width: 100%;
-    overflow-wrap: anywhere;
+    overflow-wrap: wrap;
 }
 
 .message-form > textarea {

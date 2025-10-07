@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="message-title">${escapeHtml(message.title)}</div>
-                    <div class="message-content">${escapeHtml(message.content)}</div>
+                    <div class="message-content"><pre>${escapeHtml(message.content)}</pre></div>
                     <div class="message-target-info">
                         Target: ${getTargetDescription(message)}
                     </div>

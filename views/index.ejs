@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-    <title>WIMOBot - Tools | Dashboard</title>
+    <title>Support Hub - Tools | <% if (user.role === 'admin' || user.role === 'editor') { %>
+            Dashboard
+        <% } else { %>
+            User App
+        <% } %>
+    </title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/feedback.css">
     <link rel="stylesheet" href="/css/messages.css">
@@ -10,7 +15,7 @@
 <body>
     <div class="app-wrapper">
         <header class="top-bar">
-            <h1>WIMO SupportHub</h1>
+            <h1>Zomato Support Hub</h1>
             <div class="search-container-modern">
                 <input type="text" id="searchInput" placeholder="Search templates or tags...">
             </div>

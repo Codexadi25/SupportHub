@@ -1,6 +1,6 @@
 <div class="panel-header">
     <h2>Messages</h2>
-    <% if (['team_lead','quality_analyst','vendor','admin'].includes(user.role)) { %>
+    <% if (user.role === 'admin') { %>
         <button id="btn-create-message" class="action-btn">Broadcast Message</button>
     <% } %>
 </div>
