@@ -95,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentUserId = getCurrentUserId();
             const isRead = message.isRead && currentUserId && message.isRead.some(read => read.userId === currentUserId);
             const isUnread = !isRead && !isExpired;
+            const isAdmin = window.currentUserRole === 'admin';
             
             return `
                 <div class="message-item priority-${message.priority} ${isUnread ? 'unread' : ''}" data-id="${message._id}">
@@ -121,9 +122,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <button class="message-read-btn" data-id="${message._id}">
                                     Mark as Read
                                 </button>
-                            ` : `
-                                <span class="message-read-status">✓ Read</span>
-                            `}
+                            ` : ''}
+                            <span class="message-read-ticks" title="${isRead ? 'Read' : 'Delivered'}">
+                                ${isRead ? '✓✓' : '✓'}
+                            </span>
+                            ${isAdmin ? `
+                                <button class="message-delete-btn danger" data-id="${message._id}">Delete</button>
+                            ` : ''}
                         </div>
                         <div class="message-author">By ${escapeHtml(message.authorName)}</div>
                     </div>
@@ -134,6 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add read event listeners
         document.querySelectorAll('.message-read-btn').forEach(btn => {
             btn.addEventListener('click', handleMarkAsRead);
+        });
+        // Admin delete listeners
+        document.querySelectorAll('.message-delete-btn').forEach(btn => {
+            btn.addEventListener('click', handleDeleteMessage);
         });
     }
     
@@ -248,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/messages', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
                 body: JSON.stringify(data)
             });
             
@@ -278,7 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                credentials: 'same-origin'
             });
             
             if (!response.ok) {
@@ -291,6 +302,25 @@ document.addEventListener('DOMContentLoaded', () => {
             updateNotificationCount(); // Update notification count
         } catch (error) {
             showToast('Error marking message as read: ' + error.message, 'error');
+        }
+    }
+
+    async function handleDeleteMessage(e) {
+        const messageId = e.target.dataset.id;
+        if (!confirm('Delete this message? This cannot be undone.')) return;
+        try {
+            const response = await fetch(`/api/messages/${messageId}`, {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            }
+            showToast('Message deleted.', 'success');
+            loadMessages();
+        } catch (error) {
+            showToast('Error deleting message: ' + error.message, 'error');
         }
     }
     

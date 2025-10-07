@@ -1,19 +1,31 @@
 const WebSocket = require('ws');
 
 let wssInstance;
+const onlineUsers = new Map(); // socket -> { userId, username, role, connectedAt }
 
 const initializeWebSocketServer = (server) => {
     const wss = new WebSocket.Server({ server });
     wssInstance = wss;
 
-    wss.on('connection', (ws) => {
+    wss.on('connection', (ws, req) => {
         console.log('Client connected via WebSocket');
         ws.isAlive = true;
         ws.on('pong', () => { ws.isAlive = true; });
         ws.on('message', (message) => {
-            // Handle incoming messages if needed, e.g., 'ping'
+            try {
+                const data = JSON.parse(message);
+                if (data.type === 'HELLO' && data.user) {
+                    const { _id, username, role } = data.user;
+                    onlineUsers.set(ws, { userId: _id, username, role, connectedAt: new Date() });
+                    broadcastActiveUsers();
+                }
+            } catch (_) {}
         });
-        ws.on('close', () => console.log('Client disconnected'));
+        ws.on('close', () => {
+            onlineUsers.delete(ws);
+            console.log('Client disconnected');
+            broadcastActiveUsers();
+        });
     });
 
     // Keep-alive interval
@@ -49,4 +61,17 @@ const broadcastUpdate = (data) => {
     }
 };
 
-module.exports = { initializeWebSocketServer, broadcastUpdate };
+const broadcastActiveUsers = () => {
+    if (!wssInstance) return;
+    const users = Array.from(onlineUsers.values());
+    const message = JSON.stringify({ type: 'ACTIVE_USERS', payload: users, timestamp: new Date() });
+    wssInstance.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) client.send(message);
+    });
+};
+
+const getOnlineUsers = () => {
+    return Array.from(onlineUsers.values());
+};
+
+module.exports = { initializeWebSocketServer, broadcastUpdate, broadcastActiveUsers, getOnlineUsers };

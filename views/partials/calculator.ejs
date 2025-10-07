@@ -13,3 +13,21 @@
     <p class="calc-hint">Press Enter to calculate</p>
     <p id="exprResult" class="calc-result">Result:</p>
 </div>
+<div class="notices">
+    <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+        <h4 style="margin:0;">Notices</h4>
+        <% if (user && (user.role === 'admin' || user.role === 'team_lead')) { %>
+            <button id="btn-publish-notice" class="action-btn-sm">Publish Notice</button>
+        <% } %>
+    </div>
+    <div id="notices-list" class="message-widget" style="margin-top:.5rem;">
+        <div class="loading-indicator">Loading notices...</div>
+    </div>
+    <% if (user && user.role === 'new') { %>
+        <div class="notice-banner info" style="margin-top:.75rem;">
+            <p>
+                Welcome! Your current role is NEW with limited access. Please contact your Team Lead to request additional access, or reach out at <a href="mailto:adityasahu.dev@gmail.com">adityasahu.dev@gmail.com</a> or via <a href="https://adityatechndevoops.web.app/contact" target="_blank" rel="noopener">support contact</a>.
+            </p>
+        </div>
+    <% } %>
+</div>

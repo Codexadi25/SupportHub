@@ -15,7 +15,7 @@
                 <input type="text" id="searchInput" placeholder="Search templates or tags...">
             </div>
             <div class="user-info">
-                <span class="user-name">Welcome, 
+                <span class="user-name">Hi, 
                   <strong>
                     <% if (user.role === 'admin' || user.role === 'editor') { %>
                       <%= user.username %> (<%= user.role %>)
@@ -31,6 +31,16 @@
         </header>
         <main class="main-content">
             <div class="left-panel">
+              <% if (user.role === 'new') { %>
+                <div class="content-scroll-area" style="display:flex;align-items:center;justify-content:center;height:100%;">
+                  <div style="max-width:700px;text-align:center;padding:24px;border:1px dashed #e2e8f0;border-radius:12px;background:#fff;">
+                    <h2 style="margin-bottom:8px;">Limited Access</h2>
+                    <p style="margin-bottom:12px;">Your account (<strong><%= user.username %></strong> & <strong><%= user._id %></strong>) has been temporarily restricted after careful review.</p>
+                    <p style="margin-bottom:12px;">If you want to continue, please approach your team lead for further action.</p>
+                    <p style="margin-bottom:12px;">Need help? Contact <a href="mailto:adityasahu.dev@gmail.com">adityasahu.dev@gmail.com</a> or visit <a href="https://adityatechndevoops.web.app/contact" target="_blank" rel="noopener">support contact</a>.</p>
+                  </div>
+                </div>
+              <% } else { %>
               <div class="tabs">
                 <button class="tab-link active" data-tab="Cands">Cands</button>
                 <button class="tab-link" data-tab="PNs">Private Notes</button>
@@ -42,10 +52,12 @@
                         <span class="notification-count" id="unread-message-count">0</span>
                     </span>
                 </button>
-                <% if (user.role === 'admin' || user.role === 'editor') { %>
+                <% if (user.role === 'vendor' || user.role === 'admin') { %>
                     <button class="tab-link" data-tab="Logger">Logger</button>
                 <% } %>
-                <button class="tab-link" data-tab="Admin">Admin Panel</button>
+                <% if (user.role === 'vendor' || user.role === 'admin') { %>
+                    <button class="tab-link" data-tab="Admin">Admin Panel</button>
+                <% } %>
               </div>
 
               <div id="Cands" class="tab-content active">
@@ -60,12 +72,12 @@
               <div id="Messages" class="tab-content">
                   <%- include('partials/messagePanel', { user: user }) %>
               </div>
-              <% if (user.role === 'admin' || user.role === 'editor') { %>
+              <% if (user.role === 'vendor' || user.role === 'admin') { %>
                   <div id="Logger" class="tab-content">
                       <%- include('partials/loggerPanel') %>
                   </div>
               <% } %>
-              <% if (user.role === 'admin') { %>
+              <% if (user.role === 'vendor' || user.role === 'admin') { %>
                   <div id="Admin" class="tab-content">
                       <%- include('partials/adminPanel') %>
                   </div>
@@ -329,6 +341,7 @@
                       </svg>
                   </div>
               <% } %>
+              <% } %>
             </div>
 
             <aside class="right-panel">
@@ -350,8 +363,10 @@
         // Pass user data to JavaScript
         window.currentUserId = '<%= user._id %>';
         window.currentUserRole = '<%= user.role %>';
+        window.currentUsername = '<%= user.username %>';
     </script>
     <script src="/js/main.js"></script>
+    <script src="/js/notices.js"></script>
 </body>
 <%- include('partials/footer') %>
 </html>

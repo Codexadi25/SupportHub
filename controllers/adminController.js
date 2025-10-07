@@ -101,7 +101,7 @@ exports.updateUserRole = asyncHandler(async (req, res) => {
   const { role } = req.body || {};
   const userId = req.params.id;
 
-  if (!['user', 'editor', 'admin'].includes(role)) {
+  if (!['new','user','editor','team_lead','quality_analyst','vendor','admin'].includes(role)) {
     res.status(400);
     throw new Error('Invalid role');
   }

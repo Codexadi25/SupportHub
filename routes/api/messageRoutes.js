@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Message = require('../../models/Message');
 const User = require('../../models/User');
-const { isAuthenticated, isAdmin } = require('../../middleware/authMiddleware');
+const { isAuthenticated, isBroadcaster, isAdmin } = require('../../middleware/authMiddleware');
 
 // Get messages for current user
 router.get('/my', isAuthenticated, async (req, res) => {
@@ -46,8 +46,9 @@ router.post('/:id/read', isAuthenticated, async (req, res) => {
     }
 });
 
-// Get all messages (admin only)
-router.get('/', isAuthenticated, isAdmin, async (req, res) => {
+// Get all messages (vendor/admin view logs per matrix? Keep admin only)
+router.get('/', isAuthenticated, async (req, res) => {
+    if (req.session.user?.role !== 'admin') return res.status(403).json({ message: 'Admin access required' });
     try {
         const { page = 1, limit = 20, type, priority } = req.query;
         const filter = {};
@@ -74,8 +75,8 @@ router.get('/', isAuthenticated, isAdmin, async (req, res) => {
     }
 });
 
-// Create new message (admin only)
-router.post('/', isAuthenticated, isAdmin, async (req, res) => {
+// Create new message (team_lead, quality_analyst, vendor, admin)
+router.post('/', isAuthenticated, isBroadcaster, async (req, res) => {
     try {
         const {
             title,
@@ -112,8 +113,8 @@ router.post('/', isAuthenticated, isAdmin, async (req, res) => {
     }
 });
 
-// Update message (admin only)
-router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
+// Update message (team_lead or above)
+router.put('/:id', isAuthenticated, isBroadcaster, async (req, res) => {
     try {
         const {
             title,
@@ -147,8 +148,8 @@ router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
     }
 });
 
-// Delete message (admin only)
-router.delete('/:id', isAuthenticated, isAdmin, async (req, res) => {
+// Delete message (team_lead or above per matrix delete messages)
+router.delete('/:id', isAuthenticated, isBroadcaster, async (req, res) => {
     try {
         const message = await Message.findByIdAndDelete(req.params.id);
         if (!message) {

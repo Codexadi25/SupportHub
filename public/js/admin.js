@@ -97,6 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) { showToast(err.message,'error'); }
   });
 
+  // Active Users moved to public/js/activeUsers.js
+
   const cleanupLogsBtn = document.getElementById('cleanupLogsBtn');
   if (cleanupLogsBtn) cleanupLogsBtn.addEventListener('click', async () => {
     if (!confirm('Cleanup logs older than 30 days?')) return;
@@ -138,8 +140,12 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td style="padding:8px">
             <select class="user-role-select" data-user-id="${u._id}">
+              <option value="new"${u.role==='new'?' selected':''}>new</option>
               <option value="user"${u.role==='user'?' selected':''}>user</option>
               <option value="editor"${u.role==='editor'?' selected':''}>editor</option>
+              <option value="team_lead"${u.role==='team_lead'?' selected':''}>team_lead</option>
+              <option value="quality_analyst"${u.role==='quality_analyst'?' selected':''}>quality_analyst</option>
+              <option value="vendor"${u.role==='vendor'?' selected':''}>vendor</option>
               <option value="admin"${u.role==='admin'?' selected':''}>admin</option>
             </select>
           </td>

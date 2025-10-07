@@ -58,6 +58,13 @@ const feedbackSchema = new mongoose.Schema({
     downvotes: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
+    }],
+    comments: [{
+        _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        username: { type: String, required: true },
+        content: { type: String, required: true, maxlength: 1000 },
+        createdAt: { type: Date, default: Date.now }
     }]
 }, {
     timestamps: true

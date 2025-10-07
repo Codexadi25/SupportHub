@@ -84,7 +84,6 @@
 
     <div class="user-controls" style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
       <button id="refreshUsersBtn" class="action-btn">Refresh Users</button>
-      <button id="refreshLogsBtn" class="action-btn">Refresh Logs</button>
       <button id="cleanupLogsBtn" class="action-btn">Cleanup Logs</button>
       <button id="cleanupMessagesBtn" class="action-btn">Cleanup Messages</button>
       <div style="margin-left:auto">
@@ -109,12 +108,13 @@
   </div>
 
   <div class="admin-section">
-    <h3>Logs</h3>
-    <div id="log-list" class="panel" style="padding:12px;min-height:160px;">
-      <p class="small">No logs loaded. Click "Refresh Logs" to fetch.</p>
+    <div class="user-controls" style="display:flex;gap:10px;align-items:center;margin-bottom:12px; width: 100%;">
+      <h3>Active Users (Realtime)</h3>
     </div>
+    <div id="active-users-list" class="panel" style="padding:12px;min-height:80px;"></div>
   </div>
 
 </div>
 
 <script src="/js/admin.js"></script>
+<script src="/js/activeUsers.js"></script>

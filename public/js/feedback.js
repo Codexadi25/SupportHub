@@ -84,6 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="admin-response-content">${escapeHtml(item.adminResponse)}</div>
                     </div>
                 ` : ''}
+                <div class="feedback-comments" data-id="${item._id}">
+                    <div class="comments-list" id="comments-${item._id}"></div>
+                    <div class="comment-form">
+                        <input type="text" class="comment-input" placeholder="Add a comment..." data-id="${item._id}" maxlength="1000" />
+                        <button class="comment-submit-btn" data-id="${item._id}">Comment</button>
+                    </div>
+                </div>
                 <div class="feedback-actions">
                     <div class="feedback-votes">
                         ${item.isPublic ? `
@@ -107,6 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         </select>
                         <textarea class="admin-response-input" data-id="${item._id}" placeholder="Add admin response...">${item.adminResponse || ''}</textarea>
                         <button class="update-feedback-btn" data-id="${item._id}">Update</button>
+                        <button class="resolve-feedback-btn" data-id="${item._id}">Resolve</button>
+                        <button class="delete-feedback-btn danger" data-id="${item._id}">Delete</button>
                     </div>
                 ` : ''}
             </div>
@@ -121,6 +130,18 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.update-feedback-btn').forEach(btn => {
             btn.addEventListener('click', handleFeedbackUpdate);
         });
+        document.querySelectorAll('.resolve-feedback-btn').forEach(btn => {
+            btn.addEventListener('click', handleResolveFeedback);
+        });
+        document.querySelectorAll('.delete-feedback-btn').forEach(btn => {
+            btn.addEventListener('click', handleDeleteFeedback);
+        });
+        // Comments handlers
+        document.querySelectorAll('.comment-submit-btn').forEach(btn => {
+            btn.addEventListener('click', handleSubmitComment);
+        });
+        // Load comments for each feedback
+        feedback.forEach(item => loadComments(item._id));
     }
     
     function openFeedbackModal() {
@@ -230,6 +251,109 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Feedback updated successfully!', 'success');
         } catch (error) {
             showToast('Error updating feedback: ' + error.message, 'error');
+        }
+    }
+
+    async function handleResolveFeedback(e) {
+        const feedbackId = e.target.dataset.id;
+        try {
+            const response = await fetch(`/api/feedback/${feedbackId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'resolved' })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            }
+            const result = await response.json();
+            const idx = allFeedback.findIndex(f => f._id === feedbackId);
+            if (idx !== -1) allFeedback[idx] = result.feedback;
+            renderFeedback(allFeedback);
+            showToast('Feedback resolved.', 'success');
+        } catch (error) {
+            showToast('Error resolving feedback: ' + error.message, 'error');
+        }
+    }
+
+    async function handleDeleteFeedback(e) {
+        const feedbackId = e.target.dataset.id;
+        if (!confirm('Delete this feedback? This cannot be undone.')) return;
+        try {
+            const response = await fetch(`/api/feedback/${feedbackId}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            }
+            allFeedback = allFeedback.filter(f => f._id !== feedbackId);
+            renderFeedback(allFeedback);
+            showToast('Feedback deleted.', 'success');
+        } catch (error) {
+            showToast('Error deleting feedback: ' + error.message, 'error');
+        }
+    }
+
+    async function loadComments(feedbackId) {
+        try {
+            const response = await fetch(`/api/feedback/${feedbackId}/comments`);
+            if (!response.ok) throw new Error('Failed to load comments');
+            const data = await response.json();
+            const list = document.getElementById(`comments-${feedbackId}`);
+            if (!list) return;
+            list.innerHTML = (data.comments || []).map(c => `
+                <div class="comment-item" data-id="${c._id}">
+                    <div class="comment-author">${escapeHtml(c.username)}</div>
+                    <div class="comment-content">${escapeHtml(c.content)}</div>
+                    <div class="comment-meta">${new Date(c.createdAt).toLocaleString()}</div>
+                    ${(window.currentUserRole === 'admin' || window.currentUserRole === 'editor' || String(c.userId) === String(window.currentUserId)) ? `<button class="comment-delete-btn" data-fid="${feedbackId}" data-cid="${c._id}">Delete</button>` : ''}
+                </div>
+            `).join('');
+            list.querySelectorAll('.comment-delete-btn').forEach(btn => btn.addEventListener('click', handleDeleteComment));
+        } catch (error) {
+            // silent fail for comment load
+        }
+    }
+
+    async function handleSubmitComment(e) {
+        const feedbackId = e.target.dataset.id;
+        const input = document.querySelector(`.comment-input[data-id="${feedbackId}"]`);
+        const content = (input?.value || '').trim();
+        if (!content) return;
+        try {
+            const response = await fetch(`/api/feedback/${feedbackId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            }
+            input.value = '';
+            await loadComments(feedbackId);
+        } catch (error) {
+            showToast('Error adding comment: ' + error.message, 'error');
+        }
+    }
+
+    async function handleDeleteComment(e) {
+        const feedbackId = e.target.dataset.fid;
+        const commentId = e.target.dataset.cid;
+        if (!confirm('Delete this comment?')) return;
+        try {
+            const response = await fetch(`/api/feedback/${feedbackId}/comments/${commentId}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            }
+            await loadComments(feedbackId);
+            showToast('Comment deleted.', 'success');
+        } catch (error) {
+            showToast('Error deleting comment: ' + error.message, 'error');
         }
     }
     

@@ -18,6 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearTimeout(wsReconnectTimer);
                 wsReconnectTimer = null;
             }
+            try {
+                // Announce presence for Active Users tracking
+                ws.send(JSON.stringify({ type: 'HELLO', user: { _id: window.currentUserId, id: window.currentUserId, username: window.currentUsername, role: window.currentUserRole } }));
+            } catch (e) {
+                console.debug('HELLO send failed', e);
+            }
         };
 
         ws.onmessage = (event) => {
@@ -74,6 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
             throw error;
         }
     };
+    // expose for other modules
+    window.apiRequest = apiRequest;
 
     // --- Category Navigation Filter ---
     document.body.addEventListener('click', (e) => {
@@ -207,6 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
     });
+    // expose for other modules
+    window.__modal = { modal, modalTitle, modalForm, openModal, closeModal };
 
     // --- Main Event Listener (Event Delegation) ---
     document.body.addEventListener('click', async (e) => {
@@ -439,8 +449,12 @@ async function fetchAndRenderAdminUsers() {
                 <td>${u.username}</td>
                 <td>
                     <select class="user-role-select" data-user-id="${u._id}">
+                        <option value="new" ${u.role === 'new' ? 'selected' : ''}>new</option>
                         <option value="user" ${u.role === 'user' ? 'selected' : ''}>user</option>
                         <option value="editor" ${u.role === 'editor' ? 'selected' : ''}>editor</option>
+                        <option value="team_lead" ${u.role === 'team_lead' ? 'selected' : ''}>team_lead</option>
+                        <option value="quality_analyst" ${u.role === 'quality_analyst' ? 'selected' : ''}>quality_analyst</option>
+                        <option value="vendor" ${u.role === 'vendor' ? 'selected' : ''}>vendor</option>
                         <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
                     </select>
                 </td>
@@ -663,6 +677,8 @@ function showToast(message, type = 'success') {
         }
     });
 
+    // Notices moved to separate module (public/js/notices.js)
+
     // --- Admin Panel Logic ---
     // Bulk Cand Upload
     const bulkUploadForm = document.getElementById('bulk-upload-form');
@@ -828,8 +844,12 @@ function showToast(message, type = 'success') {
                     </div>
                     <div class="user-actions">
                         <select class="role-select" data-user-id="${user._id}" data-current-role="${user.role}">
+                            <option value="new" ${user.role === 'new' ? 'selected' : ''}>New</option>
                             <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
                             <option value="editor" ${user.role === 'editor' ? 'selected' : ''}>Editor</option>
+                            <option value="team_lead" ${user.role === 'team_lead' ? 'selected' : ''}>Team Lead</option>
+                            <option value="quality_analyst" ${user.role === 'quality_analyst' ? 'selected' : ''}>Quality Analyst</option>
+                            <option value="vendor" ${user.role === 'vendor' ? 'selected' : ''}>Vendor</option>
                             <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
                         </select>
                         <button class="btn-delete-user action-btn-sm" data-user-id="${user._id}" data-username="${user.username}">Delete</button>

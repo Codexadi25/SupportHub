@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Feedback = require('../../models/Feedback');
-const { isAuthenticated, isAdmin } = require('../../middleware/authMiddleware');
+const { isAuthenticated, isAdmin, isQAOrAbove, isVendorOrAbove } = require('../../middleware/authMiddleware');
 
 // Get all feedback (visible to all users)
 router.get('/', isAuthenticated, async (req, res) => {
@@ -71,16 +71,11 @@ router.post('/', isAuthenticated, async (req, res) => {
     }
 });
 
-// Update feedback status (admin/editor only)
-router.put('/:id/status', isAuthenticated, async (req, res) => {
+// Update feedback status (quality_analyst, vendor, admin)
+router.put('/:id/status', isAuthenticated, isQAOrAbove, async (req, res) => {
     try {
         const { status, adminResponse } = req.body;
         const sessionUser = req.session.user || {};
-        
-        // Check if user has admin or editor role
-        if (sessionUser.role !== 'admin' && sessionUser.role !== 'editor') {
-            return res.status(403).json({ message: 'Access denied. Admin or Editor role required.' });
-        }
         
         const feedback = await Feedback.findById(req.params.id);
         if (!feedback) {
@@ -133,8 +128,8 @@ router.post('/:id/vote', isAuthenticated, async (req, res) => {
     }
 });
 
-// Delete feedback (admin only)
-router.delete('/:id', isAuthenticated, isAdmin, async (req, res) => {
+// Delete feedback (vendor or admin)
+router.delete('/:id', isAuthenticated, isVendorOrAbove, async (req, res) => {
     try {
         const feedback = await Feedback.findByIdAndDelete(req.params.id);
         if (!feedback) {
@@ -143,6 +138,57 @@ router.delete('/:id', isAuthenticated, isAdmin, async (req, res) => {
         res.json({ message: 'Feedback deleted successfully' });
     } catch (error) {
         res.status(400).json({ message: 'Error deleting feedback', error: error.message });
+    }
+});
+
+// Comments: list
+router.get('/:id/comments', isAuthenticated, async (req, res) => {
+    try {
+        const feedback = await Feedback.findById(req.params.id).select('comments');
+        if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
+        res.json({ comments: feedback.comments || [] });
+    } catch (error) {
+        res.status(400).json({ message: 'Error fetching comments', error: error.message });
+    }
+});
+
+// Comments: add
+router.post('/:id/comments', isAuthenticated, async (req, res) => {
+    try {
+        const { content } = req.body;
+        if (!content || !content.trim()) {
+            return res.status(400).json({ message: 'Comment cannot be empty' });
+        }
+        const feedback = await Feedback.findById(req.params.id);
+        if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
+        const sessionUser = req.session.user || {};
+        const currentUserId = sessionUser._id || sessionUser.id;
+        feedback.comments.push({ userId: currentUserId, username: sessionUser.username, content: content.trim() });
+        await feedback.save();
+        res.status(201).json({ message: 'Comment added', comments: feedback.comments });
+    } catch (error) {
+        res.status(400).json({ message: 'Error adding comment', error: error.message });
+    }
+});
+
+// Comments: delete (admin or comment author)
+router.delete('/:id/comments/:commentId', isAuthenticated, async (req, res) => {
+    try {
+        const feedback = await Feedback.findById(req.params.id);
+        if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
+        const sessionUser = req.session.user || {};
+        const currentUserId = String(sessionUser._id || sessionUser.id);
+        const isAdminOrEditor = sessionUser.role === 'admin' || sessionUser.role === 'editor';
+        const comment = feedback.comments.id(req.params.commentId);
+        if (!comment) return res.status(404).json({ message: 'Comment not found' });
+        if (!isAdminOrEditor && String(comment.userId) !== currentUserId) {
+            return res.status(403).json({ message: 'Not authorized to delete this comment' });
+        }
+        comment.remove();
+        await feedback.save();
+        res.json({ message: 'Comment deleted', comments: feedback.comments });
+    } catch (error) {
+        res.status(400).json({ message: 'Error deleting comment', error: error.message });
     }
 });
 

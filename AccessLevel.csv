@@ -1,0 +1,23 @@
+﻿,new,user,editor,team_lead,quality_analyst,vendor,admin
+Common Tools,Yes,Yes,Yes,Yes,Yes,Yes,Yes
+Databse Cands & PNs Data,NO,Yes,Yes,Yes,Yes,Yes,Yes
+Edit / Delete Cands & Pns,NO,NO,Yes,Yes,Yes,Yes,Yes
+Submit Feedback,Yes,Yes,Yes,Yes,Yes,Yes,Yes
+Update Feedback,NO,NO,NO,NO,Yes,Yes,Yes
+Delete Feedback,NO,NO,NO,NO,NO,Yes,Yes
+Broadcast Messages,NO,NO,NO,Yes,Yes,Yes,Yes
+Mark as Read Messages,Yes,Yes,Yes,Yes,Yes,Yes,Yes
+Delete Messages,NO,NO,NO,Yes,Yes,Yes,Yes
+System Logs,NO,NO,NO,NO,NO,Yes,Yes
+Cleanup System Logs,NO,NO,NO,NO,NO,Yes,Yes
+Admin Dashboard,NO,NO,NO,NO,NO,Yes,Yes
+Bulk Upload Cands,NO,NO,NO,NO,NO,Yes,Yes
+Bulk Create Users,NO,NO,NO,NO,NO,Yes,Yes
+User Management,NO,NO,NO,Yes,Yes,Yes,Yes
+Role Management,NO,NO,NO,NO,NO,Yes,Yes
+Reset Password,NO,NO,NO,NO,NO,Yes,Yes
+Delete User,NO,NO,NO,NO,NO,Yes,Yes
+Activity Logs,NO,NO,NO,Yes,Yes,Yes,Yes
+View Notices,Yes,Yes,Yes,Yes,Yes,Yes,Yes
+Publish Notices,NO,NO,NO,NO,NO,NO,Yes
+Delete Notices,NO,NO,NO,NO,NO,NO,Yes

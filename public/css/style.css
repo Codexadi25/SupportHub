@@ -1,6 +1,6 @@
 /* --- Global Resets & Variables --- */
 :root {
-    --primary-color: #007bff;
+    --primary-color: #238dff;
     --primary-hover: #0056b3;
     --background-color: #f8f9fa;
     --panel-background: #ffffff;
@@ -35,7 +35,7 @@ body {
     font-family: var(--font-family);
     background-color: var(--background-color);
     color: var(--text-color);
-    font-size: 16px;
+    font-size: 14px;
     height: 100%;
     overflow: auto;
     margin: 0;
@@ -103,13 +103,45 @@ body {
 }
 
 .right-panel {
-    width: 300px;
+    width: 400px;
     height: 100%;
     flex-shrink: 0;
     padding: 1.5rem;
     background-color: var(--panel-background);
     border-left: 1px solid var(--border-color);
     overflow-y: auto;
+}
+
+/* Notices container - keep content wrapped and contained */
+.notices .message-widget {
+    max-height: 320px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid #e4e7eb;
+    border-radius: 8px;
+    padding: 8px;
+    background: #ffffff;
+}
+.notices .cand-item {
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    border: 1px solid #eef1f5;
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 8px;
+    background: #fafbfc;
+}
+.notices .cand-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.notices .notice-banner.info {
+    background: #f0f7ff;
+    border: 1px solid #d6e6ff;
+    border-radius: 6px;
+    padding: 10px;
 }
 
 .footer {
@@ -335,7 +367,6 @@ body {
 
 /* --- Tag Filters --- */
 .tag-filters {
-    margin-top: 0.75rem;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -351,6 +382,7 @@ body {
     border-radius: .5rem;
     cursor: pointer;
     font-weight: 700;
+    font-size: 12px;
 }
 .tag-filter.active {
     background-color: var(--primary-color);
