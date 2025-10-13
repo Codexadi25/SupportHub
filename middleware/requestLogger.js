@@ -47,8 +47,8 @@ const requestLogger = (req, res, next) => {
             }
         }
 
-        // Call original send
-        originalSend.call(this, data);
+        // Call original send and return for proper chaining
+        return originalSend.call(this, data);
     };
 
     next();

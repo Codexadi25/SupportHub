@@ -64,6 +64,7 @@ const feedbackSchema = new mongoose.Schema({
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         username: { type: String, required: true },
         content: { type: String, required: true, maxlength: 1000 },
+        parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'comments._id', default: null },
         createdAt: { type: Date, default: Date.now }
     }]
 }, {

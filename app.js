@@ -23,6 +23,14 @@ if (process.env.NODE_ENV === 'production') {
 
 // Initialize WebSocket Server
 const wss = initializeWebSocketServer(server);
+// Prevent unhandled 'error' (e.g., EADDRINUSE re-emitted) from crashing the process
+wss.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.warn('WebSocketServer port in use; HTTP server will retry on next port.');
+    return; // swallow; server 'error' handler will retry
+  }
+  console.error('WebSocketServer error:', err);
+});
 app.set('wss', wss); // Make WSS available in controllers
 
 // EJS Setup
@@ -33,7 +41,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(requestLogger); // Add request logging middleware
+// Ensure session is initialized before requestLogger so user info is available for logs
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -45,6 +53,9 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
     }
 }));
+
+// Add request logging middleware after session is available
+app.use(requestLogger);
 
 // mount ping endpoint (keep it under /api so client fetch('/api/ping') works)
 app.use('/api', require('./routes/ping'));
@@ -67,5 +78,32 @@ app.use('/api', apiUsersRouter);
 // Error Handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+let PORT = parseInt(process.env.PORT, 10) || 3000;
+
+function startServer(port) {
+  try {
+    server.listen(port, () => console.log(`Server running on port ${port}`));
+  } catch (err) {
+    if (err && err.code === 'EADDRINUSE') {
+      const nextPort = port + 1;
+      console.warn(`Port ${port} in use, retrying on ${nextPort}...`);
+      startServer(nextPort);
+    } else {
+      throw err;
+    }
+  }
+}
+
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    const nextPort = PORT + 1;
+    console.warn(`Port ${PORT} in use, retrying on ${nextPort}...`);
+    PORT = nextPort;
+    setTimeout(() => startServer(PORT), 250);
+  } else {
+    console.error('Server error:', err);
+    process.exit(1);
+  }
+});
+
+startServer(PORT);

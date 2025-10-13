@@ -22,7 +22,7 @@
             <div class="user-info">
                 <span class="user-name">Hi, 
                   <strong>
-                    <% if (user.role === 'admin' || user.role === 'editor') { %>
+                    <% if (user.role !== 'new' && user.role !== 'user') { %>
                       <%= user.username %> (<%= user.role %>)
                     <% } else { %><%= user.username %><% } %></strong>
                 </span>
@@ -31,6 +31,10 @@
                 </svg>
                 <a href="/auth/logout" class="logout-btn">
                   Logout
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+                    <path d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+                  </svg>
                 </a>
             </div>
         </header>
@@ -40,8 +44,8 @@
                 <div class="content-scroll-area" style="display:flex;align-items:center;justify-content:center;height:100%;">
                   <div style="max-width:700px;text-align:center;padding:24px;border:1px dashed #e2e8f0;border-radius:12px;background:#fff;">
                     <h2 style="margin-bottom:8px;">Limited Access</h2>
-                    <p style="margin-bottom:12px;">Your account (<strong><%= user.username %></strong> & <strong><%= user._id %></strong>) has been temporarily restricted after careful review.</p>
-                    <p style="margin-bottom:12px;">If you want to continue, please approach your team lead for further action.</p>
+                    <p style="margin-bottom:12px;">Your account  (<strong><%= user.username %></strong>) has been temporarily restricted after careful review.</p>
+                    <p style="margin-bottom:12px;">If you want to continue, please approach your team lead or respective administrators for further action.</p>
                     <p style="margin-bottom:12px;">Need help? Contact <a href="mailto:adityasahu.dev@gmail.com">adityasahu.dev@gmail.com</a> or visit <a href="https://adityatechndevoops.web.app/contact" target="_blank" rel="noopener">support contact</a>.</p>
                   </div>
                 </div>
@@ -60,7 +64,7 @@
                 <% if (user.role === 'vendor' || user.role === 'admin') { %>
                     <button class="tab-link" data-tab="Logger">Logger</button>
                 <% } %>
-                <% if (user.role === 'vendor' || user.role === 'admin') { %>
+                <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
                     <button class="tab-link" data-tab="Admin">Admin Panel</button>
                 <% } %>
               </div>
@@ -82,12 +86,11 @@
                       <%- include('partials/loggerPanel') %>
                   </div>
               <% } %>
-              <% if (user.role === 'vendor' || user.role === 'admin') { %>
+              <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
                   <div id="Admin" class="tab-content">
                       <%- include('partials/adminPanel') %>
                   </div>
-              <% } %>
-              <% if (user.role === 'user') { %>
+              <% } else{ %>
                   <div id="Admin" class="tab-content">
                       <span class="no-admin">
                           ⚠️ Forbidden: Admin access required to access this dashboard.

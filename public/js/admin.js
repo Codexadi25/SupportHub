@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) { showToast(err.message,'error'); }
   });
 
-  // Active Users moved to public/js/activeUsers.js
+  // Active Users handled by public/js/activeUsersRealtime.js (included in admin panel partial)
 
   const cleanupLogsBtn = document.getElementById('cleanupLogsBtn');
   if (cleanupLogsBtn) cleanupLogsBtn.addEventListener('click', async () => {

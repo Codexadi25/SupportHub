@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="feedback-date">${new Date(item.createdAt).toLocaleDateString()}</div>
                 </div>
                 <div class="feedback-title">${escapeHtml(item.title)}</div>
-                <div class="feedback-description">${escapeHtml(item.description)}</div>
+                <div class="feedback-description">${linkifyText(escapeHtml(item.description))}</div>
                 ${item.tags && item.tags.length > 0 ? `
                     <div class="feedback-tags">
                         ${item.tags.map(tag => `<span class="feedback-tag">${escapeHtml(tag)}</span>`).join('')}
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${item.adminResponse ? `
                     <div class="admin-response">
                         <div class="admin-response-header">Admin Response:</div>
-                        <div class="admin-response-content">${escapeHtml(item.adminResponse)}</div>
+                        <div class="admin-response-content">${linkifyText(escapeHtml(item.adminResponse))}</div>
                     </div>
                 ` : ''}
                 <div class="feedback-comments" data-id="${item._id}">
@@ -302,16 +302,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const list = document.getElementById(`comments-${feedbackId}`);
             if (!list) return;
-            list.innerHTML = (data.comments || []).map(c => `
-                <div class="comment-item" data-id="${c._id}">
-                    <div class="comment-author">${escapeHtml(c.username)}</div>
-                    <div class="comment-content">${escapeHtml(c.content)}</div>
-                    <div class="comment-meta">${new Date(c.createdAt).toLocaleString()}</div>
-                    ${(window.currentUserRole === 'admin' || window.currentUserRole === 'editor' || String(c.userId) === String(window.currentUserId)) ? `<button class="comment-delete-btn" data-fid="${feedbackId}" data-cid="${c._id}">Delete</button>` : ''}
-                </div>
-            `).join('');
+            
+            // Use threaded rendering with feedbackId
+            list.innerHTML = renderThreadedComments(data.comments || [], null, 0, feedbackId);
+            
+            // Add event listeners
             list.querySelectorAll('.comment-delete-btn').forEach(btn => btn.addEventListener('click', handleDeleteComment));
+            list.querySelectorAll('.comment-reply-btn').forEach(btn => btn.addEventListener('click', handleReplyComment));
         } catch (error) {
+            console.error('Error loading comments:', error);
             // silent fail for comment load
         }
     }
@@ -341,19 +340,84 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleDeleteComment(e) {
         const feedbackId = e.target.dataset.fid;
         const commentId = e.target.dataset.cid;
+        
+        console.log('Deleting comment:', { feedbackId, commentId });
+        
         if (!confirm('Delete this comment?')) return;
+        
         try {
             const response = await fetch(`/api/feedback/${feedbackId}/comments/${commentId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+            
+            console.log('Delete response status:', response.status);
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Delete error response:', errorData);
+                throw new Error(errorData.message || 'Failed to delete comment');
+            }
+            
+            const result = await response.json();
+            console.log('Delete success:', result);
+            
+            await loadComments(feedbackId);
+            showToast('Comment deleted.', 'success');
+        } catch (error) {
+            console.error('Delete comment error:', error);
+            showToast('Error deleting comment: ' + error.message, 'error');
+        }
+    }
+
+    function handleReplyComment(e) {
+        const commentId = e.target.dataset.id;
+        const feedbackId = e.target.closest('.feedback-comments').dataset.id;
+        
+        // Create a reply form
+        const replyForm = document.createElement('div');
+        replyForm.className = 'comment-form reply-form';
+        replyForm.innerHTML = `
+            <input type="text" class="comment-input" placeholder="Reply to this comment..." data-id="${feedbackId}" data-parent="${commentId}" maxlength="1000" />
+            <button class="comment-submit-btn" data-id="${feedbackId}" data-parent="${commentId}">Reply</button>
+            <button class="comment-cancel-btn">Cancel</button>
+        `;
+        
+        // Insert after the comment
+        e.target.closest('.comment-item').appendChild(replyForm);
+        
+        // Add event listeners
+        replyForm.querySelector('.comment-submit-btn').addEventListener('click', handleSubmitReply);
+        replyForm.querySelector('.comment-cancel-btn').addEventListener('click', () => replyForm.remove());
+    }
+
+    async function handleSubmitReply(e) {
+        const feedbackId = e.target.dataset.id;
+        const parentId = e.target.dataset.parent;
+        const input = document.querySelector(`.comment-input[data-id="${feedbackId}"][data-parent="${parentId}"]`);
+        const content = (input?.value || '').trim();
+        
+        if (!content) return;
+        
+        try {
+            const response = await fetch(`/api/feedback/${feedbackId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, parentId })
             });
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.message);
             }
+            input.value = '';
+            input.closest('.reply-form').remove();
             await loadComments(feedbackId);
-            showToast('Comment deleted.', 'success');
+            showToast('Reply added!', 'success');
         } catch (error) {
-            showToast('Error deleting comment: ' + error.message, 'error');
+            showToast('Error adding reply: ' + error.message, 'error');
         }
     }
     
@@ -397,6 +461,54 @@ document.addEventListener('DOMContentLoaded', () => {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+    
+    // Function to detect and convert URLs to clickable links
+    function linkifyText(text) {
+        if (!text) return '';
+        
+        // URL regex pattern
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    }
+    
+    // Function to render threaded comments
+    function renderThreadedComments(comments, parentId = null, level = 0, feedbackId = null) {
+        if (!comments || comments.length === 0) return '';
+        
+        const filteredComments = comments.filter(comment => 
+            parentId ? (comment.parentId && comment.parentId.toString() === parentId.toString()) : (!comment.parentId || comment.parentId === null)
+        );
+        
+        return filteredComments.map(comment => {
+            const replies = renderThreadedComments(comments, comment._id, level + 1, feedbackId);
+            const isReply = level > 0;
+            
+            // Ensure we have valid IDs
+            const commentId = comment._id || comment.id;
+            const userId = comment.userId || comment.user;
+            
+            if (!commentId) {
+                console.error('Comment missing ID:', comment);
+                return '';
+            }
+            
+            return `
+                <div class="comment-item ${isReply ? 'reply' : ''}" data-id="${commentId}">
+                    <div class="comment-author">${escapeHtml(comment.username || 'Unknown User')}</div>
+                    <div class="comment-content">${linkifyText(escapeHtml(comment.content || ''))}</div>
+                    <div class="comment-meta">
+                        <span>${comment.createdAt ? new Date(comment.createdAt).toLocaleString() : 'Unknown date'}</span>
+                        <div>
+                            ${(window.currentUserRole === 'admin' || window.currentUserRole === 'editor' || String(userId) === String(window.currentUserId)) ? 
+                                `<button class="comment-delete-btn" data-fid="${feedbackId}" data-cid="${commentId}">Delete</button>` : ''}
+                            ${!isReply ? `<button class="comment-reply-btn" data-id="${commentId}">Reply</button>` : ''}
+                        </div>
+                    </div>
+                    ${replies}
+                </div>
+            `;
+        }).join('');
     }
     
     function showToast(message, type = 'success') {

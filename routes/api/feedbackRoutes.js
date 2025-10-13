@@ -155,7 +155,7 @@ router.get('/:id/comments', isAuthenticated, async (req, res) => {
 // Comments: add
 router.post('/:id/comments', isAuthenticated, async (req, res) => {
     try {
-        const { content } = req.body;
+        const { content, parentId } = req.body;
         if (!content || !content.trim()) {
             return res.status(400).json({ message: 'Comment cannot be empty' });
         }
@@ -163,7 +163,21 @@ router.post('/:id/comments', isAuthenticated, async (req, res) => {
         if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
         const sessionUser = req.session.user || {};
         const currentUserId = sessionUser._id || sessionUser.id;
-        feedback.comments.push({ userId: currentUserId, username: sessionUser.username, content: content.trim() });
+        
+        // Validate parentId if provided
+        if (parentId) {
+            const parentComment = feedback.comments.id(parentId);
+            if (!parentComment) {
+                return res.status(400).json({ message: 'Parent comment not found' });
+            }
+        }
+        
+        feedback.comments.push({ 
+            userId: currentUserId, 
+            username: sessionUser.username, 
+            content: content.trim(),
+            parentId: parentId || null
+        });
         await feedback.save();
         res.status(201).json({ message: 'Comment added', comments: feedback.comments });
     } catch (error) {
@@ -171,23 +185,49 @@ router.post('/:id/comments', isAuthenticated, async (req, res) => {
     }
 });
 
-// Comments: delete (admin or comment author)
+// Comments: delete (admin, team_lead, vendor, or comment author)
 router.delete('/:id/comments/:commentId', isAuthenticated, async (req, res) => {
     try {
+        console.log('Delete comment request:', { 
+            feedbackId: req.params.id, 
+            commentId: req.params.commentId,
+            user: req.session.user?.username 
+        });
+        
         const feedback = await Feedback.findById(req.params.id);
-        if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
+        if (!feedback) {
+            console.log('Feedback not found:', req.params.id);
+            return res.status(404).json({ message: 'Feedback not found' });
+        }
+        
         const sessionUser = req.session.user || {};
         const currentUserId = String(sessionUser._id || sessionUser.id);
-        const isAdminOrEditor = sessionUser.role === 'admin' || sessionUser.role === 'editor';
+        const canModerate = ['admin','team_lead','vendor'].includes(sessionUser.role);
+        
+        console.log('User info:', { currentUserId, role: sessionUser.role, canModerate });
+        
         const comment = feedback.comments.id(req.params.commentId);
-        if (!comment) return res.status(404).json({ message: 'Comment not found' });
-        if (!isAdminOrEditor && String(comment.userId) !== currentUserId) {
+        if (!comment) {
+            console.log('Comment not found:', req.params.commentId);
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+        
+        console.log('Comment info:', { 
+            commentUserId: String(comment.userId), 
+            canDelete: canModerate || String(comment.userId) === currentUserId 
+        });
+        
+        if (!canModerate && String(comment.userId) !== currentUserId) {
             return res.status(403).json({ message: 'Not authorized to delete this comment' });
         }
+        
         comment.remove();
         await feedback.save();
+        
+        console.log('Comment deleted successfully');
         res.json({ message: 'Comment deleted', comments: feedback.comments });
     } catch (error) {
+        console.error('Error deleting comment:', error);
         res.status(400).json({ message: 'Error deleting comment', error: error.message });
     }
 });

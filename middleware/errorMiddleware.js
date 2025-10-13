@@ -5,11 +5,15 @@ const errorHandler = async (err, req, res, next) => {
     
     // Log the error to the database
     try {
+        const user = req?.session?.user;
         await Log.create({
             level: 'error',
             message: err.message,
             stack: err.stack,
-            user: req.session.user ? req.session.user.id : null
+            user: user?._id || user?.id || null,
+            username: user?.username || '',
+            ip: req.ip || req.connection?.remoteAddress || '',
+            userAgent: req.get ? req.get('User-Agent') : ''
         });
     } catch (dbError) {
         console.error('Failed to write to log database:', dbError);

@@ -1,16 +1,18 @@
 const express = require('express');
 const router = express.Router();
+// Ping should be public; do not require auth here
 const { isAuthenticated } = require('../middleware/authMiddleware');
 const { getOnlineUsers } = require('../utils/webSocketServer');
 
 const ROTATE_INTERVAL = 3 * 60 * 1000; // 3 minutes
+const IDLE_THRESHOLD = 3 * 60 * 1000; // 3 minutes for idle status
 
 // in-memory active users (by userId) and last seen
 const activeUsers = new Map();
 
 // GET /api/ping
 // Touches session to extend cookie, rotates session, and tracks active users.
-router.get('/ping', isAuthenticated, (req, res) => {
+router.get('/ping', (req, res) => {
   if (!req.session) return res.status(200).json({ ok: true });
 
   try {
@@ -19,7 +21,7 @@ router.get('/ping', isAuthenticated, (req, res) => {
     const now = Date.now();
     req.session._lastPingAt = now;
 
-    // Track active users (expires if no ping within 4 minutes)
+    // Track active users (expires if no ping within 5 minutes)
     const user = req.session.user;
     if (user && user._id) {
       activeUsers.set(String(user._id), {
@@ -36,9 +38,9 @@ router.get('/ping', isAuthenticated, (req, res) => {
   return res.json({ ok: true });
 });
 
-// GET /api/active-users (returns users with status based on last 4 min)
+// GET /api/active-users (returns users with status based on last 3 min)
 router.get('/active-users', isAuthenticated, (req, res) => {
-  const cutoff = Date.now() - (4 * 60 * 1000);
+  const cutoff = Date.now() - IDLE_THRESHOLD;
   const byId = new Map();
 
   // include socket-online users as online

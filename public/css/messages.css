@@ -91,7 +91,159 @@
     width: 100%;
     margin-bottom: 0.75rem;
     max-width: 100%;
-    overflow-wrap: wrap;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-family: inherit;
+}
+
+/* Enhanced Button Styles for Messages */
+.message-read-btn {
+    background: linear-gradient(135deg, var(--primary-color), #1e7ce8);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(35, 141, 255, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.message-read-btn:hover {
+    background: linear-gradient(135deg, var(--primary-hover), #1a6bc7);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(35, 141, 255, 0.3);
+}
+
+.message-read-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(35, 141, 255, 0.2);
+}
+
+.message-read-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Hyperlink Support for Messages */
+.message-content a {
+    color: var(--primary-color);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.message-content a:hover {
+    color: var(--primary-hover);
+    border-bottom-color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Auto-detect and style hyperlinks */
+.message-content {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+/* Enhanced Message Item Styling */
+.message-item {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.message-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.message-item.unread {
+    border-left: 4px solid var(--primary-color);
+    background: linear-gradient(135deg, #f8f9ff, #ffffff);
+    box-shadow: 0 2px 8px rgba(35, 141, 255, 0.1);
+}
+
+/* Enhanced Action Buttons */
+.message-delete-btn {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.message-delete-btn:hover {
+    background: linear-gradient(135deg, #c82333, #bd2130);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.message-delete-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+}
+
+/* Enhanced Message Header */
+.message-header {
+    background: linear-gradient(135deg, #f8f9fa, #ffffff);
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.message-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+/* Enhanced Message Content */
+.message-content {
+    padding: 1rem;
+    background: #ffffff;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Enhanced Message Footer */
+.message-footer {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 12px 12px;
+}
+
+/* Enhanced Message Actions */
+.message-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Enhanced Message Target Info */
+.message-target-info {
+    background: linear-gradient(135deg, #e9ecef, #f8f9fa);
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    border-left: 3px solid var(--primary-color);
 }
 
 .message-form > textarea {

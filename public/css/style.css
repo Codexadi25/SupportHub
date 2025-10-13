@@ -61,29 +61,51 @@ body {
     flex-shrink: 0;
 }
 
-.top-bar >h1 {
+.top-bar > h1 {
     color: #fff;
 }
 
-.user-name{
-    padding-right: 8px;
+.user-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #1976d2;
+    white-space: nowrap;
 }
 
-.logout-btn{
+.user-name strong {
+    color: #0d47a1;
+    font-weight: 600;
+}
+
+.logout-btn {
     display: flex;
+    align-items: center;
+    gap: 6px;
     font-weight: 500;
     text-decoration: none;
-    padding: 0 16px;
-    border-radius: 0 16px 16px 0;
-    height: 32px;
-    align-items: center;
-    color: green;
-    background-color: #84ff84;
+    padding: 8px 16px;
+    border-radius: 20px;
+    height: max-content;
+    color: #129900;
+    background: #b6ffa7;
+    border: 1px solid #25bb00;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.logout-btn:hover{
+.logout-btn:hover {
     color: #ffffff;
-    background-color: #ff0000;
+    background: linear-gradient(135deg, #d32f2f, #c62828);
+    border-color: #b71c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
+}
+
+.logout-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
 }
 
 .main-content {
@@ -961,13 +983,28 @@ body.modal-open {
     padding: 1rem;
     background: white;
 }
+
 .user-info {
     display: flex;
-    justify-content: space-evenly;
+    flex-direction: row;
     align-items: center;
-    padding: 0px 0px 0px 16px;
-    border-radius: 32px;
-    background-color: #daecff;
+    gap: .3rem;
+    padding: 2px 2px 2px 16px;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    border: 1px solid rgba(25, 118, 210, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.user-info svg {
+    color: #1976d2;
+    transition: all 0.3s ease;
+}
+
+.user-info:hover svg {
+    color: #0d47a1;
+    transform: scale(1.1);
 }
 .user-details h4 {
     margin: 0 0 0.5rem 0;

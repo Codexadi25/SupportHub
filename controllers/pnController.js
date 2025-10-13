@@ -3,18 +3,21 @@ const Logger = require('../utils/logger');
 const asyncHandler = require('express-async-handler');
 
 exports.getNotes = asyncHandler(async (req, res) => {
-    const userId = req.session.user._id || req.session.user.id;
+    const rawUserId = req.session.user._id || req.session.user.id;
+    const userId = String(rawUserId);
     const notes = await PrivateNote.find({ user: userId });
     res.json(notes);
 });
 
 exports.createNote = asyncHandler(async (req, res) => {
     const { title, content, category } = req.body;
-    const userId = req.session.user._id || req.session.user.id;
+    const rawUserId = req.session.user._id || req.session.user.id;
+    const userId = String(rawUserId);
+    const safeCategory = (category && String(category).trim()) || 'General';
     const note = await PrivateNote.create({
         title,
         content,
-        category,
+        category: safeCategory,
         user: userId
     });
     
@@ -29,13 +32,16 @@ exports.createNote = asyncHandler(async (req, res) => {
 
 exports.updateNote = asyncHandler(async (req, res) => {
     const note = await PrivateNote.findById(req.params.id);
-    const userId = req.session.user._id || req.session.user.id;
+    const rawUserId = req.session.user._id || req.session.user.id;
+    const userId = String(rawUserId);
 
-    if (note && note.user.toString() === userId) {
+    if (note && String(note.user) === userId) {
         const oldData = { title: note.title, content: note.content, category: note.category };
-        note.title = req.body.title || note.title;
-        note.content = req.body.content || note.content;
-        note.category = req.body.category || note.category;
+        if (typeof req.body.title === 'string') note.title = req.body.title;
+        if (typeof req.body.content === 'string') note.content = req.body.content;
+        if (typeof req.body.category === 'string' && req.body.category.trim().length > 0) {
+            note.category = req.body.category.trim();
+        }
         const updatedNote = await note.save();
         
         // Log database change
@@ -53,9 +59,10 @@ exports.updateNote = asyncHandler(async (req, res) => {
 
 exports.deleteNote = asyncHandler(async (req, res) => {
     const note = await PrivateNote.findById(req.params.id);
-    const userId = req.session.user._id || req.session.user.id;
+    const rawUserId = req.session.user._id || req.session.user.id;
+    const userId = String(rawUserId);
 
-    if (note && note.user.toString() === userId) {
+    if (note && String(note.user) === userId) {
         const oldData = { title: note.title, content: note.content, category: note.category };
         await note.deleteOne();
         

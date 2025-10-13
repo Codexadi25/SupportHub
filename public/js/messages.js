@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="message-title">${escapeHtml(message.title)}</div>
-                    <div class="message-content"><pre>${escapeHtml(message.content)}</pre></div>
+                    <div class="message-content">${linkifyText(escapeHtml(message.content))}</div>
                     <div class="message-target-info">
                         Target: ${getTargetDescription(message)}
                     </div>
@@ -361,6 +361,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+    
+    // Function to detect and convert URLs to clickable links
+    function linkifyText(text) {
+        if (!text) return '';
+        
+        // URL regex pattern
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
     }
     
     function showToast(message, type = 'success') {
