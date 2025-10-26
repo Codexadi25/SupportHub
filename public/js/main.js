@@ -1,60 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // =========================================================================
-    // --- WebSocket Connection ---
+    // --- WebSocket Connection (Removed - Now handled by userActivityDashboard.js) ---
     // =========================================================================
-
-    // improved ws/wss selection and avoid repeated toasts when reconnection is expected
-    let wsReconnectTimer = null;
-    const connectWebSocket = () => {
-        // choose correct protocol depending on page protocol
-        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${proto}//${window.location.host}`;
-        const ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
-            console.log('Connected to WebSocket server');
-            if (wsReconnectTimer) {
-                clearTimeout(wsReconnectTimer);
-                wsReconnectTimer = null;
-            }
-            try {
-                // Announce presence for Active Users tracking
-                ws.send(JSON.stringify({ type: 'HELLO', user: { _id: window.currentUserId, id: window.currentUserId, username: window.currentUsername, role: window.currentUserRole } }));
-            } catch (e) {
-                console.debug('HELLO send failed', e);
-            }
-        };
-
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'DATA_UPDATE') {
-                    showToast(`Live update received. Refreshing...`, 'success');
-                    setTimeout(() => window.location.reload(), 1500);
-                }
-            } catch (err) {
-                console.error('WS message parse error', err);
-            }
-        };
-
-        ws.onclose = () => {
-            // only show one toast per reconnect attempt
-            if (!wsReconnectTimer) {
-                showToast('Connection lost. Reconnecting in 5 seconds...', 'error');
-            }
-            wsReconnectTimer = setTimeout(() => {
-                wsReconnectTimer = null;
-                connectWebSocket();
-            }, 5000);
-        };
-
-        ws.onerror = (err) => {
-            console.error('WebSocket error', err);
-            // let onclose handle reconnection and toast
-        };
-    };
-    connectWebSocket();
 
     // =========================================================================
     // --- API Helper Function (ensure cookies are sent with fetch) ---

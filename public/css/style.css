@@ -86,6 +86,7 @@ body {
     padding: 8px 16px;
     border-radius: 20px;
     height: max-content;
+    width: max-content;
     color: #129900;
     background: #b6ffa7;
     border: 1px solid #25bb00;

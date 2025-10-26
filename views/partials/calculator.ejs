@@ -21,7 +21,9 @@
         <% } %>
     </div>
     <div id="notices-list" class="message-widget" style="margin-top:.5rem;">
-        <div class="loading-indicator">Loading notices...</div>
+        <% if (user && user.role === 'new') { %>
+            <div class="loading-indicator">Loading notices...</div>
+        <% } %>
     </div>
     <% if (user && user.role === 'new') { %>
         <div class="notice-banner info" style="margin-top:.75rem;">

@@ -73,6 +73,7 @@ const adminRouter = require('./routes/admin');
 const apiUsersRouter = require('./routes/users'); // for legacy /api/users/bulk route
 app.use('/api/admin', adminRouter);
 app.use('/api', apiUsersRouter);
+app.use('/api', require('./routes/api/userActivity'));
 // ... other API routes
 
 // Error Handler
