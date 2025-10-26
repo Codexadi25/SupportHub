@@ -62,6 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('WebSocket connected');
         
         // Send user identification
+        console.log('Window user data:', {
+          userId: window.currentUserId,
+          username: window.currentUsername,
+          role: window.currentUserRole
+        });
+        
         if (window.currentUserId && window.currentUsername && window.currentUserRole) {
           console.log('Sending user identification to WebSocket:', {
             _id: window.currentUserId,
@@ -90,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const msg = JSON.parse(e.data);
           
           if (msg.type === 'USER_LIST_UPDATE') {
+            console.log('Received user list update with', msg.users?.length || 0, 'users:', msg.users);
             updateUserList(msg.users || []);
           } else if (msg.type === 'WELCOME') {
             console.log('WebSocket welcome:', msg.message);
@@ -146,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (usersResponse.ok) {
         const usersData = await usersResponse.json();
+        console.log('Initial data loaded:', usersData.data?.length || 0, 'users');
         updateUserList(usersData.data || []);
       }
 
@@ -174,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateUserList(users) {
     allUsers = users;
+    console.log('Updating user list with', users.length, 'users');
     applyFilter();
   }
 

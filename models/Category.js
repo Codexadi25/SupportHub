@@ -2,7 +2,11 @@ const mongoose = require('mongoose');
 
 const templateSchema = new mongoose.Schema({
     tags: { type: [String], default: [] },
-    text: { type: String, required: true }
+    text: { type: String, required: true },
+    meta: {
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now }
+    }
 });
 
 const categorySchema = new mongoose.Schema({

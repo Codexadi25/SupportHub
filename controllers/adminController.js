@@ -2,7 +2,7 @@ const Category = require('../models/Category');
 const Log = require('../models/Log');
 const User = require('../models/User');
 const Feedback = require('../models/Feedback');
-const { getOnlineUsers, getUserActivityStats: getWebSocketActivityStats } = require('../utils/webSocketServer');
+const { getOnlineUsers, getAllUserStatuses, getUserStatusCounts } = require('../utils/webSocketServer');
 const Logger = require('../utils/logger');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
@@ -278,8 +278,9 @@ async function deleteComment(req, res) {
 // @access  Admin
 async function getUserActivityStats(req, res) {
     try {
-        const stats = getWebSocketActivityStats();
-        res.json({ success: true, data: stats });
+        const users = await getAllUserStatuses();
+        const counts = await getUserStatusCounts();
+        res.json({ success: true, data: { users, counts } });
     } catch (error) {
         console.error('Get user activity stats error:', error);
         res.status(500).json({ error: 'Failed to retrieve user activity stats' });

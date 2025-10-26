@@ -65,16 +65,33 @@ body {
     color: #fff;
 }
 
-.user-name {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #1976d2;
-    white-space: nowrap;
+.login-user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background-color: #212529;
+    padding: 0px;
+    border-radius: 20px;
+    border: 1px solid #256fef;
+    color: #fff;
+    padding-left: 14px;
 }
 
-.user-name strong {
-    color: #0d47a1;
+.login-user-info > .user-name {
+    color: #fff;
     font-weight: 600;
+}
+
+.login-login-user-info svg.bi-person {
+    color: #fff;
+    width: 20px;
+    height: 20px;
+    transition: all 0.3s ease;
+}
+
+.login-user-info:hover svg.bi-person {
+    color: #e3f2fd;
+    transform: scale(1.1);
 }
 
 .logout-btn {
@@ -422,6 +439,18 @@ body {
     border-color: #fff;
 }
 
+#clearFiltersPN{
+    background-color: rgb(255, 0, 0); 
+    color: #fff; 
+    border-color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
 /* --- Canned Responses --- */
 .cands-list-container {
     padding: 8px;
@@ -471,6 +500,28 @@ body {
     color: #007bff;
     font-weight: 500;
     padding: 0 .6rem;
+}
+.cand-status-tag {
+    display: inline-block;
+    border-radius: 4px;
+    margin-right: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    /* animation: pulse 2s ease-in-out infinite; */
+}
+.cand-status-tag.status-new {
+    background: #fee;
+    color: #d32f2f;
+    /* border: 1px solid #ffcdd2; */
+}
+.cand-status-tag.status-updated {
+    background: #e8f5e9;
+    color: #388e3c;
+    border: 1px solid #c8e6c9;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 .cand-text {
     background-color: #e8f0fa;
@@ -983,29 +1034,6 @@ body.modal-open {
     margin-bottom: 1rem;
     padding: 1rem;
     background: white;
-}
-
-.user-info {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: .3rem;
-    padding: 2px 2px 2px 16px;
-    border-radius: 25px;
-    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-    border: 1px solid rgba(25, 118, 210, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.user-info svg {
-    color: #1976d2;
-    transition: all 0.3s ease;
-}
-
-.user-info:hover svg {
-    color: #0d47a1;
-    transform: scale(1.1);
 }
 .user-details h4 {
     margin: 0 0 0.5rem 0;

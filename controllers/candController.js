@@ -56,8 +56,16 @@ exports.addTemplate = asyncHandler(async (req, res) => {
     if (category) {
         const autoTags = generateTags(text);
         const finalTags = [...new Set([...(tags || []), ...autoTags])];
+        const now = new Date();
 
-        category.templates.push({ text, tags: finalTags });
+        category.templates.push({ 
+            text, 
+            tags: finalTags,
+            meta: {
+                createdAt: now,
+                updatedAt: now
+            }
+        });
         await category.save();
         
         // Log database change
@@ -83,6 +91,17 @@ exports.updateTemplate = asyncHandler(async (req, res) => {
         const oldData = { text: template.text, tags: template.tags };
         template.text = req.body.text;
         template.tags = req.body.tags;
+        
+        // Update meta field if it exists, otherwise create it
+        if (template.meta) {
+            template.meta.updatedAt = new Date();
+        } else {
+            template.meta = {
+                createdAt: template.parent().createdAt || new Date(),
+                updatedAt: new Date()
+            };
+        }
+        
         await category.save();
         
         // Log database change

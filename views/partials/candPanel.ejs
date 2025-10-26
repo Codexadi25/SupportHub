@@ -38,6 +38,25 @@
                             <div class="cand-header">
                                 <span class="cand-category-label"><%= category.title.toUpperCase() %>
                                     <span class="cand-tags">
+                                        <% 
+                                        // Calculate NEW/UPDATED tags
+                                        const now = new Date();
+                                        const createdAt = new Date(template.meta?.createdAt || category.createdAt);
+                                        const updatedAt = new Date(template.meta?.updatedAt || category.updatedAt);
+                                        
+                                        const daysSinceCreated = (now - createdAt) / (1000 * 60 * 60 * 24);
+                                        const daysSinceUpdated = (now - updatedAt) / (1000 * 60 * 60 * 24);
+                                        const isNew = daysSinceCreated <= 4;
+                                        const isUpdated = daysSinceUpdated <= 4 && daysSinceUpdated < daysSinceCreated;
+                                        %>
+                                        
+                                        <% if (isNew) { %>
+                                            <span class="cand-status-tag status-new">NEW</span>
+                                        <% } %>
+                                        <% if (isUpdated) { %>
+                                            <span class="cand-status-tag status-updated">UPDATED</span>
+                                        <% } %>
+                                        
                                         <% template.tags.forEach(tag => { %>
                                             <span class="cand-tag-chip tag"><%= tag %></span>
                                         <% }) %>
