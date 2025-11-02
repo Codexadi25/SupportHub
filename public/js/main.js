@@ -7,14 +7,51 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     // --- API Helper Function (ensure cookies are sent with fetch) ---
     // =========================================================================
+
+    // --- NEW: Client Public IP Fetcher (Cached) ---
+    // This promise will hold the IP address once it's fetched.
+    let ipPromise = null;
+    const getUserPublicIP = () => {
+        if (!ipPromise) {
+            // Start the fetch only on the first call
+            ipPromise = fetch('https://api.ipify.org?format=json')
+                .then(res => {
+                    if (!res.ok) throw new Error('IP API failed');
+                    return res.json();
+                })
+                .then(data => {
+                    console.log('User Public IP fetched:', data.ip);
+                    return data.ip;
+                })
+                .catch(err => {
+                    console.warn('Could not fetch user public IP:', err.message);
+                    return 'unknown'; // Return 'unknown' on failure
+                });
+        }
+        return ipPromise; // Return the promise
+    };
+    // --- END NEW ---
+
     const apiRequest = async (url, method = 'GET', body = null) => {
         try {
+            // --- MODIFICATION: Get the client's IP ---
+            // This will fetch the IP on the first call and use the cached value on subsequent calls.
+            const clientIP = await getUserPublicIP();
+            // --- END MODIFICATION ---
+
             const options = { method, headers: {}, credentials: 'same-origin' }; // include session cookie
             if (body instanceof FormData) {
+                // You could also add it to FormData if your backend supports it
+                // body.append('clientIP', clientIP); 
                 options.body = body;
             } else if (body) {
                 options.headers['Content-Type'] = 'application/json';
-                options.body = JSON.stringify(body);
+                
+                // --- MODIFICATION: Add client IP to the request body ---
+                const bodyWithIP = { ...body, clientIP };
+                // --- END MODIFICATION ---
+
+                options.body = JSON.stringify(bodyWithIP); // Stringify the modified body
             }
             const response = await fetch(url, options);
             if (!response.ok) {
@@ -220,14 +257,14 @@ document.addEventListener('DOMContentLoaded', () => {
             showCandForm({ categoryId, templateId, text, tags });
         }
         if (e.target.matches('.btn-delete-cand')) {
-             if (!confirm('Are you sure you want to delete this canned response?')) return;
-             const candItem = e.target.closest('.cand-item');
-             const categoryDiv = e.target.closest('.category-group');
-             const templateId = candItem.dataset.templateId;
-             const categoryId = categoryDiv.dataset.categoryId;
-             await apiRequest(`/api/cands/template/${categoryId}/${templateId}`, 'DELETE');
-             candItem.remove();
-             showToast('Canned response deleted successfully.');
+            if (!confirm('Are you sure you want to delete this canned response?')) return;
+            const candItem = e.target.closest('.cand-item');
+            const categoryDiv = e.target.closest('.category-group');
+            const templateId = candItem.dataset.templateId;
+            const categoryId = categoryDiv.dataset.categoryId;
+            await apiRequest(`/api/cands/template/${categoryId}/${templateId}`, 'DELETE');
+            candItem.remove();
+            showToast('Canned response deleted successfully.');
         }
 
         // --- Private Notes CRUD ---
@@ -379,9 +416,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Admin Panel & Logger (making existing functionality work) ---
 
 /* -----------------------------
-   Admin: User Management UI
-   Requires: element with id "admin-users-container"
-   ----------------------------- */
+    Admin: User Management UI
+    Requires: element with id "admin-users-container"
+    ----------------------------- */
 async function fetchAndRenderAdminUsers() {
     const container = document.getElementById('admin-users-container');
     if (!container) return;
@@ -672,7 +709,7 @@ function showToast(message, type = 'success') {
             resultsBox.style.display = 'block';
             showToast('Users created!', 'success');
         } catch (error) {
-             showToast(`Error: ${error.message}`, 'error');
+            showToast(`Error: ${error.message}`, 'error');
         }
     });
     
