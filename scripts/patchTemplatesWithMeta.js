@@ -23,12 +23,23 @@ async function patchTemplatesWithMeta() {
             for (const template of category.templates) {
                 totalTemplates++;
                 
-                // If template doesn't have meta field, add it
-                if (!template.meta || !template.meta.createdAt || !template.meta.updatedAt) {
-                    template.meta = {
-                        createdAt: category.createdAt || new Date(),
-                        updatedAt: category.updatedAt || new Date()
-                    };
+                // If template has the old meta structure, migrate it
+                if (template.meta && template.meta.createdAt && template.meta.updatedAt) {
+                    if (!template.createdAt) {
+                        template.createdAt = template.meta.createdAt;
+                    }
+                    if (!template.updatedAt) {
+                        template.updatedAt = template.meta.updatedAt;
+                    }
+                    // Optionally remove the old meta field
+                    template.meta = undefined;
+                    hasChanges = true;
+                    updatedTemplates++;
+                }
+                // If template doesn't have createdAt or updatedAt at all, add them
+                else if (!template.createdAt || !template.updatedAt) {
+                    template.createdAt = category.createdAt || new Date();
+                    template.updatedAt = category.updatedAt || new Date();
                     hasChanges = true;
                     updatedTemplates++;
                 }

@@ -34,7 +34,7 @@ const initializeWebSocketServer = (server) => {
     wssInstance = wss;
 
     wss.on('connection', (ws, req) => {
-        console.log('New WebSocket connection attempt');
+        // console.log('New WebSocket connection attempt');
         ws.isAlive = true;
         ws.userId = null;
         ws.lastActivity = Date.now();
