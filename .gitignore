@@ -44,3 +44,6 @@ Thumbs.db
 
 # Backups
 backups/
+
+# Package
+package.lock.json
