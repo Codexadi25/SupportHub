@@ -52,7 +52,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
     const user = await User.create({
         username: username.toLowerCase(),
         password,
-        role: 'user' // Default role
+        role: 'new' // Default role
     });
     
     // Log user registration
