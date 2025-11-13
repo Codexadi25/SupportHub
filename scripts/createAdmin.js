@@ -2,8 +2,8 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const User = require('./models/User'); // Adjust path if your models are elsewhere
-const connectDB = require('./config/database');
+const User = require('../models/User'); // Adjust path if your models are elsewhere
+const connectDB = require('../config/database');
 
 const createAdminUser = async () => {
     await connectDB();

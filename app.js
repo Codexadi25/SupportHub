@@ -62,18 +62,19 @@ app.use('/api', require('./routes/ping'));
 
 // Routes
 app.use('/', authRouter);
+const adminRouter = require('./routes/admin');
+const apiUsersRouter = require('./routes/users'); // for legacy /api/users/bulk route
+app.use('/api/admin', adminRouter);
+app.use('/api', apiUsersRouter);
+app.use('/api', require('./routes/api/userActivity'));
 app.use('/', require('./routes/viewRoutes'));
+
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/api/cands', require('./routes/api/candRoutes'));
 app.use('/api/pns', require('./routes/api/pnRoutes'));
 app.use('/api/feedback', require('./routes/api/feedbackRoutes'));
 app.use('/api/messages', require('./routes/api/messageRoutes'));
 app.use('/api/notices', require('./routes/api/noticeRoutes'));
-const adminRouter = require('./routes/admin');
-const apiUsersRouter = require('./routes/users'); // for legacy /api/users/bulk route
-app.use('/api/admin', adminRouter);
-app.use('/api', apiUsersRouter);
-app.use('/api', require('./routes/api/userActivity'));
 // ... other API routes
 
 // Error Handler

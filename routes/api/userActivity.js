@@ -25,4 +25,14 @@ router.get('/user-activity/counts', isAuthenticated, async (req, res) => {
     }
 });
 
+router.get('/user-status/:userId', (req, res) => {
+    const userId = req.params.userId;
+    const user = connectedUsers.get(userId);
+    if (user) {
+        res.json({ userId: userId, status: user.status });
+    } else {
+        res.status(404).json({ message: 'User not found or offline' });
+    }
+});
+
 module.exports = router;

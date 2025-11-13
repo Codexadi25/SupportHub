@@ -1,7 +1,6 @@
 const User = require('../models/User');
 const Category = require('../models/Category');
 const PrivateNote = require('../models/PrivateNote');
-const PNCategory = require('../models/PNCategory');
 const Logger = require('../utils/logger');
 const asyncHandler = require('express-async-handler');
 
@@ -117,7 +116,7 @@ exports.getAppPage = async (req, res) => {
         const users = await User.find({}).select('-password').sort({ username: 1 });
         
         // --- NEW: Fetch Private Note Categories ---
-        const pnCategories = await PNCategory.find({ user: req.session.user.id }).sort({ title: 1 });
+        const pnCategories = await Category.find({ user: req.session.user.id }).sort({ title: 1 });
 
         // Aggregate all unique tags
         const allTags = new Set();

@@ -1,5 +1,9 @@
 <div class="panel-header">
-    <h2>My Private Notes</h2>
+    <h2>
+        <% if (user.role === 'new') { %>My Private Notes
+            Private Notes
+        <% } %>
+    </h2>
     <button id="btn-create-pn-category" class="action-btn">New PN Category</button>
 </div>
 
@@ -17,7 +21,7 @@
 
     <div class="scroll-area">
         <div class="panel-header" style="padding: 1rem 0; display: flex; justify-content: space-between; align-items: center;">
-            <% if (user.role === 'admin' || user.role === 'editor' || user.role === 'user') { %>
+            <% if (user.role === 'admin' || user.role === 'editor' || user.role === 'user' || user.role === 'new') { %>
                 <button id="btn-create-pn" class="action-btn-sm">Add New Note</button>
             <% } %>
             <button class="clear-filters-btn" id="clearFiltersPN">Clear Filters</button>

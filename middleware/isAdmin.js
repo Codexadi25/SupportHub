@@ -10,6 +10,6 @@ module.exports = function isAdmin(req, res, next) {
     }
     return next();
   } catch (err) {
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Internal Server error' });
   }
 };

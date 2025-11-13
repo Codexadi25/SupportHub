@@ -3,7 +3,7 @@
 </div>
 
 <div class="content-scroll-area admin-forms">
-
+<% if (user.role === 'admin' || user.role === 'vendor') { %>
   <div class="admin-section">
     <h3>Bulk Upload Cands (JSON) <button id="toggle-json-sample" class="link-btn" onclick="toggleJsonSample()">Show Sample</button></h3>
     <p>Upload canned responses from a JSON file. Choose whether to append to existing data or replace all data.</p>
@@ -60,7 +60,7 @@
       <button type="submit" class="action-btn">Upload Canned Responses</button>
     </form>
   </div>
-
+<% } %>
   <div class="admin-section">
     <h3>Bulk Create Users</h3>
     <p>Enter usernames, one per line. Initial password will equal username.</p>

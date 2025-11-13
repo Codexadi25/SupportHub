@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fd.append('mode', modeSelect.value);
       try {
         const result = await api('/api/admin/bulk-upload-cands', 'POST', fd, true);
-        showToast(result.details || 'Cands uploaded, refreshing...', 'success');
+        showToast(result.message || 'Cands uploaded, refreshing...', 'success');
         setTimeout(()=> location.reload(), 900);
       } catch (err) { showToast(err.message, 'error'); }
     });
@@ -67,7 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const lines = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
       if (!lines.length) return showToast('Enter at least one username', 'error');
       try {
-        const res = await api('/api/admin/users/bulk', 'POST', { usernames: lines });
+        // *** FIX 1: Changed route from /api/admin/users/bulk to /api/users/bulk ***
+        const res = await api('/api/users/bulk', 'POST', { usernames: lines });
         if (res?.createdUsers?.length) {
           bulkResults.style.display = 'block';
           newCredsOutput.textContent = res.createdUsers.map(u=>`Username: ${u.username}\nPassword: ${u.password}\n`).join('\n');
@@ -97,15 +98,16 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) { showToast(err.message,'error'); }
   });
 
-  // Active Users handled by public/js/activeUsersRealtime.js (included in admin panel partial)
+  // Active Users handled by userActivityDashboard.js
 
   const cleanupLogsBtn = document.getElementById('cleanupLogsBtn');
   if (cleanupLogsBtn) cleanupLogsBtn.addEventListener('click', async () => {
     if (!confirm('Cleanup logs older than 30 days?')) return;
     try {
-      await api('/api/admin/cleanup-logs', 'POST', { days: 30, limit: 500 });
+      await api('/api/admin/cleanup-logs', 'POST');
       showToast('Logs cleaned', 'success');
-      document.getElementById('log-list').innerHTML = '<p>Logs cleaned.</p>';
+      const logList = document.getElementById('log-list');
+      if (logList) logList.innerHTML = '<p>Logs cleaned.</p>';
     } catch (err) { showToast(err.message,'error'); }
   });
 
@@ -128,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function renderUsersTable() {
+    if (!usersTbody) return; // Don't run if the table isn't on the page
     try {
       const users = await fetchUsers();
       const filter = (searchInput?.value || '').toLowerCase().trim();
@@ -153,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td style="padding:8px">
             <div style="display:flex;gap:6px">
               <button class="btn btn-set-password" data-user-id="${u._id}">Reset Password</button>
-              <button class="btn btn-reset-password" data-user-id="${u._id}">👁</button>
+              <button class="btn btn-reset-password" data-user-id="${u._id}" title="Reset password to username">Set Default Password</button>
               <button class="btn btn-delete-user" data-user-id="${u._id}">Delete</button>
             </div>
           </td>
@@ -172,14 +175,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Delegated actions on users table
   document.body.addEventListener('click', async (e) => {
     const target = e.target;
-    // reset & view temp password (eye)
+    // reset password to username
     if (target.matches('.btn-reset-password')) {
       const id = target.dataset.userId;
-      if (!confirm('Reset password and show temporary password?')) return;
+      const username = target.closest('tr')?.firstElementChild?.textContent || 'this user';
+      if (!confirm(`Reset password for "${username}"? This will set their password to be the same as their username.`)) return;
       try {
+        // *** FIX 2: Changed res.tempPassword to res.newPassword ***
         const res = await api(`/api/admin/users/${id}/reset-password`, 'POST');
-        modalTitle.textContent = `Temporary password for ${res.tempPassword ? '' : id}`;
-        modalForm.innerHTML = `<p>Temporary password (copy now):</p><pre id="temp-pass">${res.tempPassword}</pre><button id="copy-temp-pass" type="button">Copy</button>`;
+        modalTitle.textContent = `Password Reset for ${username}`;
+        modalForm.innerHTML = `
+          <p>Password has been reset to:</p>
+          <pre id="temp-pass" style="background:#eee;padding:10px;border-radius:4px;">${res.newPassword}</pre>
+          <button id="copy-temp-pass" type="button" class="action-btn">Copy</button>`;
+        
         openModal();
         document.getElementById('copy-temp-pass')?.addEventListener('click', () => {
           const txt = document.getElementById('temp-pass')?.textContent || '';
@@ -195,20 +204,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const id = target.dataset.userId;
       modalTitle.textContent = 'Set New Password';
       modalForm.innerHTML = `
-        <label>New Password</label>
-        <input id="adminNewPassword" type="password" required minlength="6">
-        <button type="submit" class="action-btn">Set Password</button>
-      `;
+        <div class="form-group">
+          <label>New Password</label>
+          <input class="form-control" id="adminNewPassword" type="password" required minlength="6" style="padding:8px;width:100%;box-sizing:border-box;">
+          <button type="submit" class="action-btn" style="margin-top:10px;">Confirm and Change Password</button>
+        </div>
+        `;
       openModal();
       modalForm.onsubmit = async (ev) => {
         ev.preventDefault();
         const pwd = document.getElementById('adminNewPassword')?.value || '';
         if (pwd.length < 6) return showToast('Password must be at least 6 chars', 'error');
         try {
+          // *** FIX 3: Changed body from { newPassword: pwd } to { password: pwd } ***
           await api(`/api/admin/users/${id}/password`, 'PUT', { newPassword: pwd });
           showToast('Password updated', 'success');
           closeModal();
-        } catch (err) { showToast(err.message,'error'); }
+        } catch (err) { 
+            showToast(err.message,'error');
+            // This is a common error, so let's add a hint.
+            if (err.message.includes('Not Found')) {
+                showToast('Hint: Make sure the /api/admin/users/:id/password PUT route is defined in adminRoutes.js', 'info');
+            }
+            else if(err.message.includes('required')) {
+              showToast('ERR: 400, Password is required')
+            }
+            else {
+              showToast(err.message, 'error'); // This now shows a useful error!
+            }
+        }
       };
       return;
     }
@@ -216,7 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // delete user
     if (target.matches('.btn-delete-user')) {
       const id = target.dataset.userId;
-      if (!confirm('Delete this user?')) return;
+      const username = target.closest('tr')?.firstElementChild?.textContent || 'this user';
+      if (!confirm(`Delete "${username}"? This action cannot be undone.`)) return;
       try {
         await api(`/api/admin/users/${id}`, 'DELETE');
         showToast('User deleted', 'success');

@@ -1125,7 +1125,8 @@ body.modal-open {
     top: 10px;
 }
 .masked-pass { font-family: monospace; letter-spacing: 2px; }
-.btn-set-password{ background-color: #09ff00; color: #024400;}
+.btn-set-password{ background-color: #007bff; color: #fff;}
+.btn-reset-password { background-color: #FFC107; color: #000; }
 .btn-delete-user{ background-color: #ff0000; color: #fff;}
 .action-inline { display:flex; gap:8px; align-items:center; }
 .action-inline button { padding:6px 8px; border-radius:6px; border:1px solid #d0d7de; background:#fff; cursor:pointer; }

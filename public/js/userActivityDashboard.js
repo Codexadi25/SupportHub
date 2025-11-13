@@ -183,6 +183,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateUserList(users) {
     allUsers = users;
     console.log('Updating user list with', users.length, 'users');
+    // Also update counts from the full user list as a fallback
+    const counts = users.reduce((acc, user) => {
+        acc[user.status] = (acc[user.status] || 0) + 1;
+        acc.total = (acc.total || 0) + 1;
+        return acc;
+    }, {});
+    updateStatusCounts(counts);
     applyFilter();
   }
 
@@ -208,13 +215,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderUserList() {
+    if (!usersList) return; // Guard clause if element doesn't exist
+    
     if (filteredUsers.length === 0) {
       usersList.innerHTML = '<div class="no-users"><p>No users found</p></div>';
       return;
     }
 
     // Sort users: online first, then by role, then by name
-    const roleOrder = { admin: 6, editor: 5, vendor: 4, team_lead: 3, quality_analyst: 2, user: 1 };
+    const roleOrder = { admin: 6, editor: 5, vendor: 4, team_lead: 3, quality_analyst: 2, user: 1, new: 0 };
     const sortedUsers = filteredUsers.sort((a, b) => {
       const aOnline = a.status === 'online';
       const bOnline = b.status === 'online';
@@ -228,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     usersList.innerHTML = sortedUsers.map(user => {
-      const statusClass = `status-${user.status}`;
+      const statusClass = `status-${user.status || 'unavailable'}`;
       const lastActivity = user.lastActivity ? 
         new Date(user.lastActivity).toLocaleTimeString() : 
         'Unknown';
@@ -240,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="user-info">
             <div class="user-name">${user.username}</div>
-            <div class="user-role">${user.role.toUpperCase()}</div>
+            <div class="user-role">${(user.role || 'user').toUpperCase()}</div>
             <div class="last-activity">Last activity: ${lastActivity}</div>
           </div>
           <div class="user-status ${statusClass}">
@@ -319,4 +328,4 @@ document.addEventListener('DOMContentLoaded', () => {
       loadInitialData();
     }
   }, 60000);
-});
+})

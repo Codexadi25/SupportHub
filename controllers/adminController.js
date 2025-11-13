@@ -117,22 +117,30 @@ async function updateUserRole(req, res) {
 // @desc    Update user password
 // @route   PUT /api/admin/users/:id/password
 // @access  Admin
-async function updateUserPassword(req, res) {
+async function updateUserPassword(req, res, next) {
     try {
-        const { password } = req.body;
+        const { newPassword } = req.body;
+        
+        // if (!password || password.trim() === '') {
+        if (!newPassword || newPassword.trim() === '') {
+            res.status(400); // 400 = Bad Request
+            throw new Error('Password is required');
+        }
+
         const user = await User.findById(req.params.id);
         
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
         
-        user.password = password; // Pre-save hook will hash it
+        user.password = newPassword;
+        // user.password = password; // Pre-save hook will hash it
         await user.save();
         
         res.json({ message: 'User password updated successfully' });
     } catch (error) {
         console.error('Update user password error:', error);
-        res.status(500).json({ error: 'Failed to update user password' });
+        next(error);
     }
 }
 

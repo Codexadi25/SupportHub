@@ -8,6 +8,28 @@ const IDLE_THRESHOLD = 3 * 60 * 1000; // 3 minutes for idle status
 // In-memory active users (by userId) and last seen
 const activeUsers = new Map();
 
+// --- NEW: Client Public IP Fetcher (Cached) ---
+// This promise will hold the IP address once it's fetched.
+let ipPromise = null;
+const getUserPublicIP = () => {
+    if (!ipPromise) {
+        // Start the fetch only on the first call
+        ipPromise = fetch('https://api.ipify.org?format=json')
+            .then(res => {
+                if (!res.ok) throw new Error('IP API failed');
+                return res.json();
+            })
+            .then(data => {
+                console.log('User Public IP fetched:', data.ip);
+                return data.ip;
+            })
+            .catch(err => {
+                console.warn('Could not fetch user public IP:', err.message);
+                return 'unknown'; // Return 'unknown' on failure
+            });
+    }
+    return ipPromise; // Return the promise
+};
 // GET /api/ping
 // Touches session to extend cookie and tracks active users
 router.get('/ping', (req, res) => {

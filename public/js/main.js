@@ -802,6 +802,37 @@ function showToast(message, type = 'success') {
         details.style.display = isVisible ? 'none' : 'block';
         button.textContent = isVisible ? 'Show Details' : 'Hide Details';
     };
+    
+    const connectedUsers = new Map(); // Stores { userId: { status: 'online', ws: connectionObject } }
+
+    wss.on('connection', function connection(ws) {
+        const userId = generateUniqueId(); // Or receive from client after authentication
+        connectedUsers.set(userId, { status: 'online', ws: ws });
+
+        ws.on('message', function incoming(message) {
+            // Handle status updates from the client
+            const data = JSON.parse(message);
+            if (data.type === 'statusUpdate') {
+                connectedUsers.get(userId).status = data.newStatus;
+                // Broadcast status change to other relevant users
+                broadcastStatusUpdate(userId, data.newStatus);
+            }
+        });
+
+        ws.on('close', function close() {
+            connectedUsers.delete(userId);
+            // Broadcast offline status
+            broadcastStatusUpdate(userId, 'offline');
+        });
+    });
+
+    function broadcastStatusUpdate(userId, newStatus) {
+        for (const [id, user] of connectedUsers.entries()) {
+            if (id !== userId) { // Don't send to self
+                user.ws.send(JSON.stringify({ type: 'userStatus', userId: userId, status: newStatus }));
+            }
+        }
+    }
 
     // --- User Management Logic ---
     const refreshUsersBtn = document.getElementById('refreshUsersBtn');
