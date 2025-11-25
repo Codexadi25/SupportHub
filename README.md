@@ -1,0 +1,1 @@
+[Continue to Documentation](https://github.com/Codexadi25/SupportHub/blob/development/DOCUMENTATION.md)
