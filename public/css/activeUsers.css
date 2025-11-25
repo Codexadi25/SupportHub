@@ -1,0 +1,212 @@
+/* Active Users Styling */
+.active-user-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.active-user-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    border-color: var(--primary-color);
+}
+
+.active-user-item.online {
+    border-left: 4px solid #22c55e;
+    background: linear-gradient(135deg, #f0fdf4, #ffffff);
+}
+
+.active-user-item.idle {
+    border-left: 4px solid #f59e0b;
+    background: linear-gradient(135deg, #fffbeb, #ffffff);
+}
+
+.user-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-right: 1rem;
+    min-width: 80px;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.status-dot[style*="#22c55e"] {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    animation: pulse-green 2s infinite;
+}
+
+.status-dot[style*="#f59e0b"] {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    animation: pulse-amber 2s infinite;
+}
+
+@keyframes pulse-green {
+    0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+
+@keyframes pulse-amber {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
+}
+
+.status-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.active-user-item .user-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.active-user-item .user-name {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.active-user-item .user-role {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.active-user-item .role-admin {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.active-user-item .role-editor {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.active-user-item .role-vendor {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.active-user-item .role-team_lead {
+    background: #d4edda;
+    color: #155724;
+}
+
+.active-user-item .role-quality_analyst {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.active-user-item .role-user {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.user-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.last-seen,
+.connected-since {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.no-active-users {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.no-active-users p {
+    margin: 0;
+    font-style: italic;
+}
+
+/* Enhanced Active Users Container */
+#active-users-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+#active-users-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#active-users-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#active-users-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+#active-users-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* User Count Badge */
+.user-count-badge {
+    background: linear-gradient(135deg, var(--primary-color), #1e7ce8);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(35, 141, 255, 0.2);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}

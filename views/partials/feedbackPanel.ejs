@@ -1,0 +1,105 @@
+<div class="panel-header">
+    <h2>Feedback & Comments</h2>
+    <button id="btn-submit-feedback" class="action-btn">Submit Feedback</button>
+</div>
+
+<div class="content-panel-grid">
+    <div class="feedback-filters">
+        <div class="filter-group">
+            <label for="feedback-type-filter">Type:</label>
+            <select id="feedback-type-filter">
+                <option value="">All Types</option>
+                <option value="suggestion">Suggestion</option>
+                <option value="bug_report">Bug Report</option>
+                <option value="feature_request">Feature Request</option>
+                <option value="cand_modification">Cand Modification</option>
+                <option value="tag_change">Tag Change</option>
+                <option value="general">General</option>
+            </select>
+        </div>
+        <% if (user.role === 'admin' || user.role === 'editor') { %>
+        <div class="filter-group">
+            <label for="feedback-status-filter">Status:</label>
+            <select id="feedback-status-filter">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="feedback-priority-filter">Priority:</label>
+            <select id="feedback-priority-filter">
+                <option value="">All Priorities</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+            </select>
+        </div>
+        <% } %>
+    </div>
+    
+    <div class="scroll-area">
+        <div id="feedback-list-container">
+            <div class="loading-indicator">Loading feedback...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Submission Modal -->
+<div id="feedback-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="close-feedback-modal">&times;</button>
+        <h3 id="feedback-modal-title">Submit Feedback</h3>
+        <form id="feedback-form">
+            <div class="form-group">
+                <label for="feedback-type">Type *</label>
+                <select id="feedback-type" name="type" required>
+                    <option value="">Select Type</option>
+                    <option value="suggestion">Suggestion</option>
+                    <option value="bug_report">Bug Report</option>
+                    <option value="feature_request">Feature Request</option>
+                    <option value="cand_modification">Cand Modification</option>
+                    <option value="tag_change">Tag Change</option>
+                    <option value="general">General</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="feedback-title">Title *</label>
+                <input type="text" id="feedback-title" name="title" required maxlength="200" placeholder="Brief description of your feedback">
+            </div>
+            <div class="form-group">
+                <label for="feedback-description">Description *</label>
+                <textarea id="feedback-description" name="description" required maxlength="2000" rows="6" placeholder="Detailed description of your feedback, suggestion, or issue"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="feedback-priority">Priority</label>
+                <select id="feedback-priority" name="priority">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="feedback-tags">Tags (comma-separated)</label>
+                <input type="text" id="feedback-tags" name="tags" placeholder="e.g., ui, performance, feature">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="feedback-public" name="isPublic">
+                    Make this feedback public (others can see and vote on it)
+                </label>
+            </div>
+            <div class="form-actions">
+                <button type="button" id="cancel-feedback" class="btn-secondary">Cancel</button>
+                <button type="submit" class="action-btn">Submit Feedback</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/js/feedback.js"></script>
+

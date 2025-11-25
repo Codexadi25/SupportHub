@@ -1,0 +1,364 @@
+<div class="user-activity-dashboard">
+  <!-- Status Cards Row -->
+  <div class="status-cards">
+    <div class="status-card online">
+      <div class="status-icon">🟢</div>
+      <div class="status-info">
+        <div class="status-label">Online</div>
+        <div class="status-count" id="count-online">0</div>
+      </div>
+    </div>
+    
+    <div class="status-card on-break">
+      <div class="status-icon">🟡</div>
+      <div class="status-info">
+        <div class="status-label">On Break</div>
+        <div class="status-count" id="count-on-break">0</div>
+      </div>
+    </div>
+    
+    <div class="status-card unresponsive">
+      <div class="status-icon">🟠</div>
+      <div class="status-info">
+        <div class="status-label">Unresponsive</div>
+        <div class="status-count" id="count-unresponsive">0</div>
+      </div>
+    </div>
+    
+    <div class="status-card unavailable">
+      <div class="status-icon">⚫</div>
+      <div class="status-info">
+        <div class="status-label">Unavailable</div>
+        <div class="status-count" id="count-unavailable">0</div>
+      </div>
+    </div>
+    
+    <div class="status-card idle">
+      <div class="status-icon">🟤</div>
+      <div class="status-info">
+        <div class="status-label">Idle</div>
+        <div class="status-count" id="count-idle">0</div>
+      </div>
+    </div>
+    
+    <div class="status-card total">
+      <div class="status-icon">👥</div>
+      <div class="status-info">
+        <div class="status-label">Total Agents</div>
+        <div class="status-count" id="count-total">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls Row -->
+  <div class="dashboard-controls">
+    <div class="filter-controls">
+      <label for="status-filter">Filter by Status:</label>
+      <select id="status-filter">
+        <option value="all">All Statuses</option>
+        <option value="online">Online</option>
+        <option value="on_break">On Break</option>
+        <option value="idle">Idle</option>
+        <option value="unresponsive">Unresponsive</option>
+        <option value="unavailable">Unavailable</option>
+      </select>
+    </div>
+    
+    <div class="action-controls">
+      <button id="refresh-users" class="btn btn-primary">Refresh</button>
+      <button id="go-on-break" class="btn btn-warning">Go on Break</button>
+      <button id="back-online" class="btn btn-success">Back Online</button>
+    </div>
+  </div>
+
+  <!-- Connection Status -->
+  <div class="connection-status">
+    <span id="connection-indicator" class="status-indicator">🔴 Disconnected</span>
+  </div>
+
+  <!-- Users List -->
+  <div class="users-list-container">
+    <div class="users-list-header">
+      <h3>User Activity List</h3>
+      <div class="list-stats">
+        <span id="filtered-count">0</span> users shown
+      </div>
+    </div>
+    
+    <div id="users-list" class="users-list">
+      <!-- Users will be populated here -->
+    </div>
+  </div>
+</div>
+
+<style>
+.user-activity-dashboard {
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.status-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.status-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-left: 5px solid;
+  transition: transform 0.2s ease;
+}
+
+.status-card:hover {
+  transform: translateY(-2px);
+}
+
+.status-card.online { border-left-color: #28a745; }
+.status-card.on-break { border-left-color: #ffc107; }
+.status-card.unresponsive { border-left-color: #fd7e14; }
+.status-card.unavailable { border-left-color: #6c757d; }
+.status-card.idle { border-left-color: #dc3545; }
+.status-card.total { border-left-color: #007bff; }
+
+.status-icon {
+  font-size: 24px;
+}
+
+.status-info {
+  flex: 1;
+}
+
+.status-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-count {
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+}
+
+.dashboard-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-controls label {
+  font-weight: 600;
+  color: #333;
+}
+
+.filter-controls select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.action-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.btn-primary { background: #007bff; color: white; }
+.btn-warning { background: #ffc107; color: #333; }
+.btn-success { background: #28a745; color: white; }
+
+.connection-status {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.status-indicator {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+
+.users-list-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.users-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  background: #f8f9fa;
+}
+
+.users-list-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.list-stats {
+  color: #666;
+  font-size: 14px;
+}
+
+.users-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+}
+
+.user-item:hover {
+  background: #f8f9fa;
+}
+
+.user-item:last-child {
+  border-bottom: none;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #666;
+  margin-right: 15px;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.user-role {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.user-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.status-online .status-dot { background: #28a745; }
+.status-online .status-text { color: #28a745; }
+
+.status-idle .status-dot { background: #dc3545; }
+.status-idle .status-text { color: #dc3545; }
+
+.status-on_break .status-dot { background: #ffc107; }
+.status-on_break .status-text { color: #ffc107; }
+
+.status-unresponsive .status-dot { background: #fd7e14; }
+.status-unresponsive .status-text { color: #fd7e14; }
+
+.status-unavailable .status-dot { background: #6c757d; }
+.status-unavailable .status-text { color: #6c757d; }
+
+.last-activity {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.no-users {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.no-users p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .status-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .dashboard-controls {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .action-controls {
+    justify-content: center;
+  }
+}
+</style>
+
+<script src="/js/userActivityDashboard.js"></script>

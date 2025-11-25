@@ -1,0 +1,563 @@
+/* Feedback Panel Styles */
+.feedback-filters {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid var(--border-color);
+    align-items: end;
+}
+
+/* Enhanced Button Styles */
+.action-btn {
+    background: linear-gradient(135deg, var(--primary-color), #1e7ce8);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(35, 141, 255, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.action-btn:hover {
+    background: linear-gradient(135deg, var(--primary-hover), #1a6bc7);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(35, 141, 255, 0.3);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(35, 141, 255, 0.2);
+}
+
+/* Comment Threading Styles */
+.feedback-comments {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.comments-list {
+    margin-bottom: 1rem;
+}
+
+.comment-item {
+    position: relative;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid var(--primary-color);
+    transition: all 0.2s ease;
+}
+
+.comment-item:hover {
+    background: #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.comment-item.reply {
+    margin-left: 2rem;
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-left: 3px solid #6c757d;
+}
+
+.comment-item.reply::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 0.75rem;
+    width: 1.25rem;
+    height: 0.75rem;
+    border: 2px solid var(--primary-color);
+    border-right: none;
+    border-bottom-left-radius: 10px;
+    border-top-left-radius: 10px;
+}
+
+.comment-item.reply::after {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 1.5rem;
+    width: 2px;
+    height: calc(100% - 1.5rem);
+    background: var(--primary-color);
+    border-radius: 2px;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.comment-content {
+    color: var(--text-color);
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-family: inherit;
+    margin-bottom: 0.5rem;
+}
+
+.comment-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.comment-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.comment-input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    resize: vertical;
+    min-height: 2.5rem;
+    font-family: inherit;
+}
+
+.comment-submit-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+}
+
+.comment-submit-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.comment-delete-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.comment-delete-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+.comment-reply-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.comment-reply-btn:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.comment-cancel-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.comment-cancel-btn:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.reply-form {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 150px;
+}
+
+.filter-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.filter-group select {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: white;
+    font-size: 0.9rem;
+}
+
+.feedback-item {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.feedback-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: var(--primary-color);
+}
+
+.feedback-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.feedback-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.feedback-type {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.feedback-type.suggestion { background: #e3f2fd; color: #1976d2; }
+.feedback-type.bug_report { background: #ffebee; color: #d32f2f; }
+.feedback-type.feature_request { background: #f3e5f5; color: #7b1fa2; }
+.feedback-type.cand_modification { background: #e8f5e8; color: #388e3c; }
+.feedback-type.tag_change { background: #fff3e0; color: #f57c00; }
+.feedback-type.general { background: #f5f5f5; color: #616161; }
+
+.feedback-priority {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.feedback-priority.low { background: #e8f5e8; color: #2e7d32; }
+.feedback-priority.medium { background: #fff3e0; color: #f57c00; }
+.feedback-priority.high { background: #ffebee; color: #d32f2f; }
+.feedback-priority.critical { background: #fce4ec; color: #c2185b; }
+
+.feedback-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.feedback-status.pending { background: #fff3e0; color: #f57c00; }
+.feedback-status.in_progress { background: #e3f2fd; color: #1976d2; }
+.feedback-status.resolved { background: #e8f5e8; color: #2e7d32; }
+.feedback-status.rejected { background: #ffebee; color: #d32f2f; }
+
+.feedback-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0.5rem 0;
+}
+
+.feedback-description {
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-family: inherit;
+    overflow-wrap: break-word;
+}
+
+/* Hyperlink Support */
+.feedback-description a,
+.comment-content a,
+.admin-response-content a {
+    color: var(--primary-color);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.feedback-description a:hover,
+.comment-content a:hover,
+.admin-response-content a:hover {
+    color: var(--primary-hover);
+    border-bottom-color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Auto-detect and style hyperlinks */
+.feedback-description,
+.comment-content,
+.admin-response-content {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.feedback-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.feedback-tag {
+    background: #e9ecef;
+    color: var(--text-muted);
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.feedback-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+.feedback-votes {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.vote-btn {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vote-btn:hover {
+    background: linear-gradient(135deg, var(--primary-color), #1e7ce8);
+    color: white;
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(35, 141, 255, 0.3);
+}
+
+.vote-btn.active {
+    background: linear-gradient(135deg, var(--primary-color), #1e7ce8);
+    color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 8px rgba(35, 141, 255, 0.3);
+}
+
+.feedback-author {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.feedback-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.admin-response {
+    background: #f8f9fa;
+    border-left: 4px solid var(--primary-color);
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+    border-radius: 0 4px 4px 0;
+}
+
+.admin-response-header {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.admin-response-content {
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* Admin Controls Styles */
+.admin-controls {
+    background: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1rem;
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.admin-controls .status-select {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: white;
+    font-size: 0.9rem;
+    min-width: 150px;
+}
+
+.admin-controls .admin-response-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: white;
+    font-size: 0.9rem;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.admin-controls .update-feedback-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    align-self: flex-start;
+    transition: background 0.2s ease;
+}
+
+.admin-controls .update-feedback-btn:hover {
+    background: var(--primary-hover);
+}
+
+@media (max-width: 768px) {
+    .admin-controls {
+        padding: 0.75rem;
+    }
+    
+    .admin-controls .status-select {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+.loading-indicator {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.no-feedback {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+/* Modal Styles for Feedback */
+#feedback-modal .modal-content {
+    max-width: 600px;
+    width: 90%;
+}
+
+/* Do NOT constrain feedback form fields width (full width inside modal) */
+#feedback-modal .modal-content textarea,
+#feedback-modal .modal-content input[type="text"] {
+    max-width: none;
+    width: 100%;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .feedback-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-group {
+        min-width: auto;
+    }
+    
+    .feedback-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .feedback-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+}
+

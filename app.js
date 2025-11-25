@@ -2,9 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const session = require('express-session');
 const connectDB = require('./config/database');
 const { initializeWebSocketServer } = require('./utils/webSocketServer');
 const { errorHandler } = require('./middleware/errorMiddleware');
+const requestLogger = require('./middleware/requestLogger');
+const authRouter = require('./routes/auth');
 
 // Connect to Database
 connectDB();
@@ -30,36 +33,49 @@ wss.on('error', (err) => {
 });
 app.set('wss', wss); // Make WSS available in controllers
 
+// EJS Setup
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public')));
+// Ensure session is initialized before requestLogger so user info is available for logs
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false, // avoid creating sessions for anonymous requests
+    rolling: true, // reset cookie expiration on every response
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // only send over HTTPS in prod
+        sameSite: 'lax',
+        maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+    }
+}));
+
+// Add request logging middleware after session is available
+app.use(requestLogger);
 
 // mount ping endpoint (keep it under /api so client fetch('/api/ping') works)
 app.use('/api', require('./routes/ping'));
 
-// API Routes
-app.use('/api/auth', require('./routes/api/authRoutes'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/users', require('./routes/users')); // for legacy /api/users/bulk route
+// Routes
+app.use('/', authRouter);
+const adminRouter = require('./routes/admin');
+const apiUsersRouter = require('./routes/users'); // for legacy /api/users/bulk route
+app.use('/api/admin', adminRouter);
+app.use('/api', apiUsersRouter);
 app.use('/api', require('./routes/api/userActivity'));
+app.use('/', require('./routes/viewRoutes'));
+
+app.use('/auth', require('./routes/authRoutes'));
 app.use('/api/cands', require('./routes/api/candRoutes'));
 app.use('/api/pns', require('./routes/api/pnRoutes'));
 app.use('/api/feedback', require('./routes/api/feedbackRoutes'));
 app.use('/api/messages', require('./routes/api/messageRoutes'));
 app.use('/api/notices', require('./routes/api/noticeRoutes'));
 // ... other API routes
-
-// Serve React App
-if (process.env.NODE_ENV === 'production') {
-  // Serve static files from the 'dist' directory
-  app.use(express.static(path.join(__dirname, 'dist')));
-
-  // For any other request, serve the index.html file
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
-  });
-}
-
 
 // Error Handler
 app.use(errorHandler);

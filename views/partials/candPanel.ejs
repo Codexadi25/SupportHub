@@ -1,0 +1,79 @@
+<div class="tag-filters">
+     <% allTags.forEach(tag => { %>
+        <button class="tag-filter" data-tag="<%= tag %>"><%= tag %></button>
+    <% }) %>
+    <button class="tag-filter clear-filters-btn" id="clearFilters">Clear Filters</button>
+</div>
+
+<div class="content-panel-grid">
+    <nav class="category-nav">
+        <button class="category-nav-btn active" data-category-id="all">All Categories</button>
+        <% categories.forEach(category => { %>
+            <div class="category-nav-item">
+                <button class="category-nav-btn" data-category-id="<%= category._id %>"><%= category.title %></button>
+            </div>
+        <% }) %>
+        <% if (user.role === 'admin' || user.role === 'editor') { %>
+            <button id="btn-create-category" class="action-btn category-nav-btn">+ Create Category</button>
+        <% } %>
+    </nav>
+        
+    <div class="scroll-area">
+        <div id="search-indicator" class="search-mode-indicator"></div>
+        <div class="cands-list-container" id="cands-list-container">
+            <% categories.forEach(category => { %>
+                <div class="category-group" data-category-id="<%= category._id %>">
+                    <div class="category-header">
+                        <% if (user.role === 'admin' || user.role === 'editor') { %>
+                        <h3 class="category-title" data-category-title="<%= category.title %>"><%= category.title %></h3>
+                        <div class="category-actions">
+                                <button class="btn-add-cand action-btn-sm">Add New Cand</button>
+                                <button class="btn-edit-category action-btn-sm" title="Edit Category">Edit</button>
+                                <button class="btn-delete-category action-btn-sm" title="Delete Category">Delete</button>
+                        </div>
+                        <% } %>
+                    </div>
+                    <% category.templates.forEach(template => { %>
+                        <div class="cand-item" data-category-id="<%= category._id %>" data-template-id="<%= template._id %>" data-tags="<%= template.tags.join(' ') %>" title="Click to copy">
+                            <div class="cand-header">
+                                <span class="cand-category-label"><%= category.title.toUpperCase() %>
+                                    <span class="cand-tags">
+                                        <% 
+                                        // Calculate NEW/UPDATED tags
+                                        const now = new Date();
+                                        const createdAt = new Date(template.meta?.createdAt || category.createdAt);
+                                        const updatedAt = new Date(template.meta?.updatedAt || category.updatedAt);
+                                        
+                                        const daysSinceCreated = (now - createdAt) / (1000 * 60 * 60 * 24);
+                                        const daysSinceUpdated = (now - updatedAt) / (1000 * 60 * 60 * 24);
+                                        const isNew = daysSinceCreated <= 4;
+                                        const isUpdated = daysSinceUpdated <= 4 && daysSinceUpdated < daysSinceCreated;
+                                        %>
+                                        
+                                        <% if (isNew) { %>
+                                            <span class="cand-status-tag status-new">NEW</span>
+                                        <% } %>
+                                        <% if (isUpdated) { %>
+                                            <span class="cand-status-tag status-updated">UPDATED</span>
+                                        <% } %>
+                                        
+                                        <% template.tags.forEach(tag => { %>
+                                            <span class="cand-tag-chip tag"><%= tag %></span>
+                                        <% }) %>
+                                    </span>
+                                </span>
+                                <div class="cand-actions">
+                                    <button class="icon-btn btn-edit-cand" title="Edit Cand">&#9998;</button>
+                                    <% if (user.role === 'admin' || user.role === 'editor') { %>
+                                        <button class="icon-btn btn-delete-cand" title="Delete Cand">&#128465;</button>
+                                    <% } %>
+                                </div>
+                            </div>
+                            <p class="cand-text"><%= template.text %></p>
+                        </div>
+                    <% }) %>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+</div>
