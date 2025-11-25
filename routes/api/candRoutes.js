@@ -8,14 +8,14 @@ const {
     updateTemplate, 
     deleteTemplate 
 } = require('../../controllers/candController');
-const { isEditorOrAbove } = require('../../middleware/authMiddleware');
+const { protect, isEditorOrAbove } = require('../../middleware/authMiddleware');
 
-router.post('/category', isEditorOrAbove, createCategory);
-router.put('/category/:id', isEditorOrAbove, updateCategory);
-router.delete('/category/:id', isEditorOrAbove, deleteCategory);
+router.post('/category', protect, isEditorOrAbove, createCategory);
+router.put('/category/:id', protect, isEditorOrAbove, updateCategory);
+router.delete('/category/:id', protect, isEditorOrAbove, deleteCategory);
 
-router.post('/template/:categoryId', isEditorOrAbove, addTemplate);
-router.put('/template/:categoryId/:templateId', isEditorOrAbove, updateTemplate);
-router.delete('/template/:categoryId/:templateId', isEditorOrAbove, deleteTemplate);
+router.post('/template/:categoryId', protect, isEditorOrAbove, addTemplate);
+router.put('/template/:categoryId/:templateId', protect, isEditorOrAbove, updateTemplate);
+router.delete('/template/:categoryId/:templateId', protect, isEditorOrAbove, deleteTemplate);
 
 module.exports = router;

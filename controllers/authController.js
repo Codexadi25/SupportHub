@@ -67,7 +67,19 @@ exports.loginUser = asyncHandler(async (req, res) => {
 // @desc    Logout user
 // @route   POST /api/auth/logout
 exports.logoutUser = (req, res) => {
-    // This is a stateless API, so logout is handled on the client-side by destroying the token.
-    // This endpoint can be used to perform any server-side cleanup if necessary.
     res.json({ message: 'Logged out successfully' });
 };
+
+// @desc    Get user data
+// @route   GET /api/auth/user
+exports.getUser = asyncHandler(async (req, res) => {
+    if (req.user) {
+        res.json({
+            _id: req.user._id,
+            username: req.user.username,
+            role: req.user.role,
+        });
+    } else {
+        res.status(404).json({ message: 'User not found' });
+    }
+});
