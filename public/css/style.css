@@ -303,7 +303,7 @@ body {
     flex-shrink: 0;
 }
 .tab-link {
-    padding: 1rem 1.2rem;
+    padding: 0.75rem 1.2rem;
     border: none;
     background: none;
     cursor: pointer;
@@ -494,6 +494,7 @@ body {
 .cand-actions .icon-btn { font-size: 16px; }
 .cand-tags { 
     padding: 4px;
+    font-size: 8px;
 }
 .cand-tag-chip {
     background: #e4eefa;
@@ -501,6 +502,7 @@ body {
     color: #007bff;
     font-weight: 500;
     padding: 0 .6rem;
+    font-size: 8px;
 }
 .cand-status-tag {
     display: inline-block;
@@ -602,7 +604,7 @@ body {
 /* --- Toast Notifications --- */
 #toast-container {
     position: fixed;
-    top: 20px;
+    bottom: 20px;
     right: 20px;
     z-index: 1000;
 }
