@@ -300,6 +300,7 @@ body {
     display: flex;
     border-bottom: 1px solid var(--border-color);
     padding: 0 1rem;
+    align-items: center;
     flex-shrink: 0;
 }
 .tab-link {
@@ -320,6 +321,16 @@ body {
     border-bottom-color: var(--primary-color);
     font-weight: 600;
     background-color: #ccecff;
+}
+.sop-btn {
+    padding: 4px 12px;
+    margin-top: -5px;
+    border: none;
+    background: red;
+    color: white;
+    cursor: pointer;
+    border: 2px solid black;
+    border-radius: 50px;
 }
 
 /* Notification Bell Styles */

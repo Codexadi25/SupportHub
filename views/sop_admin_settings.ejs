@@ -1,0 +1,10 @@
+<h1>Admin: SOP Settings for <%= lob %></h1>
+<form action="/<%= lob %>/sop/theme" method="POST">
+  <label>Primary Color</label>
+  <input type="text" name="primary" value="<%= theme.primaryColor || '#CB202D' %>" />
+  <label>Secondary Color</label>
+  <input type="text" name="secondary" value="<%= theme.secondaryColor || '#2D2D2D' %>" />
+  <button type="submit">Save Colors</button>
+</form>
+
+<p><a href="/<%= lob %>/sop/drafts">View Drafts</a> | <a href="/<%= lob %>/sop/view">View Published SOPs</a></p>

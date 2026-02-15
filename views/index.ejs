@@ -75,12 +75,16 @@
                         <span class="notification-count" id="unread-message-count">0</span>
                     </span>
                 </button>
+                <a href="/zomato/sop/view" target="_blank"><button class="sop-btn" data-tab="SOP-View">Smart SOP</button></a>
+                <% if (user.role === 'admin') { %>
+                  <button class="tab-link" data-tab="SOP">SOP Panel</button>
+                <% } %>
                 <% if (user.role === 'vendor' || user.role === 'admin') { %>
-                    <button class="tab-link" data-tab="Logger">Logger</button>
+                  <button class="tab-link" data-tab="Logger">Logger</button>
                 <% } %>
-                <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
-                    <button class="tab-link" data-tab="Admin">Admin Panel</button>
-                <% } %>
+                  <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
+                      <button class="tab-link" data-tab="Admin">Admin Panel</button>
+                    <% } %>
               </div>
 
               <div id="Cands" class="tab-content active">
@@ -95,20 +99,15 @@
               <div id="Messages" class="tab-content">
                   <%- include('partials/messagePanel', { user: user }) %>
               </div>
-              <% if (user.role === 'vendor' || user.role === 'admin') { %>
-                  <div id="Logger" class="tab-content">
-                      <%- include('partials/loggerPanel') %>
-                  </div>
-              <% } %>
-              <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
+                <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
                   <div id="Admin" class="tab-content">
-                      <%- include('partials/adminPanel') %>
+                    <%- include('partials/adminPanel') %>
                   </div>
-              <% } else{ %>
+                <% } else{ %>
                   <div id="Admin" class="tab-content">
-                      <span class="no-admin">
-                          ⚠️ Forbidden: Admin access required to access this dashboard.
-                      </span>
+                    <span class="no-admin">
+                      ⚠️ Forbidden: Admin access required to access this dashboard.
+                    </span>
                       <?xml version="1.0" encoding="UTF-8"?>
                       <svg id="_Ñëîé_1" data-name="Ñëîé 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2331.39 1812.48">
                         <defs>
@@ -360,9 +359,25 @@
                           <path class="cls-28" d="m576.46,942.12c.24,0,.48-.11.63-.33,2.83-3.99,8.29-4.03,8.34-4.03,1.01,0,1.02-1.54,0-1.55-.37,0-6.34.07-9.61,4.68-.37.49.02,1.24.63,1.22Z"/>
                           <path class="cls-28" d="m593.09,936.42c.11,0,.22-.02.33-.07,4.84-2.3,8.59-.06,8.63-.04.86.52,1.68-.79.81-1.32-.18-.11-4.51-2.7-10.11-.04-.74.32-.46,1.51.33,1.48Z"/>
                         </g>
-                      </svg>
-                  </div>
-              <% } %>
+                        </svg>
+                      </div>
+                    <% } %>
+
+                      <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
+                        <div id="SOP" class="tab-content">
+                          <iframe id="sopPanelFrame" src="/<%= user.lob || 'zomato' %>/sop/view" style="width:100%;height:850px;border:0;" title="SOP Panel"></iframe>
+                        </div>
+                      <% } else { %>
+                        <div id="SOP" class="tab-content">
+                          <span class="no-admin">⚠️ Forbidden: SOP Panel access requires elevated privileges.</span>
+                        </div>
+                      <% } %>
+
+                    <% if (user.role === 'vendor' || user.role === 'admin') { %>
+                      <div id="Logger" class="tab-content">
+                        <%- include('partials/loggerPanel') %>
+                      </div>
+                    <% } %>
               <% } %>
             </div>
 

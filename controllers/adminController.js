@@ -336,6 +336,36 @@ function getTimeAgo(date) {
     return 'Just now';
 }
 
+/**
+ * Updates the global theme for a specific Line of Business (LOB)
+ *
+ */
+exports.updateTheme = async (req, res) => {
+    const { lob } = req.params;
+    const { primaryColor, secondaryColor } = req.body;
+
+    if (req.user.role !== 'Admin') return res.status(403).send("Forbidden");
+
+    try {
+        await Theme.findOneAndUpdate(
+            { lob: lob },
+            { primaryColor, secondaryColor },
+            { upsert: true, new: true }
+        );
+        
+        // Audit the change
+        await Audit.create({
+            action: 'Theme Update',
+            details: `Colors updated for ${lob}: Primary ${primaryColor}`,
+            user: req.user.username
+        });
+
+        res.redirect(`/${lob}/sop/admin-settings`);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+};
+
 module.exports = {
     bulkUploadCands,
     getLogs,

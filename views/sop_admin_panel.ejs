@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SOP Admin • <%= lob %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    :root { --z-red: <%= theme && theme.primaryColor ? theme.primaryColor : '#CB202D' %>; --z-dark: <%= theme && theme.secondaryColor ? theme.secondaryColor : '#2D2D2D' %>; }
+    body { margin:0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Okra,sans-serif; background:#f6f7f9; }
+    .container { max-width:1200px; margin:20px auto; padding:18px; }
+    .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:14px; }
+    .btn { background:var(--z-red); color:#fff; padding:8px 12px; border-radius:8px; text-decoration:none; }
+    .admin-grid { display:grid; grid-template-columns:1fr 320px; gap:18px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toolbar">
+      <h2 style="margin:0">SOP Admin Panel — <%= lob %></h2>
+      <div style="flex:1"></div>
+      <a class="btn" href="/<%= lob %>/sop/admin-settings">Theme Settings</a>
+      <a class="btn" href="/<%= lob %>/sop/view" target="_blank">Open Public View</a>
+    </div>
+
+    <div class="admin-grid">
+      <main style="background:#fff;padding:16px;border-radius:8px;">
+        <% if (!categories || categories.length === 0) { %>
+          <p>No SOPs for this LOB.</p>
+        <% } else { %>
+          <% categories.forEach(function(category){ %>
+            <section style="margin-bottom:18px;">
+              <h3 style="color:var(--z-red);margin:0 0 8px 0;"><%= category.title %> (<%= category.items.length %>)</h3>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:8px;">
+                <% category.items.forEach(function(sop){ %>
+                  <div style="border:1px solid #eee;padding:10px;border-radius:8px;background:#fafafa;">
+                    <div style="font-weight:700"><%= sop.title %></div>
+                    <div style="color:#666;margin:6px 0"><%= sop.condition %></div>
+                    <div style="font-size:12px;color:#888">Status: <%= sop.status %></div>
+                    <div style="margin-top:8px;display:flex;gap:6px;">
+                      <form method="POST" action="/<%= lob %>/sop/approve/<%= sop._id %>"><button class="btn" type="submit">Approve & Publish</button></form>
+                      <button class="btn" onclick="openEdit('<%= sop._id %>')">Edit</button>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            </section>
+          <% }) %>
+        <% } %>
+      </main>
+
+      <aside style="background:#fff;padding:16px;border-radius:8px;">
+        <h4 style="margin-top:0">Quick Actions</h4>
+        <button class="btn" onclick="openCreateModal('General')">Add SOP Block</button>
+        <hr />
+        <h4>Filters</h4>
+        <p>Use the public view for tag search; admin tools here are for publish/approve/edit.</p>
+      </aside>
+    </div>
+  </div>
+
+  <%- include('partials/sop_modal', { lob: lob }) %>
+
+  <script>
+    function openEdit(id){ alert('Open editor for '+id); }
+  </script>
+</body>
+</html>

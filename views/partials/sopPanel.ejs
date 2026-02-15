@@ -1,0 +1,25 @@
+<div class="sop-panel">
+  <h2>SOP Panel</h2>
+  <p>Manage SOP sheets and drafts for <strong><%= lob %></strong>.</p>
+
+  <div class="sop-actions">
+    <a href="/<%= lob %>/sop/view" class="btn">View Published SOPs</a>
+    <a href="/<%= lob %>/sop/drafts" class="btn">View Drafts</a>
+    <a href="/<%= lob %>/sop/admin-settings" class="btn">Admin Settings</a>
+  </div>
+
+  <hr />
+
+  <h3>AI Auto-Draft</h3>
+  <form action="/<%= lob %>/sop/ai-draft" method="POST" enctype="multipart/form-data">
+    <label for="document">Upload SOP (PDF / Image / DOCX)</label>
+    <input type="file" name="document" id="document" required />
+    <input type="hidden" name="lob" value="<%= lob %>" />
+    <button type="submit" class="btn-primary">Generate Draft</button>
+  </form>
+
+  <hr />
+
+  <p class="help-text">Quick actions: Use the modal to add a new SOP block from any panel.</p>
+  <button class="btn" onclick="openCreateModal('General')">Add SOP Block</button>
+</div>

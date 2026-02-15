@@ -135,7 +135,7 @@ router.delete('/:id', isAuthenticated, isVendorOrAbove, async (req, res) => {
         if (!feedback) {
             return res.status(404).json({ message: 'Feedback not found' });
         }
-        res.json({ message: 'Feedback deleted successfully' });
+        res.status(200).json({ message: 'Feedback deleted successfully' });
     } catch (error) {
         res.status(400).json({ message: 'Error deleting feedback', error: error.message });
     }

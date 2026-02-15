@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart-SOP <%= lob %> | 2025</title>
+    <link href="https://fonts.googleapis.com/css2?family=Okra:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --z-red: #CB202D;
+            --z-dark: #2D2D2D;
+            --z-gray: #686B78;
+            --z-light: #F4F4F4;
+            --z-white: #FFFFFF;
+            --z-green: #24963F;
+            --z-orange: #F5A623;
+        }
+
+        body {
+            font-family: 'Okra', sans-serif;
+            background-color: var(--z-light);
+            margin: 0;
+            padding: 20px;
+            color: var(--z-dark);
+        }
+
+        .layout {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+        }
+
+        /* TOP SEARCH BAR */
+        .search-section {
+            grid-column: span 2;
+            background: var(--z-red);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #sopSearch {
+            flex-grow: 1;
+            padding: 12px 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        /* MAIN CONTENT */
+        .sop-container {
+            background: var(--z-white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .category-block { margin-bottom: 30px; }
+        .category-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--z-red);
+            border-bottom: 2px solid var(--z-red);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .sop-card {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 15px;
+            background: #fff;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .sop-card:hover { border-color: var(--z-red); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+        .card-header { font-weight: 700; font-size: 0.95rem; margin-bottom: 5px; color: #111; }
+        .card-cond { font-size: 0.8rem; color: var(--z-gray); margin-bottom: 10px; }
+        .action-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .tag-cancel { background: #ffebee; color: #c62828; }
+        .tag-esc { background: #fff3e0; color: #ef6c00; }
+        .tag-wait { background: #e8f5e9; color: #2e7d32; }
+
+        /* SIDEBAR WIDGETS */
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+        .widget {
+            background: var(--z-white);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .widget-title { font-weight: 700; margin-bottom: 15px; border-left: 4px solid var(--z-red); padding-left: 10px; }
+
+        .comp-calc input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .calc-result {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 15px;
+            border: 1px dashed var(--z-red);
+        }
+
+        #finalComp { font-size: 1.8rem; font-weight: 800; color: var(--z-red); }
+
+        .script-box {
+            background: #2d2d2d;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+
+        .script-box:active { background: #444; }
+
+        /* TOOLTIP */
+        .tooltip { font-size: 0.7rem; color: #999; margin-top: 5px; }
+
+        @media (max-width: 1000px) {
+            .layout { grid-template-columns: 1fr; }
+            .search-section { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+   <header class="search-section">
+      <img class="h-8 w-auto lg:h-8 xl:h-10 2xl:h-14" src="https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png" loading="eager" height="30" alt="Zomato">
+      <input type="text" id="sopSearch" placeholder="Search scenario (e.g., 'mall', 'device', 'spillage')..." onkeyup="filterSOP()">
+      <div style="font-size: 0.8rem; font-weight: bold; color: var(--z-light);">WIMO v.2025.02.04</div>
+   </header>
+
+    <main class="sop-container">
+        
+        <div class="category-block">
+            <div class="category-title">01. PRE-PICKUP CONCERNS <span>(Phase: Restaurant/Assigning)</span></div>
+            <div class="sop-grid">
+                <div class="sop-card" data-tags="restaurant unresponsive delay cancellation">
+                    <div class="card-header">MX Unresponsive</div>
+                    <div class="card-cond">Delay >40m & both DP/MX unresponsive</div>
+                    <div class="action-tag tag-cancel">Proceed with Cancellation</div>
+                </div>
+
+                <div class="sop-card" data-tags="delivery partner unavailable valet assignment">
+                    <div class="card-header">No DP Available</div>
+                    <div class="card-cond">Delay >30m in valet assignment</div>
+                    <div class="action-tag tag-cancel">Cancel Order</div>
+                </div>
+
+                <div class="sop-card" data-tags="out of stock missing partial prepaid cod">
+                    <div class="card-header">Out of Stock</div>
+                    <div class="card-cond">Partial items missing (Prepaid/COD)</div>
+                    <div class="action-tag tag-esc">Escalate to Agent</div>
+                </div>
+
+                <div class="sop-card" data-tags="device issues merchant delivery partner">
+                    <div class="card-header">Device Issues</div>
+                    <div class="card-cond">MX/DP unable to see order details</div>
+                    <div class="action-tag tag-cancel">Send Prompt & Cancel</div>
+                </div>
+
+                <div class="sop-card" data-tags="ready before time mistake speed up">
+                    <div class="card-header">Marked Ready Early</div>
+                    <div class="card-cond">MX marked ready by mistake</div>
+                    <div class="action-tag tag-wait">Ask MX Priority Prep + Prompt</div>
+                </div>
+
+                <div class="sop-card" data-tags="outlet closed restaurant address wrong">
+                    <div class="card-header">Outlet/Address Issue</div>
+                    <div class="card-cond">Restaurant Closed or Wrong Address</div>
+                    <div class="action-tag tag-cancel">Cancel (Use DP VOC if MX silent)</div>
+                </div>
+
+                <div class="sop-card" data-tags="mall premises gate restricted">
+                    <div class="card-header">Mall Orders</div>
+                    <div class="card-cond">DP restricted at gate/mall</div>
+                    <div class="action-tag tag-wait">Prompt + Comp according to Delay</div>
+                </div>
+
+                <div class="sop-card" data-tags="another partner picked already stolen">
+                    <div class="card-header">Picked by Another DP</div>
+                    <div class="card-cond">MX cannot re-prepare order</div>
+                    <div class="action-tag tag-cancel">Cancel Order</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="category-block">
+            <div class="category-title">02. POST-PICKUP CONCERNS <span>(Phase: In-Transit)</span></div>
+            <div class="sop-grid">
+                <div class="sop-card" data-tags="dp unresponsive not responding location map">
+                    <div class="card-header">DP Not Responding</div>
+                    <div class="card-cond">Picked up & DP not moving >30m</div>
+                    <div class="action-tag tag-esc">Escalate to Agent</div>
+                </div>
+
+                <div class="sop-card" data-tags="spillage damage partial fully">
+                    <div class="card-header">Spillage Issue</div>
+                    <div class="card-cond">Major/Full Damage</div>
+                    <div class="action-tag tag-cancel">Delay <30m: Cancel | >30m: Escalate</div>
+                </div>
+
+                <div class="sop-card" data-tags="traffic festivities delay unable move">
+                    <div class="card-header">Festive Traffic</div>
+                    <div class="card-cond">Unable to move/deliver due to festivities</div>
+                    <div class="action-tag tag-cancel">Cancel Order</div>
+                </div>
+
+                <div class="sop-card" data-tags="address mismatch customer distance whatsapp">
+                    <div class="card-header">Address Mismatch</div>
+                    <div class="card-cond">DP says distance is too long</div>
+                    <div class="action-tag tag-cancel">Cancel Order</div>
+                </div>
+
+                <div class="sop-card" data-tags="grouping other drop another restaurant delay">
+                    <div class="card-header">Grouping/Multi-Order</div>
+                    <div class="card-cond">Delayed by another pick/drop</div>
+                    <div class="action-tag tag-wait">Prompt + Comp for Delay</div>
+                </div>
+
+                <div class="sop-card" data-tags="awaiting pickup status status reassign">
+                    <div class="card-header">Awaiting Pickup</div>
+                    <div class="card-cond">DP/MX unresponsive & delay >30m</div>
+                    <div class="action-tag tag-esc">Reassign + Escalate</div>
+                </div>
+                
+                <div class="sop-card" data-tags="language barrier smartplugs">
+                    <div class="card-header">Language Barrier</div>
+                    <div class="card-cond">Delay >30 mins</div>
+                    <div class="action-tag tag-esc">Escalate</div>
+                </div>
+
+                <div class="sop-card" data-tags="train order left cancel">
+                    <div class="card-header">Train Orders</div>
+                    <div class="card-cond">Train left the station</div>
+                    <div class="action-tag tag-cancel">Proceed with Cancellation</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <aside class="sidebar">
+        <div class="widget comp-calc">
+            <div class="widget-title">💰 SMART COMP CALCULATOR</div>
+            <label style="font-size: 0.8rem;">Delay (Mins)</label>
+            <input type="number" id="calcDelay" placeholder="Minutes" oninput="runCalc()">
+            
+            <label style="font-size: 0.8rem;">Order Value (₹)</label>
+            <input type="number" id="calcOV" placeholder="Amount" oninput="runCalc()">
+            
+            <div class="calc-result">
+                <div style="font-size: 0.7rem; color: var(--z-gray);">RECOMMENDED COMPENSATION</div>
+                <div id="finalComp">₹0</div>
+            </div>
+            <div class="tooltip">*25-45m: 35% (Max 100) | >45m: 100% (Max 500)</div>
+        </div>
+
+        <div class="widget">
+            <div class="widget-title">📞 CALLING SCRIPT</div>
+            <div class="script-box" onclick="copyScript()">
+                "Hi, Good Morning Sir, My name is XYZ from Zomato. May I know the reason for the delay and by when the order will be delivered?"
+            </div>
+            <div class="tooltip">Click text to copy to clipboard.</div>
+        </div>
+
+        <div class="widget" style="background: var(--z-red); color: white;">
+            <div class="widget-title" style="border-left-color: white;">⚡ FEB 4 UPDATES</div>
+            <ul style="padding-left: 15px; font-size: 0.85rem; line-height: 1.6;">
+                <li><strong>Buffer:</strong> Strictly 3-5 mins only[cite: 137].</li>
+                <li><strong>Lifeline:</strong> Max 10m buffer if "Waiting"[cite: 138].</li>
+                <li><strong>Private Notes:</strong> Must record delay & tracking status[cite: 139].</li>
+                <li><strong>Properties:</strong> Select "Prep End" if under prep[cite: 144].</li>
+            </ul>
+        </div>
+    </aside>
+</div>
+
+<script>
+    function runCalc() {
+        const delay = parseInt(document.getElementById('calcDelay').value);
+        const ov = parseFloat(document.getElementById('calcOV').value);
+        let comp = 0;
+
+        if (!delay || !ov) {
+            document.getElementById('finalComp').innerText = "₹0";
+            return;
+        }
+
+        // Delay 25-45 mins [cite: 125, 127]
+        if (delay > 25 && delay <= 45) {
+            if (ov < 50) {
+                comp = ov; // 100% if OV < 50
+            } else {
+                comp = Math.max(50, Math.min(100, ov * 0.35)); // 35% (Min 50, Max 100)
+            }
+        } 
+        // Delay > 45 mins 
+        else if (delay > 45) {
+            comp = Math.min(500, ov); // 100% (Max 500)
+        }
+
+        document.getElementById('finalComp').innerText = "₹" + Math.round(comp);
+    }
+
+    function filterSOP() {
+        const input = document.getElementById('sopSearch').value.toLowerCase();
+        const cards = document.getElementsByClassName('sop-card');
+
+        for (let i = 0; i < cards.length; i++) {
+            const tags = cards[i].getAttribute('data-tags');
+            const title = cards[i].innerText.toLowerCase();
+            if (tags.includes(input) || title.includes(input)) {
+                cards[i].style.display = "";
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+    }
+
+    function copyScript() {
+        const text = "Hi, Good Morning Sir, My name is XYZ from Zomato. May I know the reason for the delay and by when the order will be delivered?";
+        navigator.clipboard.writeText(text);
+        alert("Script copied!");
+    }
+</script>
+
+</body>
+</html>

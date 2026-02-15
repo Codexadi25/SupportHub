@@ -1,0 +1,32 @@
+<style>
+    :root {
+        /* Admin controlled colors */
+                --z-red: <%= theme && theme.primaryColor ? theme.primaryColor : '#CB202D' %>;
+                --z-dark: <%= theme && theme.secondaryColor ? theme.secondaryColor : '#2D2D2D' %>;
+    }
+</style>
+<% if (mode === 'draft') { %>
+        <div style="background: var(--z-red); color: white; padding: 10px; text-align: center; font-weight: bold;">
+                SOP DRAFT PAGE | CURRENT STATUS: PENDING APPROVAL BY CLIENT
+        </div>
+<% } %>
+
+<% if (!sops || sops.length === 0) { %>
+    <div class="no-sop">No published SOPs available for this Line of Business.</div>
+<% } else { %>
+    <% sops.forEach(function(sop) { %>
+        <div class="sop-card">
+            <div class="card-header"><%= sop.title %></div>
+            <div class="card-cond"><%= sop.condition %></div>
+
+            <div class="tooltip">
+                updated at [<%= moment(sop.lastUpdated.at).format('HH:mm DD:MM:YYYY') %>]
+                by <%= sop.lastUpdated.by || 'system' %> | <%= sop.lastUpdated.role || '' %>
+            </div>
+
+            <% if (user && ['Admin', 'QA', 'TL', 'Editor'].includes(user.role)) { %>
+                <button onclick="editSop('<%= sop._id %>')">Edit Block</button>
+            <% } %>
+        </div>
+    <% }) %>
+<% } %>

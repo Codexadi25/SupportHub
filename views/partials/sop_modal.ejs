@@ -1,0 +1,41 @@
+<div id="sopModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <h2 id="modalTitle">Add New SOP Block</h2>
+        <form action="/<%= lob %>/sop/create-block" method="POST">
+            <input type="hidden" id="modalCategory" name="category">
+            <input type="hidden" name="lob" value="<%= lob %>">
+            
+            <label>Title</label>
+            <input type="text" name="title" placeholder="e.g., MX Unresponsive" required>
+            
+            <label>Condition</label>
+            <textarea name="condition" placeholder="e.g., Delay >40m & both DP/MX unresponsive" required></textarea>
+            
+            <label>Action Tag</label>
+            <select name="action">
+                <option value="Cancel">Cancel</option>
+                <option value="Escalate">Escalate</option>
+                <option value="Wait">Wait</option>
+            </select>
+            
+            <label>Tags (Comma separated)</label>
+            <input type="text" name="tags" placeholder="delay, restaurant, unresponsive">
+
+            <div class="modal-actions">
+                <button type="button" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Save as Draft</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openCreateModal(category) {
+        document.getElementById('modalCategory').value = category;
+        document.getElementById('modalTitle').innerText = "New Block: " + category;
+        document.getElementById('sopModal').style.display = 'flex';
+    }
+    function closeModal() {
+        document.getElementById('sopModal').style.display = 'none';
+    }
+</script>
