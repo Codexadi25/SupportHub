@@ -168,117 +168,144 @@
    </header>
 
     <main class="sop-container">
-        
-        <div class="category-block">
-            <div class="category-title">01. PRE-PICKUP CONCERNS <span>(Phase: Restaurant/Assigning)</span></div>
-            <div class="sop-grid">
-                <div class="sop-card" data-tags="restaurant unresponsive delay cancellation">
-                    <div class="card-header">MX Unresponsive</div>
-                    <div class="card-cond">Delay >40m & both DP/MX unresponsive</div>
-                    <div class="action-tag tag-cancel">Proceed with Cancellation</div>
-                </div>
 
-                <div class="sop-card" data-tags="delivery partner unavailable valet assignment">
-                    <div class="card-header">No DP Available</div>
-                    <div class="card-cond">Delay >30m in valet assignment</div>
-                    <div class="action-tag tag-cancel">Cancel Order</div>
-                </div>
+    <div class="category-block">
+        <div class="category-title">01. PRE-PICKUP CONCERNS <span>(Phase: Restaurant/Assigning)</span></div>
+        <div class="sop-grid">
+            
+            <div class="sop-card" data-tags="restaurant unresponsive food not ready delay 40m">
+                <div class="card-header">MX Unresponsive</div>
+                <div class="card-cond">Delay >40m & both DP/MX unresponsive</div>
+                <div class="action-tag tag-cancel">Cancel | If food ready: Comp + Explain</div>
+            </div>
 
-                <div class="sop-card" data-tags="out of stock missing partial prepaid cod">
-                    <div class="card-header">Out of Stock</div>
-                    <div class="card-cond">Partial items missing (Prepaid/COD)</div>
-                    <div class="action-tag tag-esc">Escalate to Agent</div>
-                </div>
+            <div class="sop-card" data-tags="no dp valet not assigned availability low">
+                <div class="card-header">No DP Available</div>
+                <div class="card-cond">Delay 25-30m: Prompt + Comp | >30m: Cancel</div>
+                <div class="action-tag tag-wait">Check LL Availability Status</div>
+            </div>
 
-                <div class="sop-card" data-tags="device issues merchant delivery partner">
-                    <div class="card-header">Device Issues</div>
-                    <div class="card-cond">MX/DP unable to see order details</div>
-                    <div class="action-tag tag-cancel">Send Prompt & Cancel</div>
-                </div>
+            <div class="sop-card" data-tags="out of stock missing partial prepaid cod alternate">
+                <div class="card-header">Out of Stock / Partial</div>
+                <div class="card-cond">Prepaid: Check alternate or Escalate | COD: Cancel</div>
+                <div class="action-tag tag-esc">Escalate to Agent</div>
+            </div>
 
-                <div class="sop-card" data-tags="ready before time mistake speed up">
-                    <div class="card-header">Marked Ready Early</div>
-                    <div class="card-cond">MX marked ready by mistake</div>
-                    <div class="action-tag tag-wait">Ask MX Priority Prep + Prompt</div>
-                </div>
+            <div class="sop-card" data-tags="device issues merchant delivery partner reassign">
+                <div class="card-header">Device Issues (MX/DP)</div>
+                <div class="card-cond">Unable to see details. Reassign first.</div>
+                <div class="action-tag tag-cancel">If reassignment fails: Cancel</div>
+            </div>
 
-                <div class="sop-card" data-tags="outlet closed restaurant address wrong">
-                    <div class="card-header">Outlet/Address Issue</div>
-                    <div class="card-cond">Restaurant Closed or Wrong Address</div>
-                    <div class="action-tag tag-cancel">Cancel (Use DP VOC if MX silent)</div>
-                </div>
+            <div class="sop-card" data-tags="ready before time mistake speed up priority">
+                <div class="card-header">Marked Ready Early</div>
+                <div class="card-cond">MX mistake. Ask for priority prep + time estimate.</div>
+                <div class="action-tag tag-wait">Send "Speed Up" Prompt</div>
+            </div>
 
-                <div class="sop-card" data-tags="mall premises gate restricted">
-                    <div class="card-header">Mall Orders</div>
-                    <div class="card-cond">DP restricted at gate/mall</div>
-                    <div class="action-tag tag-wait">Prompt + Comp according to Delay</div>
-                </div>
+            <div class="sop-card" data-tags="outlet closed wrong address address issue">
+                <div class="card-header">Outlet/Address Issues</div>
+                <div class="card-cond">Confirmed with MX or DP VOC (if MX silent)</div>
+                <div class="action-tag tag-cancel">Proceed with Cancellation</div>
+            </div>
 
-                <div class="sop-card" data-tags="another partner picked already stolen">
-                    <div class="card-header">Picked by Another DP</div>
-                    <div class="card-cond">MX cannot re-prepare order</div>
-                    <div class="action-tag tag-cancel">Cancel Order</div>
-                </div>
+            <div class="sop-card" data-tags="mall premises gate restricted delivery partner">
+                <div class="card-header">Mall Orders</div>
+                <div class="card-cond">DP restricted at gate. Get ETA from DP.</div>
+                <div class="action-tag tag-wait">Compensate according to Delay</div>
+            </div>
+
+            <div class="sop-card" data-tags="picked by another partner stolen duplicate">
+                <div class="card-header">Picked by Another DP</div>
+                <div class="card-cond">MX re-prep? YES: Prompt+Comp | NO: Cancel</div>
+                <div class="action-tag tag-cancel">Check re-preparation status</div>
+            </div>
+
+            <div class="sop-card" data-tags="awaiting pickup status delay reassign">
+                <div class="card-header">Awaiting Pickup Status</div>
+                <div class="card-cond">Order picked but not marked. Delay >30m.</div>
+                <div class="action-tag tag-esc">Escalate if >30m</div>
             </div>
         </div>
+    </div>
 
-        <div class="category-block">
-            <div class="category-title">02. POST-PICKUP CONCERNS <span>(Phase: In-Transit)</span></div>
-            <div class="sop-grid">
-                <div class="sop-card" data-tags="dp unresponsive not responding location map">
-                    <div class="card-header">DP Not Responding</div>
-                    <div class="card-cond">Picked up & DP not moving >30m</div>
-                    <div class="action-tag tag-esc">Escalate to Agent</div>
-                </div>
+    <div class="category-block">
+        <div class="category-title">02. POST-PICKUP CONCERNS <span>(Phase: In-Transit)</span></div>
+        <div class="sop-grid">
 
-                <div class="sop-card" data-tags="spillage damage partial fully">
-                    <div class="card-header">Spillage Issue</div>
-                    <div class="card-cond">Major/Full Damage</div>
-                    <div class="action-tag tag-cancel">Delay <30m: Cancel | >30m: Escalate</div>
-                </div>
+            <div class="sop-card" data-tags="dp unresponsive moving not moving location map">
+                <div class="card-header">DP Not Responding</div>
+                <div class="card-cond">Moving: Wait+Prompt | Not Moving >30m: Escalate</div>
+                <div class="action-tag tag-esc">Mention Tracking in PN</div>
+            </div>
 
-                <div class="sop-card" data-tags="traffic festivities delay unable move">
-                    <div class="card-header">Festive Traffic</div>
-                    <div class="card-cond">Unable to move/deliver due to festivities</div>
-                    <div class="action-tag tag-cancel">Cancel Order</div>
-                </div>
+            <div class="sop-card" data-tags="unable to deliver vehicle issue app issue mobile">
+                <div class="card-header">DP Unable to Deliver</div>
+                <div class="card-cond">Check reassignment. If failed or delay >40m.</div>
+                <div class="action-tag tag-cancel">Reassign or Cancel</div>
+            </div>
 
-                <div class="sop-card" data-tags="address mismatch customer distance whatsapp">
-                    <div class="card-header">Address Mismatch</div>
-                    <div class="card-cond">DP says distance is too long</div>
-                    <div class="action-tag tag-cancel">Cancel Order</div>
-                </div>
+            <div class="sop-card" data-tags="traffic festivities delay unable move reach">
+                <div class="card-header">Traffic / Festivities</div>
+                <div class="card-cond">Can deliver: Comp | Cannot move: Cancel</div>
+                <div class="action-tag tag-cancel">Check Case 1 vs Case 2</div>
+            </div>
 
-                <div class="sop-card" data-tags="grouping other drop another restaurant delay">
-                    <div class="card-header">Grouping/Multi-Order</div>
-                    <div class="card-cond">Delayed by another pick/drop</div>
-                    <div class="action-tag tag-wait">Prompt + Comp for Delay</div>
-                </div>
+            <div class="sop-card" data-tags="spillage damage partial fully handover">
+                <div class="card-header">Spillage Issue</div>
+                <div class="card-cond">Minor: Handover | Major: <30m Cancel / >30m Esc</div>
+                <div class="action-tag tag-esc">Verify with DP</div>
+            </div>
 
-                <div class="sop-card" data-tags="awaiting pickup status status reassign">
-                    <div class="card-header">Awaiting Pickup</div>
-                    <div class="card-cond">DP/MX unresponsive & delay >30m</div>
-                    <div class="action-tag tag-esc">Reassign + Escalate</div>
-                </div>
-                
-                <div class="sop-card" data-tags="language barrier smartplugs">
-                    <div class="card-header">Language Barrier</div>
-                    <div class="card-cond">Delay >30 mins</div>
-                    <div class="action-tag tag-esc">Escalate</div>
-                </div>
+            <div class="sop-card" data-tags="customer address mismatch distance long location">
+                <div class="card-header">Address Mismatch</div>
+                <div class="card-cond">DP refuses long distance / Customer unreachable</div>
+                <div class="action-tag tag-cancel">Cancel if distance is too long</div>
+            </div>
 
-                <div class="sop-card" data-tags="train order left cancel">
-                    <div class="card-header">Train Orders</div>
-                    <div class="card-cond">Train left the station</div>
-                    <div class="action-tag tag-cancel">Proceed with Cancellation</div>
-                </div>
+            <div class="sop-card" data-tags="grouping other drop restaurant delay multi-order">
+                <div class="card-header">Grouping/Multi-Order</div>
+                <div class="card-cond">Delayed by another pick/drop.</div>
+                <div class="action-tag tag-wait">Compensate for Delay</div>
+            </div>
+            
+            <div class="sop-card" data-tags="train order left station cancel">
+                <div class="card-header">Train Orders</div>
+                <div class="card-cond">DP states customer asked to cancel/train left</div>
+                <div class="action-tag tag-cancel">Proceed with Cancellation</div>
             </div>
         </div>
-    </main>
+    </div>
+
+    <div class="category-block update-highlight">
+        <div class="category-title">03. MANDATORY LOGGING <span>(New Updates Feb-2026)</span></div>
+        <div class="sop-grid">
+            
+            <div class="sop-card update" data-tags="private notes pn tracking status">
+                <div class="card-header">Private Note (PN) Essentials</div>
+                <div class="card-cond">Must mention: Delay Time, Tracking Details, Call Status</div>
+                <div class="action-tag tag-esc">Refresh Ticket after Call</div>
+            </div>
+
+            <div class="sop-card update" data-tags="compensation policy percent 100 35">
+                <div class="card-header">New Comp. Policy</div>
+                <div class="card-cond">25-45m: 35% (Min 50/Max 100) | >45m: 100% (Max 500)</div>
+                <div class="action-tag tag-wait">Promo < 50: Give Full OV</div>
+            </div>
+
+            <div class="sop-card update" data-tags="expected time eta lifeline buffer">
+                <div class="card-header">ETA & Buffers</div>
+                <div class="card-cond">10m buffer for Food Not Ready. Use LL ETA or 10m limit.</div>
+                <div class="action-tag tag-wait">Status: Prep End in Properties</div>
+            </div>
+        </div>
+    </div>
+
+</main>
 
     <aside class="sidebar">
         <div class="widget comp-calc">
-            <div class="widget-title">💰 SMART COMP CALCULATOR</div>
+            <div class="widget-title">💰 Compensation Calculator</div>
             <label style="font-size: 0.8rem;">Delay (Mins)</label>
             <input type="number" id="calcDelay" placeholder="Minutes" oninput="runCalc()">
             
