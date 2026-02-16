@@ -164,6 +164,7 @@
    <header class="search-section">
       <img class="h-8 w-auto lg:h-8 xl:h-10 2xl:h-14" src="https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png" loading="eager" height="30" alt="Zomato">
       <input type="text" id="sopSearch" placeholder="Search scenario (e.g., 'mall', 'device', 'spillage')..." onkeyup="filterSOP()">
+      <a href="/"><i class="fa fa-home" style="font-size:36px"></i></a>
       <div style="font-size: 0.8rem; font-weight: bold; color: var(--z-light);">WIMO v.2025.02.04</div>
    </header>
 
@@ -174,6 +175,12 @@
         <div class="sop-grid">
             
             <div class="sop-card" data-tags="restaurant unresponsive food not ready delay 40m">
+                <div class="card-header">DP Unresponsive</div>
+                <div class="card-cond">Delay >40mins | both DP & MX unresponsive</div>
+                <div class="action-tag tag-cancel">Cancel</div>
+            </div>
+
+            <div class="sop-card" data-tags="restaurant unresponsive food not ready delay 40m">
                 <div class="card-header">DP + MX Unresponsive</div>
                 <div class="card-cond">Delay >40mins | both DP & MX unresponsive</div>
                 <div class="action-tag tag-cancel">Cancel</div>
@@ -181,7 +188,7 @@
 
             <div class="sop-card" data-tags="no dp valet not assigned availability low">
                 <div class="card-header">No DP Available</div>
-                <div class="card-cond">Delay 25-30m: Prompt + Compensate | IF Delay >30m: Cancel</div>
+                <div class="card-cond">Delay 25-30m: Prompt + Compensate | If Delay >30m: Cancel</div>
                 <div class="action-tag tag-wait">Check LL Availability Status</div>
             </div>
 
