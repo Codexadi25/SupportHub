@@ -326,11 +326,27 @@ body {
     padding: 4px 12px;
     margin-top: -5px;
     border: none;
-    background: red;
+    /* background: radial-gradient(circle, rgb(255, 176, 210) 0%, rgb(105, 175, 255) 100%); */
+    background: linear-gradient(239deg,#ffc3dd,#72b4ff,#ffc3dd);
+    background-size: 180% 180%;
+    animation: gradient-animation 5s ease infinite;
     color: white;
     cursor: pointer;
-    border: 2px solid black;
+    border: 2px solid rgb(255, 255, 255);
+    outline: 1px solid black;
     border-radius: 50px;
+}
+
+@keyframes gradient-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Notification Bell Styles */
@@ -339,7 +355,7 @@ body {
     display: inline-flex;
     align-items: center;
     font-size: 1.2rem;
-    animation: pulse 2s infinite;
+    animation: pulse 1 infinite;
 }
 
 .notification-count {
