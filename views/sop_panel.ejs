@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <title>Zomato WIMO Smart-SOP 2025</title>
     <link href="https://fonts.googleapis.com/css2?family=Okra:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* ─── CORE VARIABLES ─────────────────────────────────────────── */
         :root {
-            --z-red: #CB202D;
-            --z-dark: #2D2D2D;
-            --z-gray: #686B78;
-            --z-light: #F4F4F4;
-            --z-white: #FFFFFF;
-            --z-green: #24963F;
+            --z-red:    #CB202D;
+            --z-dark:   #2D2D2D;
+            --z-gray:   #686B78;
+            --z-light:  #F4F4F4;
+            --z-white:  #FFFFFF;
+            --z-green:  #24963F;
             --z-orange: #F5A623;
         }
 
@@ -21,9 +23,11 @@
             background-color: var(--z-light);
             margin: 0;
             padding: 20px;
+            padding-top: 68px; /* room for presence bar */
             color: var(--z-dark);
         }
 
+        /* ─── LAYOUT ─────────────────────────────────────────────────── */
         .layout {
             max-width: 1400px;
             margin: 0 auto;
@@ -32,7 +36,7 @@
             gap: 20px;
         }
 
-        /* TOP SEARCH BAR */
+        /* ─── SEARCH / HEADER BAR ────────────────────────────────────── */
         .search-section {
             grid-column: span 2;
             background: var(--z-red);
@@ -53,32 +57,7 @@
             outline: none;
         }
 
-        .home-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 45px;
-            height: 45px;
-            background: var(--z-white);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            padding: 0;
-        }
-
-        .home-btn:hover {
-            background: #f0f0f0;
-            transform: scale(1.05);
-        }
-
-        .home-btn svg {
-            width: 24px;
-            height: 24px;
-            fill: var(--z-dark);
-        }
-
-        /* MAIN CONTENT */
+        /* ─── MAIN CONTENT ───────────────────────────────────────────── */
         .sop-container {
             background: var(--z-white);
             border-radius: 12px;
@@ -111,12 +90,14 @@
             background: #fff;
             transition: all 0.2s;
             position: relative;
+            cursor: pointer;
         }
 
         .sop-card:hover { border-color: var(--z-red); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
         .card-header { font-weight: 700; font-size: 0.95rem; margin-bottom: 5px; color: #111; }
         .card-cond { font-size: 0.8rem; color: var(--z-gray); margin-bottom: 10px; }
+
         .action-tag {
             display: inline-block;
             padding: 4px 10px;
@@ -127,10 +108,90 @@
         }
 
         .tag-cancel { background: #ffebee; color: #c62828; }
-        .tag-esc { background: #fff3e0; color: #ef6c00; }
-        .tag-wait { background: #e8f5e9; color: #2e7d32; }
+        .tag-esc    { background: #fff3e0; color: #ef6c00; }
+        .tag-wait   { background: #e8f5e9; color: #2e7d32; }
 
-        /* SIDEBAR WIDGETS */
+        .expand-hint {
+            font-size: 0.7rem;
+            color: var(--z-red);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+        .expand-hint i { font-size: 0.65rem; }
+
+        /* ─── SOP DETAIL MODAL ───────────────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 14px;
+            max-width: 620px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 28px;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px; right: 18px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            color: var(--z-gray);
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+        .modal-close:hover { color: var(--z-red); }
+
+        .modal-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .modal-title { font-size: 1.15rem; font-weight: 700; color: #111; margin-bottom: 6px; }
+        .modal-cond  { font-size: 0.83rem; color: var(--z-gray); margin-bottom: 16px; }
+
+        .modal-section-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--z-red);
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .modal-body {
+            font-size: 0.88rem;
+            line-height: 1.75;
+            color: var(--z-dark);
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 14px 16px;
+            border-left: 3px solid var(--z-red);
+        }
+
+        /* ─── SIDEBAR ────────────────────────────────────────────────── */
         .sidebar { display: flex; flex-direction: column; gap: 20px; }
 
         .widget {
@@ -149,6 +210,7 @@
             border: 1px solid #ddd;
             border-radius: 6px;
             box-sizing: border-box;
+            font-family: inherit;
         }
 
         .calc-result {
@@ -170,168 +232,1419 @@
             font-size: 0.85rem;
             line-height: 1.5;
             cursor: pointer;
+            transition: background 0.2s;
         }
+        .script-box:hover { background: #3d3d3d; }
 
-        .script-box:active { background: #444; }
-
-        /* TOOLTIP */
         .tooltip { font-size: 0.7rem; color: #999; margin-top: 5px; }
+        .updates-list { padding-left: 15px; font-size: 0.85rem; line-height: 1.6; }
+        .updates-list li { margin-bottom: 4px; }
 
         @media (max-width: 1000px) {
             .layout { grid-template-columns: 1fr; }
             .search-section { grid-column: span 1; }
         }
+
+
+        /* ═══════════════════════════════════════════════════════════════
+           LIVE PRESENCE BAR  — Google Docs-style
+           ═══════════════════════════════════════════════════════════════ */
+
+        .presence-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 48px;
+            z-index: 5000;
+            background: #fff;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            align-items: center;
+            padding: 0 18px;
+            gap: 12px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+            font-family: 'Okra', sans-serif;
+        }
+
+        /* Left: branding */
+        .pb-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            padding-right: 12px;
+            border-right: 1px solid #ebebeb;
+        }
+        .pb-brand img { height: 22px; display: block; }
+        .pb-doc-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--z-dark);
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+        .pb-version {
+            font-size: 0.64rem;
+            color: var(--z-gray);
+            font-weight: 600;
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Live indicator */
+        .pb-live-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+        .pb-live-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #24963F;
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+        .pb-live-dot.offline  { background: #ccc; }
+        .pb-live-dot.pending  { background: #F5A623; animation: none; }
+        .pb-live-dot.online   { animation: liveGlow 2.2s ease-in-out infinite; }
+        @keyframes liveGlow {
+            0%,100% { box-shadow: 0 0 0 0   rgba(36,150,63,0);   }
+            50%     { box-shadow: 0 0 0 5px rgba(36,150,63,0.18); }
+        }
+
+        .pb-live-text {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #24963F;
+            white-space: nowrap;
+        }
+        .pb-live-text.offline { color: #aaa; }
+        .pb-live-text.pending { color: #F5A623; }
+
+        /* Divider */
+        .pb-divider {
+            width: 1px; height: 22px;
+            background: #ebebeb;
+            flex-shrink: 0;
+        }
+
+        /* Viewer count label */
+        .pb-count-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--z-dark);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* Avatar strip */
+        .pb-avatars {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+            padding: 0 2px;
+        }
+
+        .pb-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 2.5px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.62rem;
+            font-weight: 800;
+            color: #fff;
+            cursor: pointer;
+            position: relative;
+            margin-left: -9px;
+            flex-shrink: 0;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            user-select: none;
+        }
+        .pb-avatar:first-child { margin-left: 0; }
+        .pb-avatar:hover       { transform: translateY(-4px) scale(1.1); z-index: 20; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+
+        .pb-avatar.is-you {
+            border-color: var(--z-red);
+            box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--z-red);
+        }
+
+        /* Tooltip on avatar */
+        .pb-avatar-tip {
+            position: absolute;
+            top: calc(100% + 9px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1c1c1c;
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 7px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 100;
+            line-height: 1.5;
+            text-align: center;
+        }
+        .pb-avatar-tip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-bottom-color: #1c1c1c;
+        }
+        .pb-avatar:hover .pb-avatar-tip { opacity: 1; }
+
+        /* +N overflow */
+        .pb-overflow {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 2.5px solid #fff;
+            background: #eeeeee;
+            color: #555;
+            font-size: 0.6rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: -9px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .pb-overflow:hover { background: #e0e0e0; }
+
+        /* Right section */
+        .pb-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        /* "You" chip */
+        .pb-you-chip {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: #f7f7f7;
+            border: 1px solid #e8e8e8;
+            border-radius: 24px;
+            padding: 4px 12px 4px 5px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .pb-you-chip:hover { background: #efefef; }
+        .pb-you-chip.visible { display: flex; }
+
+        .pb-you-avatar {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.58rem;
+            font-weight: 800;
+            color: #fff;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .pb-you-name {
+            font-size: 0.73rem;
+            font-weight: 700;
+            color: var(--z-dark);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .pb-you-role {
+            font-size: 0.62rem;
+            color: var(--z-gray);
+            font-weight: 600;
+        }
+
+        /* See all button */
+        .pb-see-all {
+            background: none;
+            border: 1px solid #e0e0e0;
+            color: var(--z-gray);
+            font-size: 0.7rem;
+            font-weight: 700;
+            font-family: inherit;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pb-see-all:hover { background: #f5f5f5; border-color: #ccc; color: var(--z-dark); }
+
+        /* ─── G-SHEET SOURCE BUTTON ──────────────────────────────── */
+        .pb-sheet-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 7px;
+            padding: 5px 11px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            font-family: inherit;
+            color: #1a6135;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.18s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .pb-sheet-btn:hover {
+            background: #e8f5e9;
+            border-color: #34a853;
+            color: #1a6135;
+            box-shadow: 0 2px 8px rgba(52,168,83,0.18);
+            transform: translateY(-1px);
+        }
+        .pb-sheet-btn:active { transform: translateY(0); }
+
+        /* Google Sheets icon SVG inline */
+        .pb-sheet-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        /* Pulsing "linked" dot on the button */
+        .pb-sheet-linked-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #34a853;
+            flex-shrink: 0;
+            display: none;
+        }
+        .pb-sheet-linked-dot.show {
+            display: block;
+            animation: sheetGlow 2.5s ease-in-out infinite;
+        }
+        @keyframes sheetGlow {
+            0%,100% { box-shadow: 0 0 0 0 rgba(52,168,83,0); }
+            50%     { box-shadow: 0 0 0 4px rgba(52,168,83,0.2); }
+        }
+
+        /* ─── SHEET LINK MODAL ──────────────────────────────────── */
+        .sheet-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 8000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+        .sheet-modal-backdrop.open { display: flex; }
+
+        .sheet-modal {
+            background: #fff;
+            border-radius: 18px;
+            padding: 32px 36px 28px;
+            width: 500px;
+            max-width: 95vw;
+            box-shadow: 0 24px 70px rgba(0,0,0,0.22);
+            animation: sheetModalIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            position: relative;
+        }
+        @keyframes sheetModalIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .sm-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .sm-icon-wrap {
+            width: 44px; height: 44px;
+            background: #e8f5e9;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .sm-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--z-dark);
+        }
+        .sm-subtitle {
+            font-size: 0.78rem;
+            color: var(--z-gray);
+            margin-top: 2px;
+            line-height: 1.4;
+        }
+
+        .sm-close {
+            position: absolute;
+            top: 14px; right: 16px;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--z-gray);
+            line-height: 1;
+            font-family: inherit;
+            padding: 4px;
+            border-radius: 5px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .sm-close:hover { background: #f5f5f5; color: var(--z-dark); }
+
+        .sm-field label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--z-gray);
+            margin-bottom: 7px;
+        }
+
+        .sm-input-wrap {
+            display: flex;
+            align-items: center;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .sm-input-wrap:focus-within { border-color: #34a853; }
+
+        .sm-input-prefix {
+            padding: 11px 12px;
+            background: #f5f5f5;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .sm-url-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 11px 13px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            color: var(--z-dark);
+            background: transparent;
+        }
+        .sm-url-input::placeholder { color: #c0c0c0; }
+
+        .sm-preview {
+            margin-top: 10px;
+            background: #f8fdf9;
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            padding: 10px 13px;
+            font-size: 0.78rem;
+            color: #2e7d32;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+        .sm-preview.show { display: flex; }
+
+        .sm-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        .sm-btn-cancel {
+            flex: 1;
+            padding: 11px;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            color: var(--z-gray);
+            transition: background 0.15s;
+        }
+        .sm-btn-cancel:hover { background: #ebebeb; color: var(--z-dark); }
+
+        .sm-btn-save {
+            flex: 2;
+            padding: 11px;
+            background: #34a853;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 800;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            transition: background 0.18s, transform 0.1s;
+        }
+        .sm-btn-save:hover  { background: #2d9248; }
+        .sm-btn-save:active { transform: scale(0.98); }
+        .sm-btn-save:disabled { background: #a8d5b5; cursor: not-allowed; }
+
+        .sm-btn-open {
+            padding: 11px 16px;
+            background: #fff;
+            border: 1.5px solid #34a853;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            color: #1a6135;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+        .sm-btn-open:hover { background: #e8f5e9; }
+
+        .sm-clear {
+            font-size: 0.7rem;
+            color: #e53935;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: right;
+            margin-top: 6px;
+            display: none;
+        }
+        .sm-clear.show { display: block; }
+        .sm-clear:hover { text-decoration: underline; }
+
+
+        /* ─── VIEWERS PANEL (slide-down from bar) ─────────────────── */
+        .viewers-panel {
+            position: fixed;
+            top: 48px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 14px;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.14);
+            padding: 0;
+            width: 300px;
+            z-index: 4900;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+        .viewers-panel.open {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .vp-header {
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .vp-title {
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--z-gray);
+        }
+        .vp-count-chip {
+            background: var(--z-red);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .vp-list {
+            max-height: 320px;
+            overflow-y: auto;
+            padding: 6px 0;
+        }
+
+        .vp-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 16px;
+            transition: background 0.12s;
+            position: relative;
+        }
+        .vp-item:hover { background: #fafafa; }
+
+        .vp-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68rem;
+            font-weight: 800;
+            color: #fff;
+            text-transform: uppercase;
+            flex-shrink: 0;
+            letter-spacing: 0.02em;
+        }
+
+        .vp-info { flex: 1; min-width: 0; }
+        .vp-name {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: var(--z-dark);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .vp-role {
+            font-size: 0.68rem;
+            color: var(--z-gray);
+            font-weight: 600;
+        }
+
+        .vp-badge-you {
+            font-size: 0.62rem;
+            font-weight: 800;
+            background: #ffebee;
+            color: var(--z-red);
+            padding: 2px 7px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .vp-joined-time {
+            font-size: 0.62rem;
+            color: #c0c0c0;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .vp-active-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #24963F;
+            flex-shrink: 0;
+            animation: liveGlow 2s infinite;
+        }
+
+        .vp-footer {
+            padding: 10px 16px 12px;
+            border-top: 1px solid #f0f0f0;
+            font-size: 0.67rem;
+            color: #b0b0b0;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .vp-footer a { color: var(--z-red); text-decoration: none; }
+        .vp-footer a:hover { text-decoration: underline; }
+
+        .vp-firebase-setup {
+            padding: 12px 16px;
+            background: #fffbf0;
+            border-top: 1px solid #ffeeba;
+            font-size: 0.69rem;
+            color: #7a5200;
+            line-height: 1.6;
+            display: none;
+        }
+        .vp-firebase-setup.show { display: block; }
+        .vp-firebase-setup strong { color: #e65100; }
+        .vp-firebase-setup code {
+            background: rgba(0,0,0,0.07);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 0.66rem;
+        }
+
+
+        /* ═══ NAME ENTRY MODAL ════════════════════════════════════════ */
+        .name-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 9000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .name-modal-backdrop.open { display: flex; }
+
+        .name-modal {
+            background: #fff;
+            border-radius: 22px;
+            padding: 40px 40px 32px;
+            width: 430px;
+            max-width: 95vw;
+            text-align: center;
+            box-shadow: 0 28px 80px rgba(0,0,0,0.28);
+            animation: nmSlideUp 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes nmSlideUp {
+            from { opacity: 0; transform: translateY(28px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0)    scale(1);    }
+        }
+
+        /* Avatar preview */
+        .nm-avatar {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 900;
+            color: #fff;
+            background: #e0e0e0;
+            border: 4px solid #f0f0f0;
+            transition: background 0.3s, border-color 0.3s;
+            letter-spacing: -0.02em;
+            position: relative;
+        }
+        .nm-avatar::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            border: 2px dashed transparent;
+            transition: border-color 0.3s;
+        }
+        .nm-avatar.has-name::after { border-color: rgba(203,32,45,0.25); }
+
+        .nm-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--z-dark);
+            margin-bottom: 5px;
+        }
+        .nm-subtitle {
+            font-size: 0.82rem;
+            color: var(--z-gray);
+            margin-bottom: 26px;
+            line-height: 1.55;
+        }
+        .nm-subtitle em {
+            font-style: normal;
+            font-weight: 700;
+            color: var(--z-red);
+        }
+
+        /* Name input */
+        .nm-field {
+            position: relative;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .nm-field label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--z-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 6px;
+        }
+        .nm-input {
+            width: 100%;
+            padding: 13px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 0.96rem;
+            font-family: inherit;
+            font-weight: 600;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+            color: var(--z-dark);
+        }
+        .nm-input:focus { border-color: var(--z-red); }
+        .nm-input::placeholder { color: #c0c0c0; font-weight: 400; }
+
+        /* Role pills */
+        .nm-roles-label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--z-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 8px;
+            text-align: left;
+        }
+        .nm-roles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-bottom: 22px;
+        }
+        .nm-role-pill {
+            padding: 6px 14px;
+            border-radius: 24px;
+            border: 1.5px solid #e8e8e8;
+            background: #f9f9f9;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            color: var(--z-gray);
+            transition: all 0.15s;
+        }
+        .nm-role-pill:hover { border-color: #ccc; color: var(--z-dark); }
+        .nm-role-pill.active {
+            background: #fff0f0;
+            border-color: var(--z-red);
+            color: var(--z-red);
+        }
+
+        /* Submit button */
+        .nm-submit {
+            width: 100%;
+            padding: 14px;
+            background: var(--z-red);
+            color: #fff;
+            border: none;
+            border-radius: 11px;
+            font-size: 1rem;
+            font-weight: 800;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .nm-submit:hover:not(:disabled)  { background: #a81924; }
+        .nm-submit:active:not(:disabled) { transform: scale(0.98); }
+        .nm-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .nm-footer {
+            font-size: 0.67rem;
+            color: #c0c0c0;
+            margin-top: 14px;
+            line-height: 1.5;
+        }
+        .nm-footer strong { color: #aaa; }
+
+
+        /* ═══ TOAST ═══════════════════════════════════════════════════ */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1c1c1c;
+            color: #fff;
+            padding: 11px 22px;
+            border-radius: 10px;
+            font-size: 0.83rem;
+            font-weight: 600;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.25s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.success { background: #1b5e20; }
+        .toast.warning { background: #e65100; }
     </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     LIVE PRESENCE BAR — fixed top, Google Docs style
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="presence-bar" id="presenceBar">
+
+    <!-- Left: brand + doc label -->
+    <div class="pb-brand">
+        <img src="https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png" alt="Zomato">
+        <span class="pb-doc-label">WIMO SOP</span>
+        <span class="pb-version">v2025.02.20</span>
+    </div>
+
+    <!-- Live status pill -->
+    <div class="pb-live-pill">
+        <div class="pb-live-dot pending" id="pbLiveDot"></div>
+        <span class="pb-live-text pending" id="pbLiveText">Connecting…</span>
+    </div>
+
+    <div class="pb-divider"></div>
+
+    <!-- Viewer count -->
+    <span class="pb-count-label" id="pbCountLabel"></span>
+
+    <!-- Avatar strip -->
+    <div class="pb-avatars" id="pbAvatars"></div>
+
+    <!-- Right: your chip + see-all + G-Sheet source -->
+    <div class="pb-right">
+        <div class="pb-you-chip" id="pbYouChip" onclick="toggleViewersPanel()">
+            <div class="pb-you-avatar" id="pbYouAvatar"></div>
+            <div>
+                <div class="pb-you-name" id="pbYouName"></div>
+                <div class="pb-you-role" id="pbYouRole"></div>
+            </div>
+        </div>
+        <button class="pb-see-all" onclick="toggleViewersPanel()">
+            <i class="fa fa-users"></i> All viewers
+        </button>
+
+        <div class="pb-divider"></div>
+
+        <!-- G-Sheet Source Button -->
+        <button class="pb-sheet-btn" id="pbSheetBtn" onclick="openSheetModal()" title="View source Google Sheet">
+            <!-- Google Sheets SVG icon -->
+            <svg class="pb-sheet-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="1" width="18" height="22" rx="2" fill="#34a853"/>
+                <rect x="3" y="1" width="18" height="22" rx="2" fill="url(#sheetGrad)"/>
+                <path d="M14 1v5h5" fill="none" stroke="#fff" stroke-width="1.2" opacity="0.6"/>
+                <path d="M14 1l5 5H14V1z" fill="#1e8c45"/>
+                <rect x="6" y="9"  width="12" height="1.2" rx="0.6" fill="#fff" opacity="0.9"/>
+                <rect x="6" y="12" width="12" height="1.2" rx="0.6" fill="#fff" opacity="0.9"/>
+                <rect x="6" y="15" width="8"  height="1.2" rx="0.6" fill="#fff" opacity="0.9"/>
+                <rect x="10.5" y="9" width="1" height="9" rx="0.5" fill="#fff" opacity="0.4"/>
+                <defs>
+                    <linearGradient id="sheetGrad" x1="3" y1="1" x2="21" y2="23" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#34a853"/>
+                        <stop offset="100%" stop-color="#1e8c45"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <span id="pbSheetLabel">Source Sheet</span>
+            <div class="pb-sheet-linked-dot" id="pbSheetDot"></div>
+        </button>
+    </div>
+</div>
+
+<!-- ═══ G-SHEET SOURCE MODAL ══════════════════════════════════════════ -->
+<div class="sheet-modal-backdrop" id="sheetModalBackdrop" onclick="closeSheetModalOutside(event)">
+    <div class="sheet-modal">
+        <button class="sm-close" onclick="closeSheetModal()">✕</button>
+
+        <div class="sm-header">
+            <div class="sm-icon-wrap">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="1" width="15" height="18" rx="2" fill="#34a853"/>
+                    <path d="M12 1v5h5" fill="none" stroke="#fff" stroke-width="1.1" opacity="0.6"/>
+                    <path d="M12 1l5 5H12V1z" fill="#1e8c45"/>
+                    <rect x="4.5" y="8"  width="10" height="1.1" rx="0.5" fill="#fff" opacity="0.9"/>
+                    <rect x="4.5" y="11" width="10" height="1.1" rx="0.5" fill="#fff" opacity="0.9"/>
+                    <rect x="4.5" y="14" width="6"  height="1.1" rx="0.5" fill="#fff" opacity="0.9"/>
+                </svg>
+            </div>
+            <div>
+                <div class="sm-title">Source Google Sheet</div>
+                <div class="sm-subtitle">Link the spreadsheet this SOP data was imported from</div>
+            </div>
+        </div>
+
+        <div class="sm-field">
+            <label>Google Sheet URL</label>
+            <div class="sm-input-wrap">
+                <div class="sm-input-prefix">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="#999" stroke-width="2" stroke-linecap="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="#999" stroke-width="2" stroke-linecap="round"/></svg>
+                </div>
+                <input
+                    class="sm-url-input"
+                    id="smUrlInput"
+                    type="url"
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    oninput="onSheetUrlInput(this.value)"
+                    onpaste="setTimeout(()=>onSheetUrlInput(document.getElementById('smUrlInput').value),10)"
+                >
+            </div>
+            <div class="sm-preview" id="smPreview">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M20 6L9 17l-5-5" stroke="#34a853" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span id="smPreviewText"></span>
+            </div>
+            <div class="sm-clear" id="smClear" onclick="clearSheetUrl()">✕ Remove linked sheet</div>
+        </div>
+
+        <div class="sm-actions">
+            <button class="sm-btn-cancel" onclick="closeSheetModal()">Cancel</button>
+            <a class="sm-btn-open" id="smOpenBtn" href="#" target="_blank" style="display:none;">
+                <i class="fa fa-external-link"></i> Open Sheet
+            </a>
+            <button class="sm-btn-save" id="smSaveBtn" onclick="saveSheetUrl()" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="#fff" stroke-width="2"/><polyline points="17,21 17,13 7,13 7,21" stroke="#fff" stroke-width="2"/><polyline points="7,3 7,8 15,8" stroke="#fff" stroke-width="2"/></svg>
+                Save & Link
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ VIEWERS PANEL ════════════════════════════════════════════════ -->
+<div class="viewers-panel" id="viewersPanel">
+    <div class="vp-header">
+        <span class="vp-title">👁 Live Viewers</span>
+        <span class="vp-count-chip" id="vpCountChip">0</span>
+    </div>
+    <div class="vp-list" id="vpList"></div>
+    <div class="vp-firebase-setup" id="vpFirebaseSetup">
+        <strong>⚙️ Demo Mode Active</strong><br>
+        You're only visible to yourself. To sync across all devices, add your
+        <code>FIREBASE_CONFIG</code> at the bottom of this file.<br>
+        <a href="https://console.firebase.google.com" target="_blank" style="color:#e65100;font-weight:700;">
+            Get free Firebase project →
+        </a>
+    </div>
+    <div class="vp-footer">
+        Presence auto-clears when you close the tab.
+    </div>
+</div>
+
+<!-- ═══ NAME ENTRY MODAL ═════════════════════════════════════════════ -->
+<div class="name-modal-backdrop" id="nameModalBackdrop">
+    <div class="name-modal">
+        <div class="nm-avatar" id="nmAvatar">?</div>
+
+        <div class="nm-title">Who's opening this SOP?</div>
+        <div class="nm-subtitle">
+            Your name appears live to everyone reading this document —
+            just like <em>Google Docs</em>.
+        </div>
+
+        <div class="nm-field">
+            <label>Your Full Name</label>
+            <input
+                class="nm-input"
+                id="nmNameInput"
+                type="text"
+                placeholder="e.g. Priya Sharma"
+                maxlength="32"
+                autocomplete="name"
+                oninput="nmOnInput()"
+                onkeydown="if(event.key==='Enter') nmSubmit()"
+            >
+        </div>
+
+        <div class="nm-roles-label">Your Role</div>
+        <div class="nm-roles" id="nmRoles">
+            <button class="nm-role-pill active" onclick="nmSelectRole(this,'Agent')">Agent</button>
+            <button class="nm-role-pill" onclick="nmSelectRole(this,'QA Analyst')">QA Analyst</button>
+            <button class="nm-role-pill" onclick="nmSelectRole(this,'Team Leader')">Team Leader</button>
+            <button class="nm-role-pill" onclick="nmSelectRole(this,'Vendor')">Vendor</button>
+            <button class="nm-role-pill" onclick="nmSelectRole(this,'Admin')">Admin</button>
+        </div>
+
+        <button class="nm-submit" id="nmSubmitBtn" onclick="nmSubmit()" disabled>
+            <i class="fa fa-eye"></i> Start Viewing
+        </button>
+        <div class="nm-footer">
+            Your session ends when you close this tab.
+            Name is remembered on this device.
+        </div>
+    </div>
+</div>
+
+<!-- ═══ TOAST ════════════════════════════════════════════════════════ -->
+<div class="toast" id="toast"></div>
 
 <div class="layout">
    <header class="search-section">
       <img class="h-8 w-auto lg:h-8 xl:h-10 2xl:h-14" src="https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png" loading="eager" height="30" alt="Zomato">
       <input type="text" id="sopSearch" placeholder="Search scenario (e.g., 'mall', 'device', 'spillage')..." onkeyup="filterSOP()">
-      <a href="/"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--!Font Awesome Free v5.15.4 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path d="M280.37 148.26L96 300.11V464a16 16 0 0 0 16 16l112.06-.29a16 16 0 0 0 15.92-16V368a16 16 0 0 1 16-16h64a16 16 0 0 1 16 16v95.64a16 16 0 0 0 16 16.05L464 480a16 16 0 0 0 16-16V300L295.67 148.26a12.19 12.19 0 0 0-15.3 0zM571.6 251.47L488 182.56V44.05a12 12 0 0 0-12-12h-56a12 12 0 0 0-12 12v72.61L318.47 43a48 48 0 0 0-61 0L4.34 251.47a12 12 0 0 0-1.6 16.9l25.5 31A12 12 0 0 0 45.15 301l235.22-193.74a12.19 12.19 0 0 1 15.3 0L530.9 301a12 12 0 0 0 16.9-1.6l25.5-31a12 12 0 0 0-1.7-16.93z"/></svg></a>
-      <div style="font-size: 0.8rem; font-weight: bold; color: var(--z-light);">WIMO v.2025.02.04</div>
+      <a href="/"><i class="fa fa-home" style="font-size:36px; color:white;"></i></a>
+      <div style="font-size: 0.8rem; font-weight: bold; color: var(--z-light);">WIMO v.2025.02.20</div>
    </header>
 
     <main class="sop-container">
 
-    <div class="category-block">
-        <div class="category-title">01. PRE-PICKUP CONCERNS <span>(Phase: Restaurant/Assigning)</span></div>
-        <div class="sop-grid">
+        <!-- 01. PRE-PICKUP CONCERNS -->
+        <div class="category-block">
+            <div class="category-title">01. PRE-PICKUP CONCERNS <span>(Phase: Restaurant/Assigning)</span></div>
+            <div class="sop-grid">
 
-            <div class="sop-card" data-tags="restaurant unresponsive food not ready delay 40m">
-                <div class="card-header">DP + MX Unresponsive</div>
-                <div class="card-cond">Delay >40mins | both DP & MX unresponsive</div>
-                <div class="action-tag tag-cancel">Cancel</div>
-            </div>
+                <div class="sop-card" data-tags="restaurant unresponsive delay cancellation food not ready" onclick="openModal(this)">
+                    <div class="card-header">Restaurant Unresponsive (Food Not Ready)</div>
+                    <div class="card-cond">Delay >40m & both DP/MX unresponsive</div>
+                    <div class="action-tag tag-cancel">Proceed with Cancellation</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Check if the Delivery Partner (DP) is at the restaurant and try to connect with the restaurant through the DP if the food is not ready. If the delay is more than 40 minutes, food is still not ready, and both DP and merchant (MX) are unresponsive, proceed with Cancellation.
 
-            <div class="sop-card" data-tags="no dp valet not assigned availability low">
-                <div class="card-header">No DP Available</div>
-                <div class="card-cond">Delay 25-30m: Prompt + Compensate | If Delay >30m: Cancel</div>
-                <div class="action-tag tag-wait">Check LL Availability Status</div>
-            </div>
+If the DP responds and confirms that the food is being prepared, compensate the customer and clearly explain the reason for the delay. If the food is ready, provide compensation based on the delay duration.</div>
+                </div>
 
-            <div class="sop-card" data-tags="out of stock missing partial prepaid cod alternate">
-                <div class="card-header">Out of Stock / Partial</div>
-                <div class="card-cond">Prepaid: Check alternate or Escalate | COD: Cancel</div>
-                <div class="action-tag tag-esc">Escalate to Agent</div>
-            </div>
+                <div class="sop-card" data-tags="delivery partner unavailable valet assignment area" onclick="openModal(this)">
+                    <div class="card-header">No DP Available in Area</div>
+                    <div class="card-cond">Delay >25-30m in valet assignment</div>
+                    <div class="action-tag tag-cancel">Cancel if Delay >30m</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Check the Delivery Partners availability status (less/moderate/high) and create a prompt for the bot.
 
-            <div class="sop-card" data-tags="device issues merchant delivery partner reassign">
-                <div class="card-header">Device Issues (MX/DP)</div>
-                <div class="card-cond">Unable to see details. Reassign first.</div>
-                <div class="action-tag tag-cancel">If reassignment fails: Cancel</div>
-            </div>
+Prompt example: "Due to less availability of the delivery partners, it is taking longer than usual to assign a partner."
 
-            <div class="sop-card" data-tags="ready before time mistake speed up priority">
-                <div class="card-header">Marked Ready Early</div>
-                <div class="card-cond">MX mistake. Ask for priority prep + time estimate.</div>
-                <div class="action-tag tag-wait">Send "Speed Up" Prompt</div>
-            </div>
+In case of valet not assigned:
+• If delay is 25–30 mins → Send waiting prompt and compensate as per delay.
+• If delay is >30 mins → Cancel the order.</div>
+                </div>
 
-            <div class="sop-card" data-tags="outlet closed wrong address address issue">
-                <div class="card-header">Outlet/Address Issues</div>
-                <div class="card-cond">Confirmed with MX or DP VOC (if MX silent)</div>
-                <div class="action-tag tag-cancel">Proceed with Cancellation</div>
-            </div>
+                <div class="sop-card" data-tags="device issues merchant restaurant unable see order" onclick="openModal(this)">
+                    <div class="card-header">Restaurant Device Issues</div>
+                    <div class="card-cond">MX unable to see/process orders</div>
+                    <div class="action-tag tag-cancel">Send Prompt & Cancel</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Send prompt and select cancellation.
 
-            <div class="sop-card" data-tags="mall premises gate restricted delivery partner">
-                <div class="card-header">Mall Orders</div>
-                <div class="card-cond">DP restricted at gate. Get ETA from DP.</div>
-                <div class="action-tag tag-wait">Compensate according to Delay</div>
-            </div>
+Prompt example: "Upon checking, the restaurant informed that they are facing device issues due to which they are unable to process your order."</div>
+                </div>
 
-            <div class="sop-card" data-tags="picked by another partner stolen duplicate">
-                <div class="card-header">Picked by Another DP</div>
-                <div class="card-cond">MX re-prep? YES: Prompt+Comp | NO: Cancel</div>
-                <div class="action-tag tag-cancel">Check re-preparation status</div>
-            </div>
+                <div class="sop-card" data-tags="device issues delivery partner unable see order details" onclick="openModal(this)">
+                    <div class="card-header">DP Device Issues</div>
+                    <div class="card-cond">DP unable to see order details on device</div>
+                    <div class="action-tag tag-cancel">Reassign or Cancel</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Try to reassign first. If driver not available, proceed with cancellation.
 
-            <div class="sop-card" data-tags="awaiting pickup status delay reassign">
-                <div class="card-header">Awaiting Pickup Status</div>
-                <div class="card-cond">Order picked but not marked. Delay >30m.</div>
-                <div class="action-tag tag-esc">Escalate if >30m</div>
+Prompt example: "The delivery partner is facing device issues due to which he is unable to see your order at the moment."</div>
+                </div>
+
+                <div class="sop-card" data-tags="out of stock missing partial prepaid cod alternate item" onclick="openModal(this)">
+                    <div class="card-header">Out of Stock / Missing Items</div>
+                    <div class="card-cond">Partial items missing (Prepaid/COD)</div>
+                    <div class="action-tag tag-esc">Escalate to Agent</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">If MX (Restaurant) confirms items are partially missing:
+• Escalate to an agent. For example, if a customer ordered two items and only one can be prepared, the case must be escalated.
+
+If COD order → Select cancellation.
+
+If prepaid order → Check with the restaurant partner if alternate item can be prepared:
+• If NO → Cancel.
+• If YES (alternate item can be prepared) → Escalate to agent.
+
+Note: If DP stated that the item is out of stock, agent must confirm this from MX. If restaurant unresponsive → select cancellation. If MX said CX denied to accept alternate of the order → Select Cancellation.</div>
+                </div>
+
+                <div class="sop-card" data-tags="ready before time mistake speed up restaurant marked" onclick="openModal(this)">
+                    <div class="card-header">Marked Ready Early (by Mistake)</div>
+                    <div class="card-cond">MX marked ready by mistake</div>
+                    <div class="action-tag tag-wait">Ask MX Priority Prep + Prompt</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Ask the restaurant to prepare the order on priority and ask how much time it will take. Create a prompt and mention the delay reason.
+
+Prompt example: "The restaurant has marked the order ready before time by mistake but we have asked them to speed up the process for you."</div>
+                </div>
+
+                <div class="sop-card" data-tags="outlet closed restaurant closed address" onclick="openModal(this)">
+                    <div class="card-header">Outlet Closed</div>
+                    <div class="card-cond">Restaurant confirmed closed</div>
+                    <div class="action-tag tag-cancel">Cancel (Use DP VOC if MX silent)</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">If confirmed (with restaurant) → Select cancellation.
+
+If restaurant is unresponsive → Go with the DP VOC (Voice of Customer) and select cancellation.</div>
+                </div>
+
+                <div class="sop-card" data-tags="wrong restaurant address incorrect location" onclick="openModal(this)">
+                    <div class="card-header">Wrong Restaurant Address</div>
+                    <div class="card-cond">Incorrect restaurant address on record</div>
+                    <div class="action-tag tag-cancel">Cancel (Use DP VOC if MX silent)</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">If confirmed (with restaurant) → Select cancellation.
+
+If restaurant is unresponsive → Go with the DP VOC and select cancellation.</div>
+                </div>
+
+                <div class="sop-card" data-tags="mall premises gate restricted entry" onclick="openModal(this)">
+                    <div class="card-header">Mall Orders</div>
+                    <div class="card-cond">DP restricted at gate/mall premises</div>
+                    <div class="action-tag tag-wait">Prompt + Comp According to Delay</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Call the restaurant. If they don't respond, call the Delivery Partner. Ask the delivery partner for the estimation and create a prompt. Compensate according to the delay.
+
+Prompt example: "Since the order falls inside a mall's premises, the delivery partner is not allowed to enter the gate. Trying our best to expedite the order for you."</div>
+                </div>
+
+                <div class="sop-card" data-tags="another partner picked already stolen different dp" onclick="openModal(this)">
+                    <div class="card-header">Picked by Another DP</div>
+                    <div class="card-cond">Order picked by wrong delivery partner</div>
+                    <div class="action-tag tag-cancel">Cancel if MX Cannot Re-prepare</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Call restaurant and confirm if the order can be prepared again.
+
+• If YES → Provide waiting prompt and compensate as per delay. Need to confirm if MX can prepare order again (confirm with DP if MX is unresponsive).
+• If NO → Make a prompt and select cancellation.
+
+Prompt example: "The order has been picked by a different delivery partner leading to a delay."</div>
+                </div>
+
+                <div class="sop-card" data-tags="awaiting status pickup confirmed mx not marked dp" onclick="openModal(this)">
+                    <div class="card-header">Awaiting Status — Order Picked but Not Marked</div>
+                    <div class="card-cond">MX confirmed picked up, DP not marked</div>
+                    <div class="action-tag tag-wait">Wait &lt;30m | Escalate &gt;30m</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">If the order is picked up but not marked as picked up and still showing as "Awaiting Pickup" but restaurant confirmed order is picked up by DP:
+• Less than 30 mins → Wait.
+• More than 30 mins → Escalate.</div>
+                </div>
+
+                <div class="sop-card" data-tags="awaiting pickup dp denied delivery vehicle accident" onclick="openModal(this)">
+                    <div class="card-header">DP Denied Delivery (Vehicle/Accident)</div>
+                    <div class="card-cond">DP refusing due to vehicle issue or accident</div>
+                    <div class="action-tag tag-cancel">Reassign; Cancel if DP Unavailable</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Delivery partner denying to deliver the order due to vehicle issue or accident.
+
+Agent must try to reassign. If DP unavailable → Cancel the order.
+
+⚠️ Note: TIME DOES NOT MATTER for pre and post pickup cases in this scenario.</div>
+                </div>
+
             </div>
         </div>
-    </div>
 
-    <div class="category-block">
-        <div class="category-title">02. POST-PICKUP CONCERNS <span>(Phase: In-Transit)</span></div>
-        <div class="sop-grid">
+        <!-- 02. POST-PICKUP CONCERNS -->
+        <div class="category-block">
+            <div class="category-title">02. POST-PICKUP CONCERNS <span>(Phase: In-Transit)</span></div>
+            <div class="sop-grid">
 
-            <div class="sop-card" data-tags="dp unresponsive moving not moving location map">
-                <div class="card-header">DP Not Responding</div>
-                <div class="card-cond">Moving: Wait+Prompt | Not Moving >30m: Escalate</div>
-                <div class="action-tag tag-esc">Mention Tracking in PN</div>
-            </div>
+                <div class="sop-card" data-tags="dp unresponsive not responding location map tracking" onclick="openModal(this)">
+                    <div class="card-header">DP Not Responding to Calls</div>
+                    <div class="card-cond">Picked up & DP unresponsive / not moving</div>
+                    <div class="action-tag tag-esc">Escalate if Delay &gt;30m</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Track the Delivery Partner's location from the map and see if he is moving. Add double tracking details in PN.
 
-            <div class="sop-card" data-tags="unable to deliver vehicle issue app issue mobile">
-                <div class="card-header">DP Unable to Deliver</div>
-                <div class="card-cond">Check reassignment. If failed or delay >40m.</div>
-                <div class="action-tag tag-cancel">Reassign or Cancel</div>
-            </div>
+Prompt: "The delivery partner is not responding to our calls at the moment but we can track his movement and he is getting closer to your location."
 
-            <div class="sop-card" data-tags="traffic festivities delay unable move reach">
-                <div class="card-header">Traffic / Festivities</div>
-                <div class="card-cond">Can deliver: Comp | Cannot move: Cancel</div>
-                <div class="action-tag tag-cancel">Check Case 1 vs Case 2</div>
-            </div>
+Important: Compensate according to the delay and mention delay time and tracking details in private notes (PN).
 
-            <div class="sop-card" data-tags="spillage damage partial fully handover">
-                <div class="card-header">Spillage Issue</div>
-                <div class="card-cond">Minor: Handover | Major: <30m Cancel / >30m Esc</div>
-                <div class="action-tag tag-esc">Verify with DP</div>
-            </div>
+• If DP is moving → Ask customer to wait, compensate as per delay.
+• If DP is NOT moving and delay < 30 mins → Ask customer to wait.
+• If DP is NOT moving and delay > 30 mins → Escalate.
 
-            <div class="sop-card" data-tags="customer address mismatch distance long location">
-                <div class="card-header">Address Mismatch</div>
-                <div class="card-cond">DP refuses long distance / Customer unreachable</div>
-                <div class="action-tag tag-cancel">Cancel if distance is too long</div>
-            </div>
+Note: In DP UR case, if KMs are not reducing, this must be escalated above 30 mins delay.</div>
+                </div>
 
-            <div class="sop-card" data-tags="grouping other drop restaurant delay multi-order">
-                <div class="card-header">Grouping/Multi-Order</div>
-                <div class="card-cond">Delayed by another pick/drop.</div>
-                <div class="action-tag tag-wait">Compensate for Delay</div>
-            </div>
-            
-            <div class="sop-card" data-tags="train order left station cancel">
-                <div class="card-header">Train Orders</div>
-                <div class="card-cond">DP states customer asked to cancel/train left</div>
-                <div class="action-tag tag-cancel">Proceed with Cancellation</div>
+                <div class="sop-card" data-tags="delivery partner picked up unable deliver vehicle mobile app issue" onclick="openModal(this)">
+                    <div class="card-header">DP Unable to Deliver After Pickup</div>
+                    <div class="card-cond">DP says unable to deliver (vehicle/app/mobile)</div>
+                    <div class="action-tag tag-cancel">Reassign First, Then Cancel</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Delivery partner says order is picked up and says unable to deliver order (Reasons: vehicle issue, mobile issue, app issue, etc.).
+
+In that case: Check with reassignment first. If reassignment is not happening → Proceed with cancellation.</div>
+                </div>
+
+                <div class="sop-card" data-tags="customer location find unable map difficulty" onclick="openModal(this)">
+                    <div class="card-header">DP Unable to Find Customer Location</div>
+                    <div class="card-cond">DP struggling to locate delivery address</div>
+                    <div class="action-tag tag-wait">Prompt + Escalate if Needed</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Ask the delivery partner to call the customer and get real-time update.
+
+Prompt: "The delivery partner is facing difficulty to locate your location as per the map. He should be reaching you anytime now. You can also try calling him."
+
+If the delivery partner needs further assistance → Escalate the case to an agent.</div>
+                </div>
+
+                <div class="sop-card" data-tags="traffic festivities delay unable move festive occasion" onclick="openModal(this)">
+                    <div class="card-header">Festive Traffic Delay</div>
+                    <div class="card-cond">Unable to move/deliver due to festivities</div>
+                    <div class="action-tag tag-cancel">Comp if Deliverable; Cancel if Not</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Case 1 — If order CAN be delivered:
+Prompt: "Due to a festive occasion, the delivery partner is taking longer than usual to reach your location." → Compensate according to the delay.
+
+Case 2 — If order CANNOT be delivered:
+"Due to a festive occasion, the delivery partner is taking longer than usual and is unable to move." → Select cancellation.</div>
+                </div>
+
+                <div class="sop-card" data-tags="post pickup order transfer previous delivery partner unresponsive" onclick="openModal(this)">
+                    <div class="card-header">Post-Pickup Order Transfer — Old DP Unresponsive</div>
+                    <div class="card-cond">New DP cannot collect from old DP</div>
+                    <div class="action-tag tag-cancel">Cancel or Escalate Based on Case</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Prompt: "The primary delivery partner is not responding due to which the new assigned partner is unable to collect the order."
+
+Case 1 — New DP says old DP number is switched off → Agent must attempt call. If switched off → Cancel.
+
+Case 2 — New DP says old DP number is unresponsive but calls are connecting → Escalate the ticket.</div>
+                </div>
+
+                <div class="sop-card" data-tags="address mismatch customer distance whatsapp long location" onclick="openModal(this)">
+                    <div class="card-header">Customer Address Mismatch</div>
+                    <div class="card-cond">DP says location is incorrect or too far</div>
+                    <div class="action-tag tag-cancel">Cancel if Distance Too Long</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Try to request the delivery partner to deliver to the updated address or take the location on WhatsApp and get the order delivered.
+
+If DP is unable to connect with customer but still needs assistance → Escalate to the agent.
+
+If delivery partner is saying distance is long → Select cancellation.
+
+Prompt: "The delivery partner confirmed that the location is incorrect due to which he is unable to deliver the order."</div>
+                </div>
+
+                <div class="sop-card" data-tags="grouping other order another restaurant drop multi" onclick="openModal(this)">
+                    <div class="card-header">Grouping / Multi-Order Delay</div>
+                    <div class="card-cond">Delayed due to another pick or drop</div>
+                    <div class="action-tag tag-wait">Prompt + Comp for Delay</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Case 1 — If DP is at another restaurant:
+Prompt: "The delivery partner is collecting another order from a different restaurant leading to a delay in your order. The process is being expedited for you."
+
+Case 2 — If DP is at another drop:
+Prompt: "The delivery partner is dropping another order and will be at your location within a few minutes."
+
+→ Compensate according to the delay.</div>
+                </div>
+
+                <div class="sop-card" data-tags="customer unresponsive dp reached location attend call" onclick="openModal(this)">
+                    <div class="card-header">Customer Unresponsive — DP at Location</div>
+                    <div class="card-cond">DP reached but customer not answering</div>
+                    <div class="action-tag tag-wait">Send Prompt to Customer</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Prompt: "The delivery partner has reached your location and is trying to connect with you. Kindly attend the call so that the order can be delivered."</div>
+                </div>
+
+                <div class="sop-card" data-tags="spillage damage partial fully major minor" onclick="openModal(this)">
+                    <div class="card-header">Spillage / Damaged Order</div>
+                    <div class="card-cond">Major or partial damage reported by DP</div>
+                    <div class="action-tag tag-cancel">Cancel &lt;30m | Escalate &gt;30m</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Check with the delivery partner.
+
+Minor / Partially Damaged:
+Prompt: "As confirmed by the delivery partner, there is a minor spillage but the order can be handed over."
+
+Major / Fully Damaged:
+• Delay < 30 mins → Select cancellation.
+• Delay > 30 mins → Escalate to the agent.</div>
+                </div>
+
+                <div class="sop-card" data-tags="language barrier smartplugs communication" onclick="openModal(this)">
+                    <div class="card-header">Language Barrier</div>
+                    <div class="card-cond">Communication issue with DP/MX</div>
+                    <div class="action-tag tag-esc">Escalate if Delay &gt;30m</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Check with Smartplugs.
+
+• If delay < 30 mins → Send waiting prompt as per tracking and close the ticket.
+• If delay > 30 mins → Escalate.</div>
+                </div>
+
+                <div class="sop-card" data-tags="awaiting pickup status reassign escalate dp mx unresponsive" onclick="openModal(this)">
+                    <div class="card-header">Awaiting Pickup — Post Transit</div>
+                    <div class="card-cond">DP & MX unresponsive; order stuck</div>
+                    <div class="action-tag tag-esc">Reassign + Escalate if &gt;30m</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">If DP & MX are unresponsive and unable to track order status (Status: Awaiting Pickup):
+• Delay > 30 mins → Reassign. If not possible → Escalate to the agent.
+
+If MX is responsive and stating order is ready but DP is unresponsive (Status: Awaiting Pickup):
+• Delay < 30 mins → Ask to wait.
+• Delay > 30 mins → Reassign. If not possible → Escalate to the agent.</div>
+                </div>
+
+                <div class="sop-card" data-tags="cx customer asked dp cancel order train" onclick="openModal(this)">
+                    <div class="card-header">CX Asked DP to Cancel</div>
+                    <div class="card-cond">Customer instructed DP to cancel order</div>
+                    <div class="action-tag tag-esc">Escalate to Agent</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">If CX asks DP to cancel the order → Escalate to the agent.</div>
+                </div>
+
+                <div class="sop-card" data-tags="cancellation scenarios when to cancel dp unable misplaced train" onclick="openModal(this)">
+                    <div class="card-header">Cancellation Scenarios</div>
+                    <div class="card-cond">When cancellation is the correct action</div>
+                    <div class="action-tag tag-cancel">Proceed with Cancellation</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Cancel the order when:
+• The Delivery Partner is unable to deliver the order (after trying to reassign first).
+• MX is unable to cancel the order.
+• MX is unable to prepare the order.
+• Food is not ready and delay > 40 mins (DP & MX unresponsive).
+• The order is misplaced by the Delivery Partner (e.g., multi-order assignment).
+• The delivery partner says that customer asked to cancel order as it is a train order and the train has left → Proceed with cancellation.</div>
+                </div>
+
+                <div class="sop-card" data-tags="dp unresponsive tracking on the way moving smartplugs" onclick="openModal(this)">
+                    <div class="card-header">DP Unresponsive but Tracking Shows Movement</div>
+                    <div class="card-cond">DP UR but map shows moving toward customer</div>
+                    <div class="action-tag tag-wait">Send Prompt + Monitor</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">Prompt to use: "The delivery partner is unresponsive but as per tracking he is moving towards the customer's location."
+
+Monitor the tracking closely and update PN with tracking status. If movement stops or delay exceeds threshold, escalate.</div>
+                </div>
+
             </div>
         </div>
-    </div>
 
-    <div class="category-block update-highlight">
-        <div class="category-title">03. MANDATORY LOGGING <span>(New Updates Feb-2026)</span></div>
-        <div class="sop-grid">
-            
-            <div class="sop-card update" data-tags="private notes pn tracking status">
-                <div class="card-header">Private Note (PN) Essentials</div>
-                <div class="card-cond">Must mention: Delay Time, Tracking Details, Call Status</div>
-                <div class="action-tag tag-esc">Refresh Ticket after Call</div>
-            </div>
+        <!-- 03. COMPENSATION POLICY -->
+        <div class="category-block">
+            <div class="category-title">03. COMPENSATION POLICY <span>(Delay-Based)</span></div>
+            <div class="sop-grid">
 
-            <div class="sop-card update" data-tags="compensation policy percent 100 35">
-                <div class="card-header">New Comp. Policy</div>
-                <div class="card-cond">25-45m: 35% (Min 50/Max 100) | >45m: 100% (Max 500)</div>
-                <div class="action-tag tag-wait">Promo < 50: Give Full OV</div>
-            </div>
+                <div class="sop-card" data-tags="compensation policy delay 25 45 mins 35 percent" onclick="openModal(this)">
+                    <div class="card-header">Delay: 25–45 Minutes</div>
+                    <div class="card-cond">Compensate 35% of Order Value</div>
+                    <div class="action-tag tag-wait">Min ₹50 | Max ₹100</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">For delay of 25–45 minutes: Compensate 35% of order value.
+• Minimum compensation: ₹50
+• Maximum compensation: ₹100
 
-            <div class="sop-card update" data-tags="expected time eta lifeline buffer">
-                <div class="card-header">ETA & Buffers</div>
-                <div class="card-cond">10m buffer for Food Not Ready. Use LL ETA or 10m limit.</div>
-                <div class="action-tag tag-wait">Status: Prep End in Properties</div>
+Special case: If CX has applied a promo and the OV amount is less than ₹50 and delay is 26–45 mins → Initiate the entire OV amount.
+
+Example: Delay = 32 mins, OV = ₹35 → Compensation = ₹35 (entire OV amount).</div>
+                </div>
+
+                <div class="sop-card" data-tags="compensation policy delay 45 mins 100 percent max 500" onclick="openModal(this)">
+                    <div class="card-header">Delay: Above 45 Minutes</div>
+                    <div class="card-cond">Compensate 100% of Order Value</div>
+                    <div class="action-tag tag-cancel">Max ₹500</div>
+                    <div class="expand-hint"><i class="fa fa-info-circle"></i> Click for detailed SOP</div>
+                    <div class="card-detail-data" style="display:none">For delays > 45 minutes: Compensate 100% of order value.
+• Maximum compensation: ₹500</div>
+                </div>
+
             </div>
         </div>
-    </div>
 
-</main>
+    </main>
 
     <aside class="sidebar">
         <div class="widget comp-calc">
-            <div class="widget-title">💰 Compensation Calculator</div>
+            <div class="widget-title">💰 SMART COMP CALCULATOR</div>
             <label style="font-size: 0.8rem;">Delay (Mins)</label>
             <input type="number" id="calcDelay" placeholder="Minutes" oninput="runCalc()">
             
@@ -342,7 +1655,7 @@
                 <div style="font-size: 0.7rem; color: var(--z-gray);">RECOMMENDED COMPENSATION</div>
                 <div id="finalComp">₹0</div>
             </div>
-            <div class="tooltip">*25-45m: 35% (Max 100) | >45m: 100% (Max 500)</div>
+            <div class="tooltip">*25-45m: 35% (Min 50, Max 100) | >45m: 100% (Max 500)</div>
         </div>
 
         <div class="widget">
@@ -354,64 +1667,648 @@
         </div>
 
         <div class="widget" style="background: var(--z-red); color: white;">
-            <div class="widget-title" style="border-left-color: white;">⚡ FEB 4 UPDATES</div>
-            <ul style="padding-left: 15px; font-size: 0.85rem; line-height: 1.6;">
-                <li><strong>Buffer:</strong> Strictly 3-5 mins only[cite: 137].</li>
-                <li><strong>Lifeline:</strong> Max 10m buffer if "Waiting"[cite: 138].</li>
-                <li><strong>Private Notes:</strong> Must record delay & tracking status[cite: 139].</li>
-                <li><strong>Properties:</strong> Select "Prep End" if under prep[cite: 144].</li>
+            <div class="widget-title" style="border-left-color: white;">⚡ RECENT UPDATES</div>
+            <ul class="updates-list" style="color:white;">
+                <li><strong>Feb 4:</strong> Always mention expected time as per DP/MX VOC.</li>
+                <li><strong>Feb 4:</strong> Buffer strictly 3–5 mins only. Lifeline "Waiting" → max 10m.</li>
+                <li><strong>Feb 4:</strong> Delay timing must be mentioned in PN.</li>
+                <li><strong>Feb 4:</strong> If order is under preparation → select "Prep End" in properties.</li>
+                <li><strong>Feb 10:</strong> Mention order status in every ticket.</li>
+                <li><strong>Feb 10:</strong> Mention tracking details once ticket lands to agent.</li>
+                <li><strong>Feb 11:</strong> Mention time & status in cases of valet not assigned.</li>
+                <li><strong>Feb 11:</strong> Expected Time = ETA as per LL if visible, or up to 10 mins if ETA not visible.</li>
+                <li><strong>Feb 20:</strong> Transfer tickets: check call logs first; listen to recordings and follow tracking details. No need to call again if recording available.</li>
+                <li><strong>Feb 20:</strong> If agent didn't get info from call, next agent should call stakeholder to gather info.</li>
             </ul>
         </div>
     </aside>
 </div>
 
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+    <div class="modal-box" id="modalBox">
+        <button class="modal-close" onclick="closeModal()">✕</button>
+        <div id="modalTag" class="modal-tag"></div>
+        <div id="modalTitle" class="modal-title"></div>
+        <div id="modalCond" class="modal-cond"></div>
+        <div class="modal-section-label">📋 DETAILED SOP ACTIONS</div>
+        <div id="modalBody" class="modal-body"></div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     CORE SOP SCRIPTS
+     ═══════════════════════════════════════════════════════════════════ -->
 <script>
+    /* ─ COMP CALCULATOR ──────────────────────────────────────────── */
     function runCalc() {
         const delay = parseInt(document.getElementById('calcDelay').value);
-        const ov = parseFloat(document.getElementById('calcOV').value);
+        const ov    = parseFloat(document.getElementById('calcOV').value);
         let comp = 0;
-
-        if (!delay || !ov) {
-            document.getElementById('finalComp').innerText = "₹0";
-            return;
-        }
-
-        // Delay 25-45 mins [cite: 125, 127]
+        if (!delay || !ov) { document.getElementById('finalComp').innerText = "₹0"; return; }
         if (delay > 25 && delay <= 45) {
-            if (ov < 50) {
-                comp = ov; // 100% if OV < 50
-            } else {
-                comp = Math.max(50, Math.min(100, ov * 0.35)); // 35% (Min 50, Max 100)
-            }
-        } 
-        // Delay > 45 mins 
-        else if (delay > 45) {
-            comp = Math.min(500, ov); // 100% (Max 500)
+            comp = ov < 50 ? ov : Math.max(50, Math.min(100, ov * 0.35));
+        } else if (delay > 45) {
+            comp = Math.min(500, ov);
         }
-
         document.getElementById('finalComp').innerText = "₹" + Math.round(comp);
     }
 
+    /* ─ SEARCH ───────────────────────────────────────────────────── */
     function filterSOP() {
-        const input = document.getElementById('sopSearch').value.toLowerCase();
-        const cards = document.getElementsByClassName('sop-card');
+        const q = document.getElementById('sopSearch').value.toLowerCase();
+        document.querySelectorAll('.sop-card').forEach(c => {
+            const tags  = (c.dataset.tags || '').toLowerCase();
+            const title = c.innerText.toLowerCase();
+            c.style.display = (tags.includes(q) || title.includes(q)) ? '' : 'none';
+        });
+    }
 
-        for (let i = 0; i < cards.length; i++) {
-            const tags = cards[i].getAttribute('data-tags');
-            const title = cards[i].innerText.toLowerCase();
-            if (tags.includes(input) || title.includes(input)) {
-                cards[i].style.display = "";
-            } else {
-                cards[i].style.display = "none";
+    /* ─ COPY SCRIPT ──────────────────────────────────────────────── */
+    function copyScript() {
+        const t = "Hi, Good Morning Sir, My name is XYZ from Zomato. May I know the reason for the delay and by when the order will be delivered?";
+        navigator.clipboard.writeText(t).then(() => showToast("Script copied!", "success"));
+    }
+
+    /* ─ SOP DETAIL MODAL ─────────────────────────────────────────── */
+    function openModal(card) {
+        const title      = card.querySelector('.card-header').innerText;
+        const cond       = card.querySelector('.card-cond').innerText;
+        const actionTag  = card.querySelector('.action-tag');
+        const detailText = card.querySelector('.card-detail-data').innerText;
+        const tagClass   = actionTag.className.replace('action-tag ', '');
+
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalCond').innerText  = cond;
+
+        const tagEl      = document.getElementById('modalTag');
+        tagEl.innerText  = actionTag.innerText;
+        tagEl.className  = 'modal-tag action-tag ' + tagClass;
+
+        document.getElementById('modalBody').innerHTML = detailText
+            .split('\n').map(line => {
+                line = line.trim();
+                if (!line) return '<br>';
+                if (line.startsWith('•')) return '<span style="display:block;margin:4px 0;">• ' + line.slice(1).trim() + '</span>';
+                if (/^(Case|Note|⚠️|Special|Example|Prompt|Important|Minor|Major)/i.test(line))
+                    return '<strong style="display:block;margin-top:10px;">' + line + '</strong>';
+                return '<span style="display:block;">' + line + '</span>';
+            }).join('');
+
+        document.getElementById('modalOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    function closeModalOutside(e) {
+        if (e.target === document.getElementById('modalOverlay')) closeModal();
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeModal();
+            closeViewersPanel();
+        }
+    });
+
+    /* ─ TOAST ────────────────────────────────────────────────────── */
+    function showToast(msg, type) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast' + (type ? ' ' + type : '');
+        void t.offsetWidth;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    /* ═══ G-SHEET SOURCE LINK ════════════════════════════════════════
+       Stores the linked sheet URL in localStorage so it persists.
+       Validates it's a real Google Sheets URL before saving.
+    ═══════════════════════════════════════════════════════════════ */
+    const SHEET_KEY = 'wimo_source_sheet_url';
+
+    // Boot: restore saved URL on page load
+    (function initSheetButton() {
+        const saved = localStorage.getItem(SHEET_KEY);
+        if (saved) applySheetUrl(saved, false);
+    })();
+
+    function openSheetModal() {
+        const saved = localStorage.getItem(SHEET_KEY) || '';
+        const input = document.getElementById('smUrlInput');
+        input.value = saved;
+        onSheetUrlInput(saved);
+        document.getElementById('sheetModalBackdrop').classList.add('open');
+        setTimeout(() => input.focus(), 120);
+    }
+
+    function closeSheetModal() {
+        document.getElementById('sheetModalBackdrop').classList.remove('open');
+    }
+
+    function closeSheetModalOutside(e) {
+        if (e.target === document.getElementById('sheetModalBackdrop')) closeSheetModal();
+    }
+
+    function onSheetUrlInput(val) {
+        val = val.trim();
+        const valid    = isValidSheetUrl(val);
+        const hasVal   = val.length > 0;
+        const saveBtn  = document.getElementById('smSaveBtn');
+        const preview  = document.getElementById('smPreview');
+        const prevText = document.getElementById('smPreviewText');
+        const clearBtn = document.getElementById('smClear');
+        const openBtn  = document.getElementById('smOpenBtn');
+
+        saveBtn.disabled = !valid;
+
+        if (valid) {
+            const name = extractSheetName(val);
+            prevText.textContent = name ? '"' + name + '" — valid Google Sheets URL ✓' : 'Valid Google Sheets URL ✓';
+            preview.classList.add('show');
+            openBtn.href = val;
+            openBtn.style.display = 'flex';
+        } else {
+            preview.classList.remove('show');
+            openBtn.style.display = 'none';
+        }
+
+        clearBtn.classList.toggle('show', hasVal && !!localStorage.getItem(SHEET_KEY));
+    }
+
+    function saveSheetUrl() {
+        const val = document.getElementById('smUrlInput').value.trim();
+        if (!isValidSheetUrl(val)) return;
+        localStorage.setItem(SHEET_KEY, val);
+        applySheetUrl(val, true);
+        closeSheetModal();
+        showToast('Source sheet linked! 🔗', 'success');
+    }
+
+    function clearSheetUrl() {
+        if (!confirm('Remove the linked source sheet?')) return;
+        localStorage.removeItem(SHEET_KEY);
+        document.getElementById('smUrlInput').value = '';
+        onSheetUrlInput('');
+        applySheetUrl(null, false);
+        closeSheetModal();
+        showToast('Source sheet removed');
+    }
+
+    function applySheetUrl(url, animate) {
+        const btn  = document.getElementById('pbSheetBtn');
+        const dot  = document.getElementById('pbSheetDot');
+        const label = document.getElementById('pbSheetLabel');
+
+        if (url) {
+            // Make button open the sheet directly on click when linked
+            btn.onclick = null;
+            btn.setAttribute('data-linked', 'true');
+            // Left-click opens sheet, right-click or long-press opens edit modal
+            btn.addEventListener('click', handleSheetBtnClick, { once: false });
+            dot.classList.add('show');
+            label.textContent = 'Source Sheet';
+            btn.title = 'Open source Google Sheet (right-click to change URL)';
+            if (animate) {
+                btn.style.transform = 'scale(1.08)';
+                setTimeout(() => btn.style.transform = '', 300);
             }
+        } else {
+            btn.onclick = openSheetModal;
+            btn.removeEventListener('click', handleSheetBtnClick);
+            btn.setAttribute('data-linked', 'false');
+            dot.classList.remove('show');
+            label.textContent = 'Source Sheet';
+            btn.title = 'Link source Google Sheet';
         }
     }
 
-    function copyScript() {
-        const text = "Hi, Good Morning Sir, My name is XYZ from Zomato. May I know the reason for the delay and by when the order will be delivered?";
-        navigator.clipboard.writeText(text);
-        alert("Script copied!");
+    // When linked: single click = open sheet, hold Ctrl/Meta = edit URL
+    function handleSheetBtnClick(e) {
+        const url = localStorage.getItem(SHEET_KEY);
+        if (!url) { openSheetModal(); return; }
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+            e.preventDefault();
+            openSheetModal();
+        } else {
+            window.open(url, '_blank');
+        }
     }
+
+    // Context menu on sheet btn to quickly open edit modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('pbSheetBtn');
+        btn.addEventListener('contextmenu', function(e) {
+            if (localStorage.getItem(SHEET_KEY)) {
+                e.preventDefault();
+                openSheetModal();
+            }
+        });
+    });
+
+    function isValidSheetUrl(url) {
+        if (!url) return false;
+        try {
+            const u = new URL(url);
+            return u.hostname === 'docs.google.com' && u.pathname.includes('/spreadsheets/');
+        } catch(_) {
+            return false;
+        }
+    }
+
+    function extractSheetName(url) {
+        // Try to extract a readable name from URL params
+        try {
+            const u = new URL(url);
+            const title = u.searchParams.get('title') || u.searchParams.get('rm');
+            if (title) return decodeURIComponent(title);
+        } catch(_) {}
+        return null;
+    }
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     LIVE PRESENCE SYSTEM  (Firebase Realtime Database)
+     ═══════════════════════════════════════════════════════════════════
+
+  HOW TO ENABLE CROSS-DEVICE SYNC (takes ~5 minutes, 100% free):
+  ──────────────────────────────────────────────────────────────────
+  1. Go to https://console.firebase.google.com
+  2. Click "Add project" → name it → disable Analytics → Create
+  3. In the left panel → Build → Realtime Database → Create Database
+     → Start in test mode → Enable
+  4. In left panel → Project Settings (gear icon) → Your Apps
+     → Add App → Web (</>) → Register app → Copy the firebaseConfig
+  5. Paste your values into the FIREBASE_CONFIG object below
+  6. Save the file. All devices now sync in real time.
+  ═══════════════════════════════════════════════════════════════════ -->
+
+<script type="module">
+// ─── ⚙️  PASTE YOUR FIREBASE CONFIG HERE ────────────────────────────
+
+// const firebaseConfigSample = {
+//     apiKey:            "YOUR_API_KEY",
+//     authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+//     databaseURL:       "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+//     projectId:         "YOUR_PROJECT_ID",
+//     storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+//     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+//     appId:             "YOUR_APP_ID"
+// };
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC2XtfZ8Z5YPgT3kM-j1Bkbo83i_37OVn0",
+  authDomain: "supporthubgit-25655784-dacc0.firebaseapp.com",
+  databaseURL: "https://supporthubgit-25655784-dacc0-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "supporthubgit-25655784-dacc0",
+  storageBucket: "supporthubgit-25655784-dacc0.firebasestorage.app",
+  messagingSenderId: "787754082784",
+  appId: "1:787754082784:web:751f958cf9e3e4e625cb85"
+};
+// ─────────────────────────────────────────────────────────────────────
+
+const PRESENCE_PATH  = "wimo_sop_presence";
+const HEARTBEAT_MS   = 18000;   // ping every 18 s
+const STALE_THRESHOLD = 40000;  // remove viewer after 40 s silence
+
+// Avatar palette (10 distinct, WCAG-AA on white text)
+const PALETTE = [
+    "#CB202D","#1565C0","#2E7D32","#6A1B9A",
+    "#C62828","#00695C","#E65100","#283593",
+    "#4E342E","#37474F"
+];
+
+// Role → accent colour for the panel badge
+const ROLE_COLOR = {
+    "Agent":       "#37474F",
+    "QA Analyst":  "#1565C0",
+    "Team Leader": "#2E7D32",
+    "Vendor":      "#6A1B9A",
+    "Admin":       "#CB202D"
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────
+let myProfile    = null;    // { id, name, role, color, initials, joinedAt }
+let firebaseMode = false;   // true when config is valid & SDK loaded
+let fbRefs       = null;    // { db, myRef, allRef, … firebase fns }
+let localMap     = {};      // demo-mode only: { id → viewer }
+let panelOpen    = false;
+
+// ─── BOOT ────────────────────────────────────────────────────────────
+(async function boot() {
+    const configured = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+
+    if (configured) {
+        try {
+            const { initializeApp }   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+            const { getDatabase, ref, set, onValue, remove, onDisconnect, serverTimestamp }
+                = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+
+            const app = initializeApp(FIREBASE_CONFIG);
+            const db  = getDatabase(app);
+            fbRefs = { db, ref, set, onValue, remove, onDisconnect };
+            firebaseMode = true;
+            setLiveStatus("online");
+        } catch(err) {
+            console.warn("[WIMO presence] Firebase init failed:", err.message);
+            setLiveStatus("offline");
+        }
+    } else {
+        setLiveStatus("pending");
+        document.getElementById("vpFirebaseSetup").classList.add("show");
+    }
+
+    // Check for saved profile
+    const saved = localStorage.getItem("wimo_viewer_v2");
+    if (saved) {
+        try {
+            myProfile = JSON.parse(saved);
+            myProfile.joinedAt = Date.now(); // fresh join time
+            closeNameModal();
+            startPresence();
+        } catch(_) {
+            openNameModal();
+        }
+    } else {
+        openNameModal();
+    }
+})();
+
+// ─── NAME MODAL ──────────────────────────────────────────────────────
+let nmSelectedRole = "Agent";
+
+window.nmSelectRole = function(btn, role) {
+    document.querySelectorAll(".nm-role-pill").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    nmSelectedRole = role;
+};
+
+window.nmOnInput = function() {
+    const val = document.getElementById("nmNameInput").value.trim();
+    document.getElementById("nmSubmitBtn").disabled = val.length < 2;
+
+    // Live avatar preview
+    const av = document.getElementById("nmAvatar");
+    if (val.length >= 1) {
+        av.textContent = getInitials(val);
+        av.style.background = nameToColor(val);
+        av.style.borderColor = nameToColor(val) + "33";
+        av.classList.add("has-name");
+    } else {
+        av.textContent = "?";
+        av.style.background = "#e0e0e0";
+        av.style.borderColor = "#f0f0f0";
+        av.classList.remove("has-name");
+    }
+};
+
+window.nmSubmit = function() {
+    const name = document.getElementById("nmNameInput").value.trim();
+    if (name.length < 2) return;
+
+    const color = nameToColor(name);
+    myProfile = {
+        id:       genId(),
+        name,
+        role:     nmSelectedRole,
+        color,
+        initials: getInitials(name),
+        joinedAt: Date.now()
+    };
+
+    localStorage.setItem("wimo_viewer_v2", JSON.stringify(myProfile));
+    closeNameModal();
+    startPresence();
+    showToast("Welcome, " + name + "! 👋", "success");
+};
+
+function openNameModal()  { document.getElementById("nameModalBackdrop").classList.add("open"); }
+function closeNameModal() { document.getElementById("nameModalBackdrop").classList.remove("open"); }
+
+// ─── PRESENCE ENGINE ─────────────────────────────────────────────────
+function startPresence() {
+    updateYouChip(myProfile);
+
+    if (firebaseMode && fbRefs) {
+        startFirebase();
+    } else {
+        startDemoMode();
+    }
+}
+
+/* FIREBASE path */
+function startFirebase() {
+    const { db, ref, set, onValue, remove, onDisconnect } = fbRefs;
+    const myRef  = ref(db, `${PRESENCE_PATH}/${myProfile.id}`);
+    const allRef = ref(db, PRESENCE_PATH);
+
+    const payload = () => ({
+        name:      myProfile.name,
+        role:      myProfile.role,
+        color:     myProfile.color,
+        initials:  myProfile.initials,
+        joinedAt:  myProfile.joinedAt,
+        lastSeen:  Date.now()
+    });
+
+    // Write on connect
+    set(myRef, payload());
+
+    // Auto-delete on disconnect
+    onDisconnect(myRef).remove();
+
+    // Heartbeat
+    const hb = setInterval(() => set(myRef, payload()), HEARTBEAT_MS);
+
+    // Listen to all viewers (live)
+    onValue(allRef, snap => {
+        const raw = snap.val() || {};
+        const now = Date.now();
+        const viewers = Object.entries(raw)
+            .filter(([, v]) => v && (now - (v.lastSeen || 0)) < STALE_THRESHOLD)
+            .map(([id, v]) => ({ id, ...v }));
+        renderAll(viewers);
+    });
+
+    // Clean up on tab close
+    window.addEventListener("beforeunload", () => {
+        remove(myRef);
+        clearInterval(hb);
+    });
+}
+
+/* Demo / localStorage mode */
+function startDemoMode() {
+    localMap = {};
+    localMap[myProfile.id] = { ...myProfile, lastSeen: Date.now() };
+    renderAll(Object.values(localMap));
+
+    // Still heartbeat so the UI feels alive
+    setInterval(() => {
+        localMap[myProfile.id].lastSeen = Date.now();
+        renderAll(Object.values(localMap));
+    }, HEARTBEAT_MS);
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────
+function renderAll(viewers) {
+    // Sort: me first, then by joinedAt ascending
+    viewers.sort((a, b) => {
+        if (a.id === myProfile.id) return -1;
+        if (b.id === myProfile.id) return  1;
+        return (a.joinedAt || 0) - (b.joinedAt || 0);
+    });
+
+    renderAvatarStrip(viewers);
+    renderCountLabel(viewers.length);
+    renderViewersPanel(viewers);
+}
+
+function renderAvatarStrip(viewers) {
+    const container = document.getElementById("pbAvatars");
+    const MAX = 7;
+    const shown    = viewers.slice(0, MAX);
+    const overflow = viewers.length - MAX;
+
+    container.innerHTML = shown.map((v, i) => {
+        const isMe = v.id === myProfile.id;
+        return `<div class="pb-avatar ${isMe ? "is-you" : ""}"
+                     style="background:${v.color||"#999"}; z-index:${50-i}"
+                     tabindex="0">
+                    ${v.initials || "?"}
+                    <div class="pb-avatar-tip">
+                        ${esc(v.name)}${isMe ? " <span style=\"color:#ff9090\">(You)</span>" : ""}<br>
+                        <span style="opacity:.75;font-size:.6rem">${v.role || "Viewer"}</span>
+                    </div>
+                </div>`;
+    }).join("");
+
+    if (overflow > 0) {
+        container.innerHTML += `<div class="pb-overflow" title="${overflow} more people viewing" onclick="toggleViewersPanel()">+${overflow}</div>`;
+    }
+}
+
+function renderCountLabel(count) {
+    const el = document.getElementById("pbCountLabel");
+    if (count === 0) {
+        el.innerHTML = "";
+    } else if (count === 1) {
+        el.innerHTML = `<span style="color:#24963F;font-weight:800;">Only you</span>`;
+    } else {
+        el.innerHTML = `<span style="font-weight:800;color:#2D2D2D">${count} viewing now</span>`;
+    }
+    document.getElementById("vpCountChip").textContent = count;
+}
+
+function renderViewersPanel(viewers) {
+    const list = document.getElementById("vpList");
+    list.innerHTML = viewers.map(v => {
+        const isMe  = v.id === myProfile.id;
+        const rc    = ROLE_COLOR[v.role] || "#555";
+        const since = timeSince(v.joinedAt);
+        return `<div class="vp-item">
+            <div class="vp-avatar" style="background:${v.color||"#999"}">${v.initials||"?"}</div>
+            <div class="vp-info">
+                <div class="vp-name">${esc(v.name)}</div>
+                <div class="vp-role" style="color:${rc}">${v.role||"Viewer"}</div>
+            </div>
+            <div class="vp-active-dot" title="Active"></div>
+            ${isMe
+                ? `<span class="vp-badge-you">You</span>`
+                : `<span class="vp-joined-time">${since}</span>`}
+        </div>`;
+    }).join("") || `<div style="padding:16px;text-align:center;font-size:.8rem;color:#bbb;">No viewers yet</div>`;
+}
+
+// ─── YOUR CHIP ────────────────────────────────────────────────────────
+function updateYouChip(p) {
+    const chip  = document.getElementById("pbYouChip");
+    const av    = document.getElementById("pbYouAvatar");
+    const name  = document.getElementById("pbYouName");
+    const role  = document.getElementById("pbYouRole");
+
+    av.textContent    = p.initials || "?";
+    av.style.background = p.color || "#999";
+    name.textContent  = p.name;
+    role.textContent  = p.role || "Viewer";
+    chip.classList.add("visible");
+}
+
+// ─── LIVE STATUS DOT ─────────────────────────────────────────────────
+function setLiveStatus(state) {
+    const dot  = document.getElementById("pbLiveDot");
+    const text = document.getElementById("pbLiveText");
+    const map  = {
+        online:  { dotCls: "online",  color: "#24963F", label: "Live"         },
+        pending: { dotCls: "pending", color: "#F5A623", label: "Demo mode"    },
+        offline: { dotCls: "offline", color: "#ccc",    label: "Disconnected" }
+    };
+    const s = map[state] || map.pending;
+    dot.className  = "pb-live-dot " + s.dotCls;
+    text.textContent = s.label;
+    text.style.color = s.color;
+    text.className = "pb-live-text " + s.dotCls;
+}
+
+// ─── PANEL TOGGLE ─────────────────────────────────────────────────────
+window.toggleViewersPanel = function() {
+    panelOpen = !panelOpen;
+    document.getElementById("viewersPanel").classList.toggle("open", panelOpen);
+};
+
+function closeViewersPanel() {
+    panelOpen = false;
+    document.getElementById("viewersPanel").classList.remove("open");
+}
+
+document.addEventListener("click", e => {
+    if (!e.target.closest("#viewersPanel") &&
+        !e.target.closest("[onclick='toggleViewersPanel()']") &&
+        !e.target.closest(".pb-see-all") &&
+        !e.target.closest(".pb-you-chip") &&
+        !e.target.closest(".pb-overflow")) {
+        closeViewersPanel();
+    }
+});
+
+// ─── UTILITIES ────────────────────────────────────────────────────────
+function getInitials(name) {
+    if (!name?.trim()) return "?";
+    const p = name.trim().split(/\s+/);
+    return p.length === 1
+        ? p[0].substring(0, 2).toUpperCase()
+        : (p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
+
+function nameToColor(name) {
+    if (!name) return PALETTE[0];
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+    return PALETTE[Math.abs(h) % PALETTE.length];
+}
+
+function genId() {
+    return "u_" + Math.random().toString(36).slice(2, 9) + "_" + Date.now().toString(36);
+}
+
+function timeSince(ts) {
+    if (!ts) return "";
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 10)   return "just now";
+    if (s < 60)   return s + "s ago";
+    if (s < 3600) return Math.floor(s / 60) + "m ago";
+    return Math.floor(s / 3600) + "h ago";
+}
+
+function esc(str) {
+    return String(str || "")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 </script>
 
 </body>
