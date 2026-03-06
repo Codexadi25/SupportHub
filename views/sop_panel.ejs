@@ -521,6 +521,30 @@
         }
         .pb-sheet-btn:active { transform: translateY(0); }
 
+        /* Agent role — view-only: cannot link/edit, but can open if already linked */
+        .pb-sheet-btn.agent-readonly {
+            color: #aaa;
+            border-color: #e8e8e8;
+            background: #fafafa;
+            cursor: not-allowed;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .pb-sheet-btn.agent-readonly.linked {
+            pointer-events: all;
+            cursor: pointer;
+            opacity: 1;
+            color: #1a6135;
+            border-color: #c8e6c9;
+            background: #f1fbf4;
+        }
+        .pb-sheet-btn.agent-readonly.linked:hover {
+            background: #e8f5e9;
+            border-color: #34a853;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(52,168,83,0.18);
+        }
+
         /* Google Sheets icon SVG inline */
         .pb-sheet-icon {
             width: 16px;
@@ -1791,13 +1815,41 @@ Example: Delay = 32 mins, OV = ₹35 → Compensation = ₹35 (entire OV amount)
     ═══════════════════════════════════════════════════════════════ */
     const SHEET_KEY = 'wimo_source_sheet_url';
 
-    // Boot: restore saved URL on page load
+    // Roles that can link/edit the sheet URL
+    const SHEET_EDITOR_ROLES = ['Admin', 'QA Analyst', 'Team Leader', 'Vendor'];
+
+    // Boot: restore saved URL on page load, enforce role permissions
     (function initSheetButton() {
         const saved = localStorage.getItem(SHEET_KEY);
         if (saved) applySheetUrl(saved, false);
+        // Role check runs after myProfile is set (inside presence boot),
+        // but we also enforce it here for immediate DOM state on reload.
+        // The definitive enforcement is in openSheetModal() and applySheetUrl().
     })();
 
+    function canEditSheet() {
+        // myProfile.role is set after name modal; fallback checks button class
+        if (typeof myProfile !== 'undefined' && myProfile && myProfile.role) {
+            return SHEET_EDITOR_ROLES.includes(myProfile.role);
+        }
+        // Fallback: check if button has agent-readonly class (set by applySheetUrl)
+        const btn = document.getElementById('pbSheetBtn');
+        return btn && !btn.classList.contains('agent-readonly');
+    }
+
     function openSheetModal() {
+        // Block Agents from linking/editing
+        if (!canEditSheet()) {
+            const linked = !!localStorage.getItem(SHEET_KEY);
+            if (linked) {
+                // Agent can only open — send them directly to the sheet
+                const url = localStorage.getItem(SHEET_KEY);
+                window.open(url, '_blank');
+            } else {
+                showToast('Agents cannot link the source sheet.', 'warning');
+            }
+            return;
+        }
         const saved = localStorage.getItem(SHEET_KEY) || '';
         const input = document.getElementById('smUrlInput');
         input.value = saved;
@@ -1860,19 +1912,33 @@ Example: Delay = 32 mins, OV = ₹35 → Compensation = ₹35 (entire OV amount)
     }
 
     function applySheetUrl(url, animate) {
-        const btn  = document.getElementById('pbSheetBtn');
-        const dot  = document.getElementById('pbSheetDot');
+        const btn   = document.getElementById('pbSheetBtn');
+        const dot   = document.getElementById('pbSheetDot');
         const label = document.getElementById('pbSheetLabel');
+        const isEditor = canEditSheet();
+
+        // Always mark agent-readonly first, then conditionally re-enable linked state
+        if (!isEditor) {
+            btn.classList.add('agent-readonly');
+            btn.title = url
+                ? 'Open source Google Sheet (view only)'
+                : 'Source sheet — linking restricted to QA Analyst, Team Leader, Vendor, Admin';
+        } else {
+            btn.classList.remove('agent-readonly');
+        }
 
         if (url) {
-            // Make button open the sheet directly on click when linked
             btn.onclick = null;
             btn.setAttribute('data-linked', 'true');
-            // Left-click opens sheet, right-click or long-press opens edit modal
+            btn.classList.add('linked');
             btn.addEventListener('click', handleSheetBtnClick, { once: false });
             dot.classList.add('show');
             label.textContent = 'Source Sheet';
-            btn.title = 'Open source Google Sheet (right-click to change URL)';
+            if (!isEditor) {
+                btn.title = 'Open source Google Sheet (view only)';
+            } else {
+                btn.title = 'Open source Google Sheet (right-click to change URL)';
+            }
             if (animate) {
                 btn.style.transform = 'scale(1.08)';
                 setTimeout(() => btn.style.transform = '', 300);
@@ -1881,9 +1947,9 @@ Example: Delay = 32 mins, OV = ₹35 → Compensation = ₹35 (entire OV amount)
             btn.onclick = openSheetModal;
             btn.removeEventListener('click', handleSheetBtnClick);
             btn.setAttribute('data-linked', 'false');
+            btn.classList.remove('linked');
             dot.classList.remove('show');
             label.textContent = 'Source Sheet';
-            btn.title = 'Link source Google Sheet';
         }
     }
 
@@ -2083,6 +2149,9 @@ window.nmSubmit = function() {
     localStorage.setItem("wimo_viewer_v2", JSON.stringify(myProfile));
     closeNameModal();
     startPresence();
+    // Re-apply sheet button state now that we know the role
+    const existingSheetUrl = localStorage.getItem(SHEET_KEY);
+    applySheetUrl(existingSheetUrl || null, false);
     showToast("Welcome, " + name + "! 👋", "success");
 };
 
