@@ -1976,7 +1976,7 @@ From 17-Apr-26 update (expected times):
         const ov    = parseFloat(document.getElementById('calcOV').value);
         let comp = 0;
         if (!delay || !ov) { document.getElementById('finalComp').innerText = "₹0"; return; }
-        if (delay > 25 && delay <= 45) {
+        if (delay > 30 && delay <= 45) {
             comp = ov < 50 ? ov : Math.max(50, Math.min(100, ov * 0.35));
         } else if (delay > 45) {
             comp = Math.min(500, ov);
