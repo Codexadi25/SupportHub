@@ -112,7 +112,26 @@ exports.getAppPage = async (req, res) => {
     try {
         // Fetch all data needed for the UI
         const categories = await Category.find().sort({ title: 1 });
-        const privateNotes = await PrivateNote.find({ user: req.session.user.id }).sort({ createdAt: -1 });
+        // Fetch private notes respecting visibility rules
+        const sessionUser = req.session.user;
+        const ELEVATED_ROLES = ['admin', 'vendor', 'team_lead', 'quality_analyst', 'editor'];
+        let privateNotesQuery;
+
+        if (sessionUser.role === 'new') {
+            // Restricted users only see their own notes
+            privateNotesQuery = { user: sessionUser.id };
+        } else {
+            // Everyone else sees public notes + their own private notes
+            privateNotesQuery = {
+                $or: [
+                    { visibility: 'public' },
+                    { user: sessionUser.id }
+                ]
+            };
+        }
+
+        const privateNotes = await PrivateNote.find(privateNotesQuery).sort({ createdAt: -1 });
+
         const users = await User.find({}).select('-password').sort({ username: 1 });
         
         // --- NEW: Fetch Private Note Categories ---

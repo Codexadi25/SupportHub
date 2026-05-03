@@ -1130,6 +1130,14 @@
 </head>
 <body>
 
+<!-- Inject SupportHub session context so edit controls know current user -->
+<script>
+    window.__sopUserRole = '<%= user && user.role ? user.role : "" %>';
+    window.__sopUserId   = '<%= user && user._id ? user._id : "" %>';
+    window.__sopUsername = '<%= user && user.username ? user.username : "" %>';
+    window.__sopLob      = '<%= lob || "zomato" %>';
+</script>
+
 <!-- ═══════════════════════════════════════════════════════════════════
      LIVE PRESENCE BAR — fixed top, Google Docs style
      ═══════════════════════════════════════════════════════════════════ -->
@@ -2676,6 +2684,323 @@ function esc(str) {
         .replace(/&/g,"&amp;").replace(/</g,"&lt;")
         .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// SOP EDITOR — only active when server renders mode='edit'
+// The view route (/zomato/sop/view) passes mode:'view' → no edit UI.
+// The edit route (/zomato/sop/edit) passes mode:'edit' → full editor.
+// ─────────────────────────────────────────────────────────────────────
+const SOP_MODE = '<%= typeof mode !== "undefined" ? mode : "view" %>';
+const SOP_LOB  = window.__sopLob || 'zomato';
+
+if (SOP_MODE === 'edit') {
+    // Load SortableJS for drag-to-reorder (CDN, async)
+    (function loadSortable(cb) {
+        if (window.Sortable) { cb(); return; }
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js';
+        s.onload = cb;
+        document.head.appendChild(s);
+    })(initEditMode);
+} else {
+    // VIEW MODE — nothing to do; all edit controls are EJS-gated
+}
+
+function initEditMode() {
+    showEditToolbar();
+    enableDragSort();
+    injectBlockEditButtons();
+}
+
+/* ─── Edit Toolbar ──────────────────────────────────────── */
+function showEditToolbar() {
+    const toolbar = document.createElement('div');
+    toolbar.id = 'sop-edit-toolbar';
+    toolbar.style.cssText = `
+        position: sticky; top: 0; z-index: 200;
+        background: #1e293b; color: #f1f5f9;
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 20px; font-size: 13px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    `;
+    toolbar.innerHTML = `
+        <span style="font-weight:800;letter-spacing:.5px;">✏️ EDIT MODE</span>
+        <span style="opacity:.5;font-size:11px;">Drag cards to reorder · Click ✏️ to edit a block</span>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+            <button id="sop-add-cat-btn" style="padding:7px 16px;background:#7c3aed;color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;">+ Add Category</button>
+            <button id="sop-save-layout-btn" style="padding:7px 16px;background:#16a34a;color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Save Layout</button>
+            <a href="/${SOP_LOB}/sop/view" style="padding:7px 14px;background:#475569;color:#fff;border-radius:7px;font-weight:700;text-decoration:none;font-size:13px;display:flex;align-items:center;">👁 View Mode</a>
+        </div>
+    `;
+    document.body.insertBefore(toolbar, document.body.firstChild);
+
+    document.getElementById('sop-add-cat-btn').addEventListener('click', () => openCategoryModal());
+    document.getElementById('sop-save-layout-btn').addEventListener('click', saveLayout);
+}
+
+/* ─── Drag to Reorder ───────────────────────────────────── */
+function enableDragSort() {
+    // Make each category section's card list sortable
+    document.querySelectorAll('.sop-grid').forEach(grid => {
+        if (window.Sortable) {
+            new Sortable(grid, {
+                animation: 150,
+                handle: '.sop-card',
+                ghostClass: 'sop-drag-ghost',
+                onEnd() { highlightSaveBtn(); }
+            });
+        }
+    });
+}
+
+function highlightSaveBtn() {
+    const btn = document.getElementById('sop-save-layout-btn');
+    if (btn) { btn.style.background = '#dc2626'; btn.textContent = '💾 Save Changes!'; }
+}
+
+async function saveLayout() {
+    const order = [];
+    document.querySelectorAll('.sop-card[data-sop-id]').forEach(card => {
+        const section = card.closest('[data-category]');
+        const category = section?.dataset.category || 'General';
+        order.push({ id: card.dataset.sopId, category });
+    });
+
+    if (!order.length) { showToast('Nothing to save', 'warning'); return; }
+
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/reorder`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order }),
+            credentials: 'same-origin'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Save failed');
+        showToast('Layout saved ✓', 'success');
+        const btn = document.getElementById('sop-save-layout-btn');
+        if (btn) { btn.style.background = '#16a34a'; btn.textContent = '💾 Save Layout'; }
+    } catch (err) {
+        showToast('Error: ' + err.message, 'warning');
+    }
+}
+
+/* ─── Block Edit Buttons ────────────────────────────────── */
+function injectBlockEditButtons() {
+    document.querySelectorAll('.sop-card').forEach(card => {
+        if (card.querySelector('.sop-edit-btn')) return;
+
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:10;';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'sop-edit-btn';
+        editBtn.title = 'Edit this SOP block';
+        editBtn.innerHTML = '✏️';
+        editBtn.style.cssText = 'background:rgba(37,99,235,.1);border:1px solid #2563eb;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:12px;';
+        editBtn.addEventListener('click', e => { e.stopPropagation(); openBlockEditModal(card); });
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'sop-del-btn';
+        delBtn.title = 'Delete this SOP block';
+        delBtn.innerHTML = '🗑';
+        delBtn.style.cssText = 'background:rgba(220,38,38,.1);border:1px solid #dc2626;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:12px;';
+        delBtn.addEventListener('click', e => { e.stopPropagation(); deleteBlock(card); });
+
+        // Add Block button at category level
+        card.style.position = 'relative';
+        wrap.appendChild(editBtn);
+        wrap.appendChild(delBtn);
+        card.appendChild(wrap);
+    });
+
+    // Add "+ New Block" buttons after each category grid
+    document.querySelectorAll('[data-category]').forEach(section => {
+        if (section.querySelector('.sop-add-block-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'sop-add-block-btn';
+        btn.textContent = '＋ Add Block';
+        btn.style.cssText = `
+            display:block;width:100%;margin:8px 0 16px;
+            padding:8px;background:#f0f7ff;border:1.5px dashed #2563eb;
+            border-radius:8px;color:#2563eb;font-weight:700;cursor:pointer;
+            font-size:13px;transition:background .15s;
+        `;
+        btn.addEventListener('click', () => openBlockCreateModal(section.dataset.category));
+        section.appendChild(btn);
+    });
+}
+
+/* ─── Category Modal ────────────────────────────────────── */
+function openCategoryModal() {
+    const backdrop = buildBackdrop('sopCatBackdrop');
+    backdrop.innerHTML = `
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:420px;max-width:97%;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;">
+            <button onclick="document.getElementById('sopCatBackdrop').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+            <h3 style="margin:0 0 16px;font-size:1rem;color:#7c3aed;">＋ New SOP Category</h3>
+            <label style="font-size:.78rem;font-weight:700;color:#64748b;display:block;margin-bottom:5px;">CATEGORY NAME</label>
+            <input id="newCatName" type="text" placeholder="e.g. 03. POST-DELIVERY"
+                style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:16px;">
+            <button id="saveCatBtn" style="width:100%;padding:11px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-weight:800;font-family:inherit;cursor:pointer;font-size:.9rem;">Create Category</button>
+        </div>
+    `;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
+
+    document.getElementById('saveCatBtn').addEventListener('click', async () => {
+        const name = document.getElementById('newCatName').value.trim();
+        if (!name) { showToast('Name required', 'warning'); return; }
+        try {
+            const res = await fetch(`/${SOP_LOB}/sop/category`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+                credentials: 'same-origin'
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed');
+            showToast('Category created — reloading…', 'success');
+            setTimeout(() => location.reload(), 900);
+        } catch (err) { showToast('Error: ' + err.message, 'warning'); }
+    });
+}
+
+/* ─── Block Create Modal ────────────────────────────────── */
+function openBlockCreateModal(category) {
+    const backdrop = buildBackdrop('sopBlockBackdrop');
+    backdrop.innerHTML = `
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:560px;max-width:97%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;">
+            <button onclick="document.getElementById('sopBlockBackdrop').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+            <h3 style="margin:0 0 16px;font-size:1rem;color:#2563eb;">＋ New Block in "${esc(category)}"</h3>
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TITLE</label>
+            <input id="nb-title" type="text" placeholder="Scenario title" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-family:inherit;font-size:.88rem;margin-bottom:12px;">
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CONDITION / TRIGGER</label>
+            <input id="nb-cond" type="text" placeholder="When does this apply?" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-family:inherit;font-size:.88rem;margin-bottom:12px;">
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">ACTION</label>
+            <select id="nb-action" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px;font-family:inherit;font-size:.88rem;margin-bottom:12px;">
+                <option value="Wait">Wait</option>
+                <option value="Cancel">Cancel</option>
+                <option value="Escalate">Escalate</option>
+            </select>
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TAGS (comma-separated)</label>
+            <input id="nb-tags" type="text" placeholder="e.g. delay, restaurant, mx" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-family:inherit;font-size:.88rem;margin-bottom:16px;">
+            <button id="saveBlockBtn" style="width:100%;padding:11px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-weight:800;font-family:inherit;cursor:pointer;font-size:.9rem;">Create Block</button>
+        </div>
+    `;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
+
+    document.getElementById('saveBlockBtn').addEventListener('click', async () => {
+        const title     = document.getElementById('nb-title').value.trim();
+        const condition = document.getElementById('nb-cond').value.trim();
+        const action    = document.getElementById('nb-action').value;
+        const tags      = document.getElementById('nb-tags').value;
+        if (!title) { showToast('Title required', 'warning'); return; }
+        try {
+            const res = await fetch(`/${SOP_LOB}/sop/block`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category, title, condition, action, tags, status: 'Draft' }),
+                credentials: 'same-origin'
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed');
+            showToast('Block created — reloading…', 'success');
+            setTimeout(() => location.reload(), 900);
+        } catch (err) { showToast('Error: ' + err.message, 'warning'); }
+    });
+}
+
+/* ─── Block Edit Modal ──────────────────────────────────── */
+function openBlockEditModal(card) {
+    const sopId   = card.dataset.sopId || '';
+    if (!sopId) { showToast('No SOP ID on this card (static card — use SOP Builder)', 'warning'); return; }
+    const title   = card.querySelector('.card-header')?.innerText  || '';
+    const cond    = card.querySelector('.card-cond')?.innerText    || '';
+    const details = card.querySelector('.card-detail-data')?.innerText || '';
+
+    const backdrop = buildBackdrop('sopEditBackdrop');
+    backdrop.innerHTML = `
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:580px;max-width:97%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;">
+            <button onclick="document.getElementById('sopEditBackdrop').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+            <h3 style="margin:0 0 16px;font-size:1rem;color:#CB202D;">✏️ Edit SOP Block</h3>
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TITLE</label>
+            <input id="se-title" type="text" value="${esc(title)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;">
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CONDITION / TRIGGER</label>
+            <input id="se-cond" type="text" value="${esc(cond)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;">
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">FULL DETAILS</label>
+            <textarea id="se-details" rows="7" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.85rem;resize:vertical;margin-bottom:16px;">${esc(details)}</textarea>
+            <div style="display:flex;gap:10px;">
+                <button id="seSubmitBtn" style="flex:2;padding:11px;background:#CB202D;color:#fff;border:none;border-radius:8px;font-weight:800;font-family:inherit;cursor:pointer;font-size:.9rem;">Save Changes</button>
+                <button onclick="deleteBlock(null,'${sopId}',document.getElementById('sopEditBackdrop'))" style="flex:1;padding:11px;background:#ffefef;color:#b23a3a;border:1px solid #fca5a5;border-radius:8px;font-weight:700;font-family:inherit;cursor:pointer;font-size:.85rem;">Delete</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
+
+    document.getElementById('seSubmitBtn').addEventListener('click', async () => {
+        const title   = document.getElementById('se-title').value.trim();
+        const cond    = document.getElementById('se-cond').value.trim();
+        const details = document.getElementById('se-details').value;
+        if (!title) { showToast('Title required', 'warning'); return; }
+        try {
+            const res = await fetch(`/${SOP_LOB}/sop/update/${sopId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, condition: cond, action: details }),
+                credentials: 'same-origin'
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Update failed');
+            showToast('SOP updated ✓', 'success');
+            document.getElementById('sopEditBackdrop')?.remove();
+            // Optimistic DOM update
+            const h = card.querySelector('.card-header'); if (h) h.innerText = title;
+            const c = card.querySelector('.card-cond');   if (c) c.innerText = cond;
+            const d = card.querySelector('.card-detail-data'); if (d) d.innerText = details;
+        } catch (err) {
+            showToast('Error: ' + err.message, 'warning');
+        }
+    });
+}
+
+async function deleteBlock(card, overrideId, backdrop) {
+    const sopId = overrideId || card?.dataset?.sopId;
+    if (!sopId) { showToast('No SOP ID — cannot delete static card', 'warning'); return; }
+    if (!confirm('Delete this SOP block permanently?')) return;
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/delete/${sopId}`, { method: 'DELETE', credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Delete failed');
+        showToast('Block deleted');
+        backdrop?.remove();
+        (card || document.querySelector(`.sop-card[data-sop-id="${sopId}"]`))?.remove();
+    } catch (err) {
+        showToast('Error: ' + err.message, 'warning');
+    }
+}
+
+function buildBackdrop(id) {
+    document.getElementById(id)?.remove();
+    const el = document.createElement('div');
+    el.id = id;
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);';
+    return el;
+}
+
+/* ─── CSS for drag ghost ────────────────────────────────── */
+const editStyle = document.createElement('style');
+editStyle.textContent = `
+    .sop-drag-ghost { opacity:.4; transform:rotate(1.5deg); }
+    body[data-mode="edit"] .sop-card { cursor:grab; }
+    body[data-mode="edit"] .sop-card:active { cursor:grabbing; }
+`;
+if (SOP_MODE === 'edit') {
+    document.head.appendChild(editStyle);
+    document.body.setAttribute('data-mode', 'edit');
+}
+
 </script>
 
 </body>

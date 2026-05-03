@@ -6,7 +6,7 @@ const {
     deleteCategory, 
     addTemplate, 
     updateTemplate, 
-    deleteTemplate 
+    deleteTemplate
 } = require('../../controllers/candController');
 const { isEditorOrAbove } = require('../../middleware/authMiddleware');
 

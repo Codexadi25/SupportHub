@@ -1,11 +1,11 @@
-# Node modules
+# Dependency directories
 node_modules/
 
-# Environment files (keep secrets out of repo)
+# Environment files
 .env
 .env.local
 .env.*.local
-.env.* 
+.env.*
 
 # Build output
 dist/
@@ -15,7 +15,7 @@ out/
 .vite/
 public/build/
 
-# Logs
+# Runtime logs
 logs/
 *.log
 npm-debug.log*
@@ -23,13 +23,13 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Coverage and cache
+# Coverage and caches
 coverage/
 .cache/
 .parcel-cache/
 .sass-cache/
 
-# OS / Editor files
+# OS and editor files
 .DS_Store
 Thumbs.db
 .vscode/
@@ -37,13 +37,9 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 
-# Misc
+# Archive files
 *.tgz
 *.zip
-/.env
 
 # Backups
 backups/
-
-# Package
-package.lock.json

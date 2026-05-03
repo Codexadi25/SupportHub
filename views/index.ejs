@@ -387,20 +387,44 @@
         </main>
     </div>
     
-    <div id="form-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <button class="modal-close-btn">&times;</button>
-            <h3 id="modal-title">Modal Title</h3>
-            <form id="modal-form">
-                </form>
+    <div id="form-modal">
+        <div id="modal-box">
+            <button class="modal-close-btn" aria-label="Close">&times;</button>
+            <h3 id="modal-title" style="font-size:1rem;font-weight:700;margin-bottom:.25rem;">Modal Title</h3>
+            <form id="modal-form"></form>
         </div>
     </div>
     <div id="toast-container"></div>
     <script>
-        // Pass user data to JavaScript
-        window.currentUserId = '<%= user._id %>';
+        window.currentUserId   = '<%= user._id %>';
         window.currentUserRole = '<%= user.role %>';
         window.currentUsername = '<%= user.username %>';
+
+        // Click-to-copy for cand items and PN cards
+        document.addEventListener('click', function(e) {
+            const candItem = e.target.closest('.cand-item');
+            const pnCard   = e.target.closest('.pn-card');
+
+            if (candItem && !e.target.closest('button') && !e.target.closest('a')) {
+                const text = candItem.querySelector('.cand-text')?.textContent?.trim();
+                if (text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        candItem.style.boxShadow = '0 0 0 2px #2563eb';
+                        setTimeout(() => candItem.style.boxShadow = '', 800);
+                    }).catch(() => {});
+                }
+            }
+
+            if (pnCard && !e.target.closest('button') && !e.target.closest('a')) {
+                const text = pnCard.querySelector('.pn-card-body')?.textContent?.trim();
+                if (text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        pnCard.style.boxShadow = '0 0 0 2px #2563eb';
+                        setTimeout(() => pnCard.style.boxShadow = '', 800);
+                    }).catch(() => {});
+                }
+            }
+        });
     </script>
     <script src="/js/main.js"></script>
     <script src="/js/notices.js"></script>

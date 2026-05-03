@@ -7,10 +7,23 @@ const asyncHandler = require('express-async-handler');
 // CATEGORY CONTROLLERS //
 exports.createCategory = asyncHandler(async (req, res) => {
     const { title } = req.body;
-    const category = await Category.create({ title });
+    const normalizedTitle = title?.trim();
+
+    if (!normalizedTitle) {
+        res.status(400);
+        throw new Error('Category title is required');
+    }
+
+    const existingCategory = await Category.findOne({ title: normalizedTitle });
+    if (existingCategory) {
+        res.status(409);
+        throw new Error('A category with this title already exists');
+    }
+
+    const category = await Category.create({ title: normalizedTitle });
     
     // Log database change
-    await Logger.logDatabaseChange('CREATE', 'Category', category._id.toString(), null, { title }, req.session.user.id, req.session.user.username, {
+    await Logger.logDatabaseChange('CREATE', 'Category', category._id.toString(), null, { title: normalizedTitle }, req.session.user.id, req.session.user.username, {
         ip: req.ip || req.connection.remoteAddress,
         userAgent: req.get('User-Agent')
     });
@@ -54,7 +67,7 @@ exports.addTemplate = asyncHandler(async (req, res) => {
     const category = await Category.findById(req.params.categoryId);
     
     if (category) {
-        const autoTags = generateTags(text);
+        const autoTags = await generateTags(text);
         const finalTags = [...new Set([...(tags || []), ...autoTags])];
         const now = new Date();
 

@@ -1,7 +1,82 @@
+// ─────────────────────────────────────────────────────────────────────────
+// Global WebSocket — connects ALL logged-in users so the admin panel
+// can track live presence across the whole app, not just the Admin tab.
+// ─────────────────────────────────────────────────────────────────────────
+(function initGlobalWebSocket() {
+    if (!window.currentUserId || !window.currentUsername || !window.currentUserRole) return;
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    let ws;
+    let reconnectTimer = null;
+    let reconnectDelay = 2000;
+
+    function connect() {
+        ws = new WebSocket(`${proto}//${location.host}`);
+
+        ws.addEventListener('open', () => {
+            reconnectDelay = 2000;
+            ws.send(JSON.stringify({
+                type: 'HELLO',
+                user: {
+                    _id: window.currentUserId,
+                    username: window.currentUsername,
+                    role: window.currentUserRole
+                }
+            }));
+            // Expose globally so userActivityDashboard.js can reuse the same socket
+            window.__globalWS = ws;
+        });
+
+        ws.addEventListener('message', (e) => {
+            try {
+                const msg = JSON.parse(e.data);
+                // BROADCAST_UPDATE — refresh page data if relevant
+                if (msg.type === 'BROADCAST_UPDATE') {
+                    const payload = msg.payload || {};
+                    if (payload.type === 'pn_created' || payload.type === 'pn_updated') {
+                        // Silently reload PN list so public notes appear without full page refresh
+                        document.dispatchEvent(new CustomEvent('pn:refresh'));
+                    }
+                }
+            } catch (_) {}
+        });
+
+        const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+        let lastActivity = 0;
+        activityEvents.forEach(ev => {
+            document.addEventListener(ev, () => {
+                const now = Date.now();
+                if (now - lastActivity > 5000 && ws && ws.readyState === WebSocket.OPEN) {
+                    lastActivity = now;
+                    ws.send(JSON.stringify({ type: 'ACTIVITY', timestamp: now }));
+                }
+            }, { passive: true });
+        });
+
+        ws.addEventListener('close', (ev) => {
+            window.__globalWS = null;
+            if (ev.code !== 1000) {
+                reconnectTimer = setTimeout(() => {
+                    reconnectDelay = Math.min(reconnectDelay * 1.5, 30000);
+                    connect();
+                }, reconnectDelay);
+            }
+        });
+
+        ws.addEventListener('error', () => { /* close event handles retry */ });
+    }
+
+    connect();
+
+    window.addEventListener('beforeunload', () => {
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        if (ws && ws.readyState === WebSocket.OPEN) ws.close(1000, 'Page unload');
+    });
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // =========================================================================
-    // --- WebSocket Connection (Removed - Now handled by userActivityDashboard.js) ---
+    // --- WebSocket initialized globally above — admin panel reuses window.__globalWS ---
     // =========================================================================
 
     // =========================================================================
@@ -149,13 +224,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } else if (currentTab.id === 'PNs') {
-            const pnItems = document.querySelectorAll('#pns-list-container .pn-item');
-            pnItems.forEach(item => {
-                const title = item.querySelector('.pn-title').textContent.toLowerCase();
-                const content = item.querySelector('.pn-content').textContent.toLowerCase();
-                const category = item.dataset.pnCategoryTitle.toLowerCase();
-                const textMatch = title.includes(searchTerm) || content.includes(searchTerm) || category.includes(searchTerm);
-                item.style.display = textMatch ? 'block' : 'none';
+            const pnCards = document.querySelectorAll('#pns-list-container .pn-card');
+            pnCards.forEach(card => {
+                const title    = (card.querySelector('.pn-card-title')?.textContent  || '').toLowerCase();
+                const content  = (card.querySelector('.pn-card-body')?.textContent   || '').toLowerCase();
+                const category = (card.dataset.pnCategory || '').toLowerCase();
+                card.style.display = (!searchTerm || title.includes(searchTerm) || content.includes(searchTerm) || category.includes(searchTerm)) ? '' : 'none';
             });
         }
     };
@@ -179,9 +253,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Clear filters button
+    // Clear filters button (Cands only — PN clear is handled by dedicated listener)
     document.addEventListener('click', (e) => {
-        if (e.target.matches('#clearFilters') || e.target.matches('#clearFiltersPN') || e.target.matches('.clear-filters-btn')) {
+        if (e.target.matches('#clearFilters') || e.target.matches('.clear-filters-btn:not(#clearFiltersPN)')) {
             searchInput.value = '';
             activeTags.clear();
             document.querySelectorAll('.tag-filter').forEach(b => b.classList.remove('active'));
@@ -202,6 +276,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // expose for other modules
     window.__modal = { modal, modalTitle, modalForm, openModal, closeModal };
+
+    // --- PN Live Search ---
+    document.addEventListener('input', (e) => {
+        if (!e.target.matches('#pn-search')) return;
+        const q = e.target.value.toLowerCase().trim();
+        document.querySelectorAll('#pns-list-container .pn-card').forEach(card => {
+            const title   = card.querySelector('.pn-card-title')?.textContent.toLowerCase() || '';
+            const body    = card.querySelector('.pn-card-body')?.textContent.toLowerCase()  || '';
+            const cat     = (card.dataset.pnCategory || '').toLowerCase();
+            card.style.display = (!q || title.includes(q) || body.includes(q) || cat.includes(q)) ? '' : 'none';
+        });
+    });
+
+    // --- Clear PN Filters ---
+    document.addEventListener('click', (e) => {
+        if (!e.target.matches('#clearFiltersPN')) return;
+        const searchEl = document.getElementById('pn-search');
+        if (searchEl) searchEl.value = '';
+        document.querySelectorAll('#pns-list-container .pn-card').forEach(c => c.style.display = '');
+        document.querySelectorAll('.pn-cat-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.pn-cat-btn[data-pn-category="all"]')?.classList.add('active');
+    });
 
     // --- Main Event Listener (Event Delegation) ---
     document.body.addEventListener('click', async (e) => {
@@ -272,12 +368,14 @@ document.addEventListener('DOMContentLoaded', () => {
             showPNForm({});
         }
         if (e.target.matches('.btn-edit-pn')) {
-            const pnItem = e.target.closest('.pn-item');
-            const noteId = pnItem.dataset.noteId;
-            const title = pnItem.querySelector('.pn-title').textContent;
-            const content = pnItem.querySelector('.pn-content').textContent;
-            const category = pnItem.dataset.pnCategoryTitle;
-            showPNForm({ noteId, title, content, category });
+            const btn = e.target;
+            const pnItem = btn.closest('.pn-item');
+            const noteId    = btn.dataset.noteId    || pnItem.dataset.noteId;
+            const title     = btn.dataset.title     || pnItem.querySelector('.pn-title')?.textContent?.trim()   || '';
+            const content   = btn.dataset.content   || pnItem.querySelector('.pn-content')?.textContent?.trim() || '';
+            const category  = btn.dataset.category  || pnItem.dataset.pnCategoryTitle || '';
+            const visibility= btn.dataset.visibility|| pnItem.dataset.visibility       || 'private';
+            showPNForm({ noteId, title, content, category, visibility });
         }
         if (e.target.matches('.btn-delete-pn')) {
             if (!confirm('Are you sure you want to delete this private note?')) return;
@@ -289,17 +387,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // --- PN Category Navigation ---
-        if (e.target.matches('.pn-category-nav-btn')) {
-            const selectedCategory = e.target.dataset.pnCategory;
-            document.querySelectorAll('.pn-category-nav-btn').forEach(btn => btn.classList.remove('active'));
-            e.target.classList.add('active');
-            document.querySelectorAll('#pns-list-container .pn-item').forEach(item => {
-                if (selectedCategory === 'all' || item.dataset.pnCategoryTitle === selectedCategory) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
+        if (e.target.closest('.pn-cat-btn') && !e.target.closest('.pn-cat-delete-btn')) {
+            const btn = e.target.closest('.pn-cat-btn');
+            const sel = btn.dataset.pnCategory;
+            document.querySelectorAll('.pn-cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('#pns-list-container .pn-card').forEach(card => {
+                card.style.display = (sel === 'all' || (card.dataset.pnCategory || '') === sel) ? '' : 'none';
             });
+        }
+
+        // --- PN Category Delete ---
+        if (e.target.closest('.pn-cat-delete-btn')) {
+            const btn   = e.target.closest('.pn-cat-delete-btn');
+            const cat   = btn.dataset.pnDeleteCategory;
+            if (!confirm(`Delete ALL notes in category "${cat}"? This cannot be undone.`)) return;
+            // Get IDs of every note in that category
+            const cards = [...document.querySelectorAll(`#pns-list-container .pn-card[data-pn-category="${cat}"]`)];
+            for (const card of cards) {
+                const id = card.dataset.noteId;
+                try { await apiRequest(`/api/pns/${id}`, 'DELETE'); card.remove(); } catch(_) {}
+            }
+            // Remove the sidebar row
+            btn.closest('.pn-cat-row')?.remove();
+            showToast(`Category "${cat}" deleted.`);
         }
     });
 
@@ -374,16 +485,23 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Private Notes Form Logic ---
-    const showPNForm = ({ noteId = null, title = '', content = '', category = '' }) => {
+    const ELEVATED = ['admin', 'vendor', 'team_lead', 'quality_analyst', 'editor'];
+    const showPNForm = ({ noteId = null, title = '', content = '', category = '', visibility = 'private' }) => {
         const isEditing = noteId !== null;
-        modalTitle.textContent = isEditing ? 'Edit Private Note' : 'Add Private Note';
+        const canSetPublic = ELEVATED.includes(window.currentUserRole);
+        modalTitle.textContent = isEditing ? 'Edit Private Note' : 'Add Note';
         modalForm.innerHTML = `
             <label for="pnTitle">Note Title</label>
             <input type="text" id="pnTitle" name="title" value="${title}" required>
             <label for="pnContent">Note Content</label>
-            <textarea id="pnContent" name="content" required>${content}</textarea>
+            <textarea id="pnContent" name="content" rows="5" required>${content}</textarea>
             <label for="pnCategory">Category</label>
             <input type="text" id="pnCategory" name="category" value="${category}" placeholder="e.g., Personal, Work, Ideas">
+            ${canSetPublic ? `
+            <label for="pnVisibility" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="pnVisibility" name="visibility" value="public" ${visibility === 'public' ? 'checked' : ''} style="width:auto;">
+                <span>Make this note <strong>Public</strong> (visible to all users)</span>
+            </label>` : '<input type="hidden" name="visibility" value="private">'}
             <button type="submit" class="action-btn">${isEditing ? 'Save Changes' : 'Create Note'}</button>
         `;
         openModal();
@@ -391,24 +509,26 @@ document.addEventListener('DOMContentLoaded', () => {
         modalForm.onsubmit = async (e) => {
             e.preventDefault();
             const formData = new FormData(modalForm);
+            const visCheckbox = document.getElementById('pnVisibility');
             const body = {
                 title: formData.get('title'),
                 content: formData.get('content'),
                 category: formData.get('category'),
+                visibility: canSetPublic && visCheckbox?.checked ? 'public' : 'private',
             };
 
             try {
                 if (isEditing) {
                     await apiRequest(`/api/pns/${noteId}`, 'PUT', body);
-                    showToast('Private note updated!');
+                    showToast('Note updated!');
                 } else {
                     await apiRequest('/api/pns', 'POST', body);
-                    showToast('Private note created!');
+                    showToast(body.visibility === 'public' ? '📢 Public note created!' : 'Private note created!');
                 }
                 closeModal();
-                window.location.reload(); 
+                window.location.reload();
             } catch (error) {
-                console.error('Failed to save private note:', error);
+                console.error('Failed to save note:', error);
             }
         };
     };
@@ -803,36 +923,9 @@ function showToast(message, type = 'success') {
         button.textContent = isVisible ? 'Show Details' : 'Hide Details';
     };
     
-    const connectedUsers = new Map(); // Stores { userId: { status: 'online', ws: connectionObject } }
-
-    wss.on('connection', function connection(ws) {
-        const userId = generateUniqueId(); // Or receive from client after authentication
-        connectedUsers.set(userId, { status: 'online', ws: ws });
-
-        ws.on('message', function incoming(message) {
-            // Handle status updates from the client
-            const data = JSON.parse(message);
-            if (data.type === 'statusUpdate') {
-                connectedUsers.get(userId).status = data.newStatus;
-                // Broadcast status change to other relevant users
-                broadcastStatusUpdate(userId, data.newStatus);
-            }
-        });
-
-        ws.on('close', function close() {
-            connectedUsers.delete(userId);
-            // Broadcast offline status
-            broadcastStatusUpdate(userId, 'offline');
-        });
-    });
-
-    function broadcastStatusUpdate(userId, newStatus) {
-        for (const [id, user] of connectedUsers.entries()) {
-            if (id !== userId) { // Don't send to self
-                user.ws.send(JSON.stringify({ type: 'userStatus', userId: userId, status: newStatus }));
-            }
-        }
-    }
+    // --- WebSocket: dead client-side wss.on code removed (was server code) ---
+    // The global WebSocket is initialized at the top of this file (initGlobalWebSocket IIFE).
+    // Admin dashboard uses window.__globalWS or falls back to its own connection.
 
     // --- User Management Logic ---
     const refreshUsersBtn = document.getElementById('refreshUsersBtn');

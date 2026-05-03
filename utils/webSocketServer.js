@@ -231,6 +231,26 @@ function broadcastUserList() {
     });
 }
 
+function broadcastUpdate(data) {
+    if (!wssInstance) return;
+
+    const message = JSON.stringify({
+        type: 'BROADCAST_UPDATE',
+        payload: data,
+        timestamp: new Date().toISOString()
+    });
+
+    wssInstance.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            try {
+                client.send(message);
+            } catch (error) {
+                console.error('Error broadcasting update to client:', error);
+            }
+        }
+    });
+}
+
 function getAllUserStatuses() {
     const allUsers = [];
     
@@ -287,6 +307,7 @@ function getOnlineUsers() {
 
 module.exports = { 
     initializeWebSocketServer, 
+    broadcastUpdate,
     getAllUserStatuses,
     getUserStatusCounts,
     getOnlineUsers

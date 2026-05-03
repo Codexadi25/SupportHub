@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getAllUserStatuses, getUserStatusCounts } = require('../../utils/webSocketServer');
-const { isAuthenticated } = require('../../middleware/authMiddleware');
+const { getAllUserStatuses, getUserStatusCounts, getOnlineUsers } = require('../../utils/webSocketServer');
+const { isAuthenticated, isVendorOrAdmin } = require('../../middleware/authMiddleware');
 
-// GET /api/user-activity - Get all users with their current status
-router.get('/user-activity', isAuthenticated, async (req, res) => {
+// GET /api/user-activity — All users with their current status (admin/vendor only)
+router.get('/user-activity', isAuthenticated, isVendorOrAdmin, async (req, res) => {
     try {
         const users = await getAllUserStatuses();
         res.json({ success: true, data: users });
@@ -14,8 +14,8 @@ router.get('/user-activity', isAuthenticated, async (req, res) => {
     }
 });
 
-// GET /api/user-activity/counts - Get status counts
-router.get('/user-activity/counts', isAuthenticated, async (req, res) => {
+// GET /api/user-activity/counts — Status count summary (admin/vendor only)
+router.get('/user-activity/counts', isAuthenticated, isVendorOrAdmin, async (req, res) => {
     try {
         const counts = await getUserStatusCounts();
         res.json({ success: true, data: counts });
@@ -25,13 +25,29 @@ router.get('/user-activity/counts', isAuthenticated, async (req, res) => {
     }
 });
 
-router.get('/user-status/:userId', (req, res) => {
-    const userId = req.params.userId;
-    const user = connectedUsers.get(userId);
-    if (user) {
-        res.json({ userId: userId, status: user.status });
-    } else {
-        res.status(404).json({ message: 'User not found or offline' });
+// GET /api/user-activity/online — Just the currently-connected users (admin/vendor only)
+router.get('/user-activity/online', isAuthenticated, isVendorOrAdmin, async (req, res) => {
+    try {
+        const users = getOnlineUsers();
+        res.json({ success: true, data: users, count: users.length });
+    } catch (error) {
+        console.error('Error fetching online users:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch online users' });
+    }
+});
+
+// GET /api/user-status/:userId — Status for a specific user
+router.get('/user-status/:userId', isAuthenticated, async (req, res) => {
+    try {
+        const online = getOnlineUsers();
+        const user = online.find(u => u.userId === req.params.userId);
+        if (user) {
+            res.json({ userId: req.params.userId, status: user.status, lastActivity: user.lastActivity });
+        } else {
+            res.json({ userId: req.params.userId, status: 'unavailable', lastActivity: null });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch user status' });
     }
 });
 

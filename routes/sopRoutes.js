@@ -9,10 +9,24 @@ const { generateSopDraft } = require('../services/aiService');
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Middleware to check role authorization (supports session or req.user)
+// ROLE MAP: 'Admin' -> 'admin', 'QA' -> 'quality_analyst', 'TL' -> 'team_lead', etc.
+const ROLE_ALIASES = {
+  'Admin': 'admin', 'QA': 'quality_analyst', 'TL': 'team_lead',
+  'Editor': 'editor', 'Vendor': 'vendor', 'New': 'new',
+  // Already-correct slugs pass through
+  'admin': 'admin', 'quality_analyst': 'quality_analyst', 'team_lead': 'team_lead',
+  'editor': 'editor', 'vendor': 'vendor', 'new': 'new'
+};
+
 const checkRole = (roles) => (req, res, next) => {
-  const role = req.session?.user?.role || req.user?.role;
-  if (!role) return res.status(401).json({ error: 'Authentication required' });
-  if (!roles.includes(role)) return res.status(403).json({ error: 'Unauthorized access' });
+  const rawRole = req.session?.user?.role || req.user?.role;
+  if (!rawRole) return res.status(401).json({ error: 'Authentication required' });
+  // Normalize: accept both display names and slug values
+  const normalizedRoles = roles.map(r => ROLE_ALIASES[r] || r.toLowerCase());
+  const normalizedUser  = ROLE_ALIASES[rawRole] || rawRole.toLowerCase();
+  if (!normalizedRoles.includes(normalizedUser)) {
+    return res.status(403).json({ error: `Unauthorized access. Required: ${roles.join(', ')}` });
+  }
   next();
 };
 
@@ -157,6 +171,60 @@ router.get('/drafts', checkRole(['Admin','QA','TL','Editor']), async (req, res) 
   }
 });
 
+// 7. UPDATE a SOP block (Admin + Quality Analyst)
+router.put('/update/:id', checkRole(['Admin', 'quality_analyst']), async (req, res) => {
+  try {
+    const { category, title, condition, action, tags, status } = req.body;
+    const user = req.session?.user || req.user;
+
+    const sop = await Sop.findById(req.params.id);
+    if (!sop) return res.status(404).json({ error: 'SOP not found' });
+
+    if (category  !== undefined) sop.category  = category;
+    if (title     !== undefined) sop.title     = title;
+    if (condition !== undefined) sop.condition = condition;
+    if (action    !== undefined) sop.action    = action;
+    if (tags      !== undefined) sop.tags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : (tags || []);
+    if (status    !== undefined && ['Published', 'Draft', 'Archived'].includes(status)) sop.status = status;
+
+    sop.lastUpdated = { at: new Date(), by: user?.username || 'unknown', role: user?.role || 'unknown' };
+    await sop.save();
+
+    await Audit.create({
+      sopId: sop._id,
+      action: 'Updated',
+      details: `Updated by ${user?.username || 'unknown'} (${user?.role || ''})`,
+      user: user?.username || 'system'
+    });
+
+    res.json({ success: true, data: sop });
+  } catch (err) {
+    console.error('SOP update error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 8. DELETE a SOP block (Admin only)
+router.delete('/delete/:id', checkRole(['Admin']), async (req, res) => {
+  try {
+    const user = req.session?.user || req.user;
+    const sop = await Sop.findByIdAndDelete(req.params.id);
+    if (!sop) return res.status(404).json({ error: 'SOP not found' });
+
+    await Audit.create({
+      sopId: req.params.id,
+      action: 'Deleted',
+      details: `Deleted by ${user?.username || 'unknown'}`,
+      user: user?.username || 'system'
+    });
+
+    res.json({ success: true, message: 'SOP deleted' });
+  } catch (err) {
+    console.error('SOP delete error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 6. Approval endpoint
 router.post('/approve/:id', checkRole(['Admin']), async (req, res, next) => {
   try {
@@ -201,13 +269,19 @@ router.get('/admin-settings', checkRole(['Admin']), async (req, res) => {
   }
 });
 
-// Admin full-page panel (no header/search) for managing SOPs
-router.get('/admin-panel', checkRole(['Admin']), async (req, res) => {
+// ─── SOP EDIT ROUTE — Admin / Quality Analyst only ─────────────────────────
+// Accessible via /:lob/sop/edit  (e.g. /zomato/wimo-AI-Handover/sop/edit)
+// The /:lob segment is captured by the app.use('/:lob/sop', sopRoutes) mount.
+const { isAuthenticated } = require('../middleware/authMiddleware');
+
+router.get('/edit', isAuthenticated, checkRole(['Admin', 'quality_analyst']), async (req, res) => {
   try {
-    const lob = req?.params?.lob || req?.query?.lob || req?.body?.lob || req?.session?.user?.lob || req?.user?.lob || 'zomato';
+    const lob = req?.params?.lob || req?.session?.user?.lob || 'zomato';
     const theme = await Theme.findOne({ lob }) || {};
 
-    const sops = await Sop.find({ lob }).sort({ 'lastUpdated.at': -1 });
+    // Fetch ALL SOPs for this lob (all statuses) so editor sees everything
+    const sops = await Sop.find({ lob }).sort({ category: 1, 'lastUpdated.at': -1 });
+
     const categoriesMap = {};
     sops.forEach(s => {
       const cat = s.category || 'General';
@@ -215,12 +289,100 @@ router.get('/admin-panel', checkRole(['Admin']), async (req, res) => {
       categoriesMap[cat].push(s);
     });
     const categories = Object.keys(categoriesMap).map(title => ({ title, items: categoriesMap[title] }));
+    const allTags = Array.from(new Set(sops.flatMap(s => s.tags || [])));
 
-    res.render('sop_admin_panel', { categories, theme, user: req.session?.user || req.user, lob });
+    res.render('sop_panel', {
+      categories, allTags, theme,
+      user: req.session?.user || req.user,
+      mode: 'edit',   // <-- signals template to show edit controls
+      lob,
+      pagination: { page: 1, perPage: 999, total: sops.length }
+    });
   } catch (err) {
-    console.error('Error loading admin panel:', err);
-    res.status(500).send('Failed to load admin panel');
+    console.error('SOP edit load error:', err);
+    res.status(500).send('Failed to load SOP editor');
   }
 });
 
-module.exports = router;
+// ─── CREATE SOP CATEGORY (Admin/QA) ────────────────────────────────────────
+router.post('/category', isAuthenticated, checkRole(['Admin', 'quality_analyst']), async (req, res) => {
+  try {
+    const lob  = req?.params?.lob || req?.session?.user?.lob || 'zomato';
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Category name required' });
+
+    // Create a placeholder block to instantiate the category
+    const sop = await Sop.create({
+      lob,
+      category: name.trim(),
+      title: 'New SOP Block',
+      condition: 'Describe the scenario trigger',
+      action: 'Wait',
+      status: 'Draft',
+      lastUpdated: {
+        at: new Date(),
+        by: req.session?.user?.username || 'admin',
+        role: req.session?.user?.role   || 'admin'
+      }
+    });
+
+    res.json({ success: true, data: sop });
+  } catch (err) {
+    console.error('Category create error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── CREATE SOP BLOCK UNDER CATEGORY (Admin/QA) ────────────────────────────
+router.post('/block', isAuthenticated, checkRole(['Admin', 'quality_analyst']), async (req, res) => {
+  try {
+    const lob = req?.params?.lob || req?.session?.user?.lob || 'zomato';
+    const { category, title, condition, action, tags, status } = req.body;
+    if (!category) return res.status(400).json({ error: 'Category required' });
+
+    const sop = await Sop.create({
+      lob, category,
+      title:     title     || 'New Block',
+      condition: condition || '',
+      action:    ['Cancel','Escalate','Wait'].includes(action) ? action : 'Wait',
+      tags:      Array.isArray(tags) ? tags : (tags || '').split(',').map(t => t.trim()).filter(Boolean),
+      status:    ['Published','Draft','Archived'].includes(status) ? status : 'Draft',
+      lastUpdated: {
+        at: new Date(),
+        by: req.session?.user?.username || 'admin',
+        role: req.session?.user?.role   || 'admin'
+      }
+    });
+
+    res.json({ success: true, data: sop });
+  } catch (err) {
+    console.error('Block create error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── REORDER / PUBLISH LAYOUT (Admin/QA) ───────────────────────────────────
+// Body: { order: [ { id: '<sopId>', category: 'New Cat Name' }, ... ] }
+// Updates category names for drag-rearranged blocks and publishes them.
+router.patch('/reorder', isAuthenticated, checkRole(['Admin', 'quality_analyst']), async (req, res) => {
+  try {
+    const { order } = req.body; // array of { id, category }
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order array required' });
+
+    const user = req.session?.user || req.user;
+    const ops  = order.map(({ id, category }) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $set: { category, 'lastUpdated.at': new Date(), 'lastUpdated.by': user?.username } }
+      }
+    }));
+
+    if (ops.length) await Sop.bulkWrite(ops);
+    res.json({ success: true, updated: ops.length });
+  } catch (err) {
+    console.error('Reorder error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;
