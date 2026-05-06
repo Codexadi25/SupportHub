@@ -293,11 +293,11 @@ body {
     display: flex;
     border-bottom: 2px solid var(--border);
     padding: 0 1rem;
-    align-items: flex-end;
+    align-items: center;
     flex-shrink: 0;
     background: var(--surface);
     gap: 2px;
-    overflow-x: auto;
+    overflow-x: wrap;
 }
 .tab-link {
     padding: .65rem 1.1rem;
