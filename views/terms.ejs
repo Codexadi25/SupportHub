@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms & Conditions - SupportHub</title>
+    <meta name="description" content="Terms and Conditions of Use for WIMOBOT SupportHub.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-glow: rgba(139, 92, 246, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1rem;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Abstract glowing background blobs */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
+            top: -100px;
+            left: -100px;
+            opacity: 0.3;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--accent-pink) 0%, transparent 70%);
+            bottom: -150px;
+            right: -150px;
+            opacity: 0.2;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 80px var(--accent-glow);
+            z-index: 10;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 30%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: var(--accent-purple);
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .content {
+            line-height: 1.7;
+            font-size: 1.05rem;
+            color: var(--text-primary);
+        }
+
+        section {
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 2rem;
+        }
+
+        section:last-of-type {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 1.25rem;
+            background: linear-gradient(to bottom, var(--accent-purple), var(--accent-pink));
+            border-radius: 2px;
+        }
+
+        p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            list-style: none;
+            margin-left: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            color: var(--text-secondary);
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        li::before {
+            content: "✦";
+            position: absolute;
+            left: 0;
+            color: var(--accent-pink);
+            font-size: 0.8rem;
+        }
+
+        .back-btn-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.85rem 2rem;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, #6d28d9 100%);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .back-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.6s ease;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6), 0 0 15px rgba(236, 72, 153, 0.3);
+        }
+
+        .back-btn:hover::before {
+            left: 100%;
+        }
+
+        .back-btn svg {
+            transition: transform 0.3s ease;
+        }
+
+        .back-btn:hover svg {
+            transform: translateX(-4px);
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 1.5rem;
+                border-radius: 16px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            h2 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="terms-card">
+        <header>
+            <div class="subtitle" id="terms-subtitle">User Agreement</div>
+            <h1 id="terms-title">Terms &amp; Conditions</h1>
+            <p style="font-size: 0.9rem; color: var(--accent-pink);">Effective Date: May 27, 2026</p>
+        </header>
+
+        <main class="content">
+            <section id="sec-proprietary">
+                <h2>1. Confidentiality &amp; Proprietary Information</h2>
+                <p>SupportHub is an internal support tool operated exclusively for authorized customer support representatives and personnel. All content hosted on this application—including but not limited to canned responses, workflows, standard operating procedures (SOPs), user feedbacks, and private notes—is strictly confidential and constitutes the sole intellectual property of WIMOBOT and Royal Grey Enterprises.</p>
+                <p>By accessing this dashboard, you explicitly agree:</p>
+                <ul>
+                    <li>Not to distribute, copy, leak, or share any canned responses or SOP workflows externally.</li>
+                    <li>Not to capture screenshots or video recordings of internal tools for external distribution.</li>
+                    <li>To report any unauthorized access attempts to system administrators immediately.</li>
+                </ul>
+            </section>
+
+            <section id="sec-usage">
+                <h2>2. Acceptable Use Policy</h2>
+                <p>Users are expected to maintain professional standards when using all features of SupportHub:</p>
+                <ul>
+                    <li><strong>Canned Responses (Cands):</strong> Responses should only be used to facilitate customer support queries. Modifications should only be submitted by verified editors and administrators.</li>
+                    <li><strong>Private Notes:</strong> Notes must not contain highly sensitive personal identify identifiers (PIIs) of clients or any sensitive financial credentials.</li>
+                    <li><strong>Feedback System:</strong> Constructive suggestions, bug reports, and features requests are welcomed. Abusive, profane, or hostile language in comments will result in instant suspension of administrative access level.</li>
+                </ul>
+            </section>
+
+            <section id="sec-accountability">
+                <h2>3. Security &amp; Access Control</h2>
+                <p>Your access is granted based on your assigned role (New, User, Editor, Quality Analyst, Team Lead, Vendor, Admin). Sharing user accounts or credentials is strictly prohibited. You are held responsible for all activities and updates recorded under your username.</p>
+                <p>Suspicious activity or continuous security violations may lead to automatic account restriction to the <strong>New</strong> access tier, rendering most dashboards inaccessible.</p>
+            </section>
+
+            <section id="sec-disclaimer">
+                <h2>4. Disclaimer of Liability</h2>
+                <p>SupportHub is provided on an "as is" and "as available" basis. While we strive to maintain the accuracy of standard operating procedures, customer support personnel must exercise professional judgment when executing workflows, particularly during critical service delivery delays or customer escalation incidents.</p>
+            </section>
+        </main>
+
+        <div class="back-btn-container">
+            <a href="/" class="back-btn" id="btn-back-dashboard">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12,19 5,12 12,5"></polyline>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</body>
+</html>

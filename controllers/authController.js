@@ -79,13 +79,21 @@ exports.loginUser = async (req, res) => {
         const user = await User.findOne({ username: username.toLowerCase() });
 
         if (user && (await user.matchPassword(password))) {
-            // Create session
+            // Create session — always include department
             req.session.user = {
-                id: user._id,
+                id: user._id.toString(),
+                _id: user._id.toString(),
                 username: user.username,
                 role: user.role,
+                department: user.department || 'general',
             };
-            res.redirect('/');
+            req.session.save((err) => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    return res.render('login', { error: 'An error occurred during login. Please try again.', success: null });
+                }
+                res.redirect('/');
+            });
         } else {
             res.render('login', { error: 'Invalid username or password', success: null });
         }
@@ -108,6 +116,7 @@ exports.logoutUser = (req, res) => {
 
 // @desc    Show main application page
 // @route   GET /
+// @access  Private
 exports.getAppPage = async (req, res) => {
     try {
         // Fetch all data needed for the UI
@@ -132,24 +141,32 @@ exports.getAppPage = async (req, res) => {
 
         const privateNotes = await PrivateNote.find(privateNotesQuery).sort({ createdAt: -1 });
 
-        const users = await User.find({}).select('-password').sort({ username: 1 });
-        
-        // --- NEW: Fetch Private Note Categories ---
-        const pnCategories = await Category.find({ user: req.session.user.id }).sort({ title: 1 });
+        // Admin sees ALL users; team_lead / quality_analyst / editor only see their own department
+        const DEPT_SCOPED_ROLES = ['team_lead', 'quality_analyst', 'editor'];
+        let userQuery = {};
+        if (DEPT_SCOPED_ROLES.includes(sessionUser.role)) {
+            userQuery = { department: sessionUser.department || 'general' };
+        }
+        const users = await User.find(userQuery).select('-password').sort({ username: 1 });
 
         // Aggregate all unique tags
         const allTags = new Set();
-        categories.forEach(cat => {
-            cat.templates.forEach(tpl => {
-                tpl.tags.forEach(tag => allTags.add(tag));
+        if (categories && Array.isArray(categories)) {
+            categories.forEach(cat => {
+                if (cat.templates && Array.isArray(cat.templates)) {
+                    cat.templates.forEach(tpl => {
+                        if (tpl.tags && Array.isArray(tpl.tags)) {
+                            tpl.tags.forEach(tag => allTags.add(tag));
+                        }
+                    });
+                }
             });
-        });
+        }
         
         // Render the main page with all the necessary data
         res.render('index', {
             categories: categories,
             privateNotes: privateNotes,
-            pnCategories: pnCategories, // Pass PN categories to the template
             allTags: [...allTags].sort(),
             user: req.session.user,
             users: users

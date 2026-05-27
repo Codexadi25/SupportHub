@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - SupportHub</title>
+    <meta name="description" content="Privacy Policy detailing cookies, logs, AI data parsing, and Firebase RTDB integrations in SupportHub.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1rem;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Abstract glowing background blobs */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, var(--accent-blue) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+            opacity: 0.3;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--accent-cyan) 0%, transparent 70%);
+            bottom: -150px;
+            left: -150px;
+            opacity: 0.2;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 80px var(--accent-glow);
+            z-index: 10;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 30%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: var(--accent-blue);
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .content {
+            line-height: 1.7;
+            font-size: 1.05rem;
+            color: var(--text-primary);
+        }
+
+        section {
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 2rem;
+        }
+
+        section:last-of-type {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 1.25rem;
+            background: linear-gradient(to bottom, var(--accent-blue), var(--accent-cyan));
+            border-radius: 2px;
+        }
+
+        p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            list-style: none;
+            margin-left: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            color: var(--text-secondary);
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        li::before {
+            content: "✦";
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+            font-size: 0.8rem;
+        }
+
+        .back-btn-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.85rem 2rem;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .back-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.6s ease;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6), 0 0 15px rgba(6, 182, 212, 0.3);
+        }
+
+        .back-btn:hover::before {
+            left: 100%;
+        }
+
+        .back-btn svg {
+            transition: transform 0.3s ease;
+        }
+
+        .back-btn:hover svg {
+            transform: translateX(-4px);
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 1.5rem;
+                border-radius: 16px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            h2 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="privacy-card">
+        <header>
+            <div class="subtitle" id="privacy-subtitle">Data Transparency</div>
+            <h1 id="privacy-title">Privacy Policy</h1>
+            <p style="font-size: 0.9rem; color: var(--accent-cyan);">Effective Date: May 27, 2026</p>
+        </header>
+
+        <main class="content">
+            <section id="sec-data-collection">
+                <h2>1. Information We Collect</h2>
+                <p>SupportHub operates as an internal business-focused support repository. For proper security compliance and optimal operations, we collect and process the following information:</p>
+                <ul>
+                    <li><strong>Authentication Data:</strong> Username and encrypted passwords required to log in securely.</li>
+                    <li><strong>Activity Logs:</strong> All write operations (creating private notes, canned responses, submitting feedback, adding comments) are logged. This includes recording the action, timestamp, resources modified, user-agent details, and IP address.</li>
+                    <li><strong>Online Presence Tracking:</strong> Realtime active user tracking logs your presence (active/idle status) within your designated department.</li>
+                </ul>
+            </section>
+
+            <section id="sec-cookies">
+                <h2>2. Session and Cookies Usage</h2>
+                <p>SupportHub uses cookie-based sessions strictly to persist user logins across active tasks:</p>
+                <ul>
+                    <li><strong>Authentication Cookie:</strong> A unique session cookie (standard <code>connect.sid</code>) is set to verify that you are logged in. This cookie has a maximum duration of 7 days.</li>
+                    <li><strong>Rolling Sessions:</strong> The cookie duration automatically resets on every active dashboard request to ensure uninterrupted work flows.</li>
+                    <li>Cookies are strictly used for functional authentication and security. We do not use third-party tracking, advertising, or marketing cookies.</li>
+                </ul>
+            </section>
+
+            <section id="sec-integrations">
+                <h2>3. Third-Party Integrations</h2>
+                <p>To enable premium workflows, SupportHub integrates two third-party technologies under strict security guarantees:</p>
+                <ul>
+                    <li><strong>Google Gemini AI API:</strong> Document upload files (PDFs, DOCX, etc.) submitted under the AI Auto-Draft builder are sent securely to Google Gemini models to generate automated draft blocks. No document contents are permanently stored by the AI processor, nor are they used for generalized model training.</li>
+                    <li><strong>Firebase Realtime Database (RTDB):</strong> Live active colleague presence is managed directly via client-side connection to Firebase RTDB. Your presence state (online/offline timestamp) is stored temporarily and deleted automatically as soon as your browser session is closed or your connection is terminated.</li>
+                </ul>
+            </section>
+
+            <section id="sec-rights">
+                <h2>4. Data Retention &amp; Rights</h2>
+                <p>All private notes remain isolated to your user account and are only accessible by you or authorized system administrators. System logs are retained for audit trail compliance for a duration of 30 days, after which they are safely pruned. Users requesting account removal or data export must contact their respective administrators or open a request at <a href="mailto:adityasahu.dev@gmail.com" style="color: var(--accent-cyan);">adityasahu.dev@gmail.com</a>.</p>
+            </section>
+        </main>
+
+        <div class="back-btn-container">
+            <a href="/" class="back-btn" id="btn-back-dashboard">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12,19 5,12 12,5"></polyline>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</body>
+</html>

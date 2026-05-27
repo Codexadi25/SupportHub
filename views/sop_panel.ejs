@@ -2277,13 +2277,13 @@ From 17-Apr-26 update (expected times):
 <script type="module">
 // ─── ⚙️  PASTE YOUR FIREBASE CONFIG HERE ────────────────────────────
 const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyC2XtfZ8Z5YPgT3kM-j1Bkbo83i_37OVn0",
-    authDomain: "supporthubgit-25655784-dacc0.firebaseapp.com",
-    databaseURL: "https://supporthubgit-25655784-dacc0-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "supporthubgit-25655784-dacc0",
-    storageBucket: "supporthubgit-25655784-dacc0.firebasestorage.app",
-    messagingSenderId: "787754082784",
-    appId: "1:787754082784:web:751f958cf9e3e4e625cb85"
+    apiKey: "<%= process.env.FIREBASE_API_KEY %>",
+    authDomain: "<%= process.env.FIREBASE_AUTH_DOMAIN %>",
+    databaseURL: "<%= process.env.FIREBASE_DATABASE_URL %>",
+    projectId: "<%= process.env.FIREBASE_PROJECT_ID %>",
+    storageBucket: "<%= process.env.FIREBASE_STORAGE_BUCKET %>",
+    messagingSenderId: "<%= process.env.FIREBASE_MESSAGING_SENDER_ID %>",
+    appId: "<%= process.env.FIREBASE_APP_ID %>"
 };
 // ─────────────────────────────────────────────────────────────────────
 
@@ -2324,7 +2324,7 @@ let panelOpen    = false;
 (async function boot() {
 
     // ── 1. Init Firebase ──────────────────────────────────────────────
-    const configured = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+    const configured = FIREBASE_CONFIG.apiKey !== "FIREBASE_API_KEY";
     if (configured) {
         try {
             const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
@@ -2405,8 +2405,8 @@ let panelOpen    = false;
 
 // Build profile from SupportHub session — uses user.name and user.role directly
 function buildProfile(src) {
-    const name = src.name     || "Unknown";
-    const role = src.role     || "Agent";
+    const name = src.name     || "<%= user.username %>";
+    const role = src.role     || "<%= user.role %>";
     const color    = src.color    || nameToColor(name);
     const initials = src.initials || getInitials(name);
     return {

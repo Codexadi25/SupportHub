@@ -4,6 +4,7 @@ const multer = require('multer');
 const { Sop, Audit, Theme } = require('../models/Sop');
 const sopController = require('../controllers/sopController');
 const { generateSopDraft } = require('../services/aiService');
+const { isAuthenticated, isNotNew } = require('../middleware/authMiddleware');
 
 // Multer setup for processing PDF, DOCX, Images, etc.
 const upload = multer({ storage: multer.memoryStorage() });
@@ -47,9 +48,8 @@ router.use((req, res, next) => {
   }
 });
 
-// 1. GET Published SOP (For Agents)
-// GET Published SOP (For Agents) with optional search & pagination
-router.get('/view', async (req, res) => {
+// 1. GET Published SOP — requires authentication, 'new' role is blocked
+router.get('/view', isAuthenticated, isNotNew, async (req, res) => {
   try {
     const lob = req?.params?.lob || req?.body?.lob || req?.query?.lob || req?.session?.user?.lob || 'zomato';
     const theme = await Theme.findOne({ lob }) || {};
@@ -272,7 +272,6 @@ router.get('/admin-settings', checkRole(['Admin']), async (req, res) => {
 // ─── SOP EDIT ROUTE — Admin / Quality Analyst only ─────────────────────────
 // Accessible via /:lob/sop/edit  (e.g. /zomato/wimo-AI-Handover/sop/edit)
 // The /:lob segment is captured by the app.use('/:lob/sop', sopRoutes) mount.
-const { isAuthenticated } = require('../middleware/authMiddleware');
 
 router.get('/edit', isAuthenticated, checkRole(['Admin', 'quality_analyst']), async (req, res) => {
   try {

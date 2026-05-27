@@ -1,16 +1,12 @@
 /**
  * userActivityDashboard.js
  * Powers the live user-activity panel inside the Admin tab.
- * Reuses window.__globalWS (opened by main.js for ALL users) when available,
- * so there is only one WebSocket connection per page.
+ * Uses the same Firebase RTDB configuration as the top-bar presence ribbon.
  */
 document.addEventListener('DOMContentLoaded', () => {
-  let ws = null;
   let allUsers = [];
   let filteredUsers = [];
-  let reconnectAttempts = 0;
-  const maxReconnectAttempts = 5;
-  let reconnectTimeout = null;
+  let db = null;
 
   // DOM Elements
   const statusCounts = {
@@ -33,92 +29,87 @@ document.addEventListener('DOMContentLoaded', () => {
   // Guard — only run if the dashboard elements exist on this page
   if (!statusFilter || !usersList) return;
 
+  const showToast = (m, t='success') => {
+    const container = document.getElementById('toast-container');
+    if (!container) return console.log(m);
+    const toast = document.createElement('div');
+    toast.className = `toast ${t}`;
+    toast.textContent = m;
+    container.appendChild(toast);
+    setTimeout(()=>{ toast.remove(); }, 3500);
+  };
+
   init();
 
   // ─── Init ────────────────────────────────────────────────────────────────────
   function init() {
     setupEventListeners();
-    connectWebSocket();
-    loadInitialData();
+    connectFirebase();
   }
 
   function setupEventListeners() {
     statusFilter.addEventListener('change', applyFilter);
-    refreshBtn?.addEventListener('click', refreshData);
-    goOnBreakBtn?.addEventListener('click', () => sendStatus('on_break'));
-    backOnlineBtn?.addEventListener('click', () => sendStatus('online'));
+    refreshBtn?.addEventListener('click', () => {
+      showToast('Real-time database synchronized!', 'success');
+    });
   }
 
-  // ─── WebSocket ───────────────────────────────────────────────────────────────
-  function connectWebSocket() {
-    // Reuse the global WS opened in main.js IIFE (window.__globalWS) to avoid
-    // a second HELLO handshake. If it doesn't exist yet, open a fresh one.
-    const existing = window.__globalWS;
-    if (existing && existing.readyState === WebSocket.OPEN) {
-      ws = existing;
-      updateConnectionStatus('connected');
-      ws.addEventListener('message', handleMessage);
-      return;
-    }
-
-    if (reconnectAttempts >= maxReconnectAttempts) {
-      updateConnectionStatus('disconnected');
-      return;
-    }
-
+  // ─── Firebase RTDB Connection ────────────────────────────────────────────────
+  async function connectFirebase() {
     try {
       updateConnectionStatus('connecting');
-      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(`${proto}//${location.host}`);
+      const cfgRes = await fetch('/api/user-activity/firebase-config');
+      if (!cfgRes.ok) return updateConnectionStatus('disconnected');
+      const { config } = await cfgRes.json();
+      if (!config.databaseURL) return updateConnectionStatus('disconnected');
 
-      ws.addEventListener('open', () => {
-        reconnectAttempts = 0;
-        updateConnectionStatus('connected');
-        window.__globalWS = ws;
-        // Send HELLO if main.js hasn't done it yet
-        if (window.currentUserId && window.currentUsername && window.currentUserRole) {
-          ws.send(JSON.stringify({
-            type: 'HELLO',
-            user: {
-              _id: window.currentUserId,
-              username: window.currentUsername,
-              role: window.currentUserRole
-            }
-          }));
-        }
+      if (!firebase.apps.length) firebase.initializeApp(config);
+      db = firebase.database();
+      updateConnectionStatus('connected');
+
+      const username = window.currentUsername;
+      const role = window.currentUserRole;
+      const dept = window.currentUserDept;
+
+      // Handle breaks and online status changes
+      goOnBreakBtn?.addEventListener('click', () => {
+        db.ref('presence/' + dept + '/' + username).update({ status: 'on_break', ts: firebase.database.ServerValue.TIMESTAMP });
+        showToast('Status updated: On Break', 'info');
       });
 
-      ws.addEventListener('message', handleMessage);
-
-      ws.addEventListener('close', (event) => {
-        updateConnectionStatus('disconnected');
-        window.__globalWS = null;
-        if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
-          reconnectAttempts++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 15000);
-          if (reconnectTimeout) clearTimeout(reconnectTimeout);
-          reconnectTimeout = setTimeout(connectWebSocket, delay);
-        }
+      backOnlineBtn?.addEventListener('click', () => {
+        db.ref('presence/' + dept + '/' + username).update({ status: 'online', ts: firebase.database.ServerValue.TIMESTAMP });
+        showToast('Status updated: Online', 'success');
       });
 
-      ws.addEventListener('error', () => { updateConnectionStatus('disconnected'); });
+      // Listen to presence list globally across all departments
+      const presenceRef = db.ref('presence');
+      presenceRef.on('value', snap => {
+        const val = snap.val() || {};
+        const allFbUsers = [];
+
+        // Traverse presence/{department}/{username}
+        Object.keys(val).forEach(d => {
+          const deptUsers = val[d] || {};
+          Object.keys(deptUsers).forEach(u => {
+            const userData = deptUsers[u] || {};
+            allFbUsers.push({
+              userId: userData.username,
+              username: userData.username,
+              role: userData.role || 'user',
+              department: userData.dept || d || 'general',
+              status: userData.status || 'online',
+              lastActivity: userData.ts || Date.now()
+            });
+          });
+        });
+
+        updateUserList(allFbUsers);
+      });
+
     } catch (err) {
+      console.error('Firebase Admin Presence Error:', err);
       updateConnectionStatus('disconnected');
-      console.error('Failed to create WebSocket connection:', err);
-    }
-  }
-
-  function handleMessage(e) {
-    try {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'USER_LIST_UPDATE') {
-        updateUserList(msg.users || []);
-      } else if (msg.type === 'BROADCAST_UPDATE') {
-        // Refresh counts on any broadcast (e.g., a new note was created)
-        loadInitialData();
-      }
-    } catch (err) {
-      console.error('Error parsing WS message:', err);
     }
   }
 
@@ -133,54 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
     connectionIndicator.className = `status-indicator ${status}`;
   }
 
-  function sendStatus(status) {
-    const sock = ws || window.__globalWS;
-    if (sock && sock.readyState === WebSocket.OPEN) {
-      sock.send(JSON.stringify({ type: 'SET_STATUS', status }));
-    } else {
-      console.warn('WebSocket not connected — cannot set status');
-    }
-  }
-
-  // ─── Data Loading ────────────────────────────────────────────────────────────
-  async function loadInitialData() {
-    try {
-      const [usersRes, countsRes] = await Promise.all([
-        fetch('/api/user-activity',        { credentials: 'same-origin' }),
-        fetch('/api/user-activity/counts', { credentials: 'same-origin' })
-      ]);
-
-      if (usersRes.ok) {
-        const { data } = await usersRes.json();
-        updateUserList(data || []);
-      }
-      if (countsRes.ok) {
-        const { data } = await countsRes.json();
-        updateStatusCounts(data || {});
-      }
-    } catch (err) {
-      console.error('Error loading activity data:', err);
-    }
-  }
-
-  async function refreshData() {
-    if (refreshBtn) { refreshBtn.disabled = true; refreshBtn.textContent = 'Refreshing…'; }
-    try { await loadInitialData(); }
-    catch (err) { console.error('Refresh failed:', err); }
-    finally {
-      if (refreshBtn) { refreshBtn.disabled = false; refreshBtn.textContent = 'Refresh'; }
-    }
-  }
-
   // ─── Rendering ───────────────────────────────────────────────────────────────
   function updateUserList(users) {
     allUsers = users;
-    // Derive counts from the live list as a quick fallback
-    const counts = users.reduce((acc, u) => {
-      acc[u.status] = (acc[u.status] || 0) + 1;
-      acc.total     = (acc.total     || 0) + 1;
-      return acc;
-    }, {});
+    // Derive live counts
+    const counts = { online: 0, on_break: 0, unresponsive: 0, unavailable: 0, idle: 0, total: 0 };
+    users.forEach(u => {
+      const s = u.status || 'online';
+      if (counts[s] !== undefined) counts[s]++;
+      counts.total++;
+    });
     updateStatusCounts(counts);
     applyFilter();
   }
@@ -201,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderUserList() {
     if (!usersList) return;
     if (!filteredUsers.length) {
-      usersList.innerHTML = '<div class="no-users"><p>No users match this filter.</p></div>';
+      usersList.innerHTML = '<div class="no-users"><p>No active users match this filter.</p></div>';
       return;
     }
 
@@ -215,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     usersList.innerHTML = sorted.map(u => {
       const statusClass = `status-${u.status || 'unavailable'}`;
-      const isYou = u.userId === window.currentUserId;
+      const isYou = u.username === window.currentUsername;
       const lastAct = u.lastActivity
         ? new Date(u.lastActivity).toLocaleTimeString()
         : '—';
@@ -226,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="user-info">
             <div class="user-name">${esc(u.username)}${isYou ? ' <span class="you-badge">YOU</span>' : ''}</div>
-            <div class="user-role">${(u.role || 'user').toUpperCase()}</div>
+            <div class="user-role">${(u.role || 'user').toUpperCase()} | ${esc(u.department.toUpperCase())}</div>
             <div class="last-activity">Last seen: ${lastAct}</div>
           </div>
           <div class="user-status ${statusClass}">
@@ -252,13 +205,4 @@ document.addEventListener('DOMContentLoaded', () => {
   function esc(str) {
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
-
-  // ─── Auto-refresh fallback ───────────────────────────────────────────────────
-  setInterval(() => {
-    if (!ws || ws.readyState !== WebSocket.OPEN) loadInitialData();
-  }, 30000);
-
-  window.addEventListener('beforeunload', () => {
-    if (reconnectTimeout) clearTimeout(reconnectTimeout);
-  });
 });

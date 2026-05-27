@@ -13,6 +13,42 @@ document.addEventListener('DOMContentLoaded', () => {
   if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
   if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
+  let departments = [];
+  async function loadDepartments() {
+    try {
+      departments = await api('/api/admin/departments');
+      window.__departmentsList = departments;
+    } catch (e) {
+      console.error('Failed to load departments:', e);
+    }
+  }
+
+  // Create department form
+  const createDeptForm = document.getElementById('create-dept-form');
+  if (createDeptForm) {
+    createDeptForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInput = document.getElementById('dept-name');
+      const descInput = document.getElementById('dept-desc');
+      if (!nameInput || !nameInput.value.trim()) return showToast('Department name is required', 'error');
+      
+      try {
+        await api('/api/admin/departments', 'POST', {
+          name: nameInput.value.trim(),
+          description: descInput?.value?.trim() || ''
+        });
+        showToast('Department created successfully!', 'success');
+        nameInput.value = '';
+        if (descInput) descInput.value = '';
+        
+        await loadDepartments();
+        renderUsersTable();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
   const showToast = (m, t='success') => {
     const container = document.getElementById('toast-container');
     if (!container) return console.log(m);
@@ -130,12 +166,30 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function renderUsersTable() {
-    if (!usersTbody) return; // Don't run if the table isn't on the page
+    if (!usersTbody) return;
     try {
       const users = await fetchUsers();
       const filter = (searchInput?.value || '').toLowerCase().trim();
       usersTbody.innerHTML = users.filter(u => u.username.toLowerCase().includes(filter)).map((u, i) => {
         const modified = u.updatedAt ? new Date(u.updatedAt).toLocaleString() : '';
+        
+        const deptOptions = (window.__departmentsList || []).map(d => 
+            `<option value="${d.slug}"${u.department === d.slug ? ' selected' : ''}>${d.name}</option>`
+        ).join('');
+        
+        const hasCurrentDept = (window.__departmentsList || []).some(d => d.slug === u.department);
+        const fallbackOption = (!hasCurrentDept && u.department && u.department !== 'none' && u.department !== 'general') ? 
+            `<option value="${u.department}" selected>${u.department}</option>` : '';
+        
+        const selectHtml = `
+          <select class="user-dept-select" data-user-id="${u._id}" style="width:110px;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+            <option value="none"${u.department === 'none' || !u.department ? ' selected' : ''}>None</option>
+            <option value="general"${u.department === 'general' ? ' selected' : ''}>general</option>
+            ${fallbackOption}
+            ${deptOptions}
+          </select>
+        `;
+
         return `<tr data-user-id="${u._id}" style="background:${i%2===0?'#fff':'#f7fbff'}">
           <td style="padding:8px">${u.username}</td>
           <td style="padding:8px">
@@ -152,6 +206,9 @@ document.addEventListener('DOMContentLoaded', () => {
               <option value="admin"${u.role==='admin'?' selected':''}>admin</option>
             </select>
           </td>
+          <td style="padding:8px">
+            ${selectHtml}
+          </td>
           <td style="padding:8px">${modified}</td>
           <td style="padding:8px">
             <div style="display:flex;gap:6px">
@@ -167,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // initial render and refresh button
-  renderUsersTable();
+  loadDepartments().then(() => renderUsersTable());
   const refreshUsersBtn = document.getElementById('refreshUsersBtn');
   if (refreshUsersBtn) refreshUsersBtn.addEventListener('click', renderUsersTable);
   if (searchInput) searchInput.addEventListener('input', renderUsersTable);
@@ -260,6 +317,15 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         await api(`/api/admin/users/${id}/role`, 'PUT', { role });
         showToast('Role updated', 'success');
+        renderUsersTable();
+      } catch (err) { showToast(err.message,'error'); }
+    }
+    if (target.matches('.user-dept-select')) {
+      const id = target.dataset.userId;
+      const department = target.value;
+      try {
+        await api(`/api/admin/users/${id}/role`, 'PUT', { department });
+        showToast('Department updated', 'success');
         renderUsersTable();
       } catch (err) { showToast(err.message,'error'); }
     }

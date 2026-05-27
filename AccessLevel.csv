@@ -21,3 +21,6 @@ Activity Logs,NO,NO,NO,Yes,Yes,Yes,Yes
 View Notices,Yes,Yes,Yes,Yes,Yes,Yes,Yes
 Publish Notices,NO,NO,NO,NO,NO,NO,Yes
 Delete Notices,NO,NO,NO,NO,NO,NO,Yes
+Department Management,NO,NO,NO,NO,NO,Yes,Yes
+View SOP,NO,Yes,Yes,Yes,Yes,Yes,Yes
+Edit / Modify SOP,NO,NO,NO,Yes,Yes,Yes,Yes

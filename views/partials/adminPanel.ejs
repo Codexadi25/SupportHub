@@ -61,6 +61,24 @@
     </form>
   </div>
 <% } %>
+
+<% if (user.role === 'admin') { %>
+  <div class="admin-section">
+    <h3>Create New Department</h3>
+    <p>Admins can create a new department here, which can then be assigned to users.</p>
+    <form id="create-dept-form">
+      <div class="form-group" style="margin-bottom: 8px;">
+        <label for="dept-name">Department Name:</label>
+        <input type="text" id="dept-name" placeholder="e.g. Blinkit Ops" required style="padding:8px;width:100%;box-sizing:border-box;border-radius:6px;border:1px solid #ddd;">
+      </div>
+      <div class="form-group" style="margin-bottom: 8px;">
+        <label for="dept-desc">Description (Optional):</label>
+        <input type="text" id="dept-desc" placeholder="e.g. Blinkit operations team" style="padding:8px;width:100%;box-sizing:border-box;border-radius:6px;border:1px solid #ddd;">
+      </div>
+      <button type="submit" class="action-btn">Create Department</button>
+    </form>
+  </div>
+<% } %>
   <div class="admin-section">
     <h3>Bulk Create Users</h3>
     <p>Enter usernames, one per line. Initial password will equal username.</p>
@@ -98,6 +116,7 @@
             <th style="padding:8px;text-align:left">Username</th>
             <th style="padding:8px;text-align:left">Password</th>
             <th style="padding:8px;text-align:left">Role</th>
+            <th style="padding:8px;text-align:left">Department</th>
             <th style="padding:8px;text-align:left">Modified At</th>
             <th style="padding:8px;text-align:left">Actions</th>
           </tr>

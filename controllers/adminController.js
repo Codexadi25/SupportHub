@@ -2,11 +2,12 @@ const Category = require('../models/Category');
 const Log = require('../models/Log');
 const User = require('../models/User');
 const Feedback = require('../models/Feedback');
-const { getOnlineUsers, getAllUserStatuses, getUserStatusCounts } = require('../utils/webSocketServer');
+const Department = require('../models/Department');
 const Logger = require('../utils/logger');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+
 
 // @desc    Bulk upload canned responses from JSON file
 // @route   POST /api/admin/bulk-upload-cands
@@ -78,12 +79,19 @@ async function cleanupLogs(req, res) {
     }
 }
 
-// @desc    Get all users
+// @desc    Get users (admin sees all; TL/QA/Editor see their own department)
 // @route   GET /api/admin/users
-// @access  Admin
+// @access  UserManager roles
 async function getUsers(req, res) {
     try {
-        const users = await User.find({}).select('-password');
+        const requestingRole = req.session?.user?.role;
+        const DEPT_SCOPED_ROLES = ['team_lead', 'quality_analyst', 'editor'];
+        let query = {};
+        if (DEPT_SCOPED_ROLES.includes(requestingRole)) {
+            const dept = req.session?.user?.department || 'general';
+            query = { department: dept };
+        }
+        const users = await User.find(query).select('-password');
         res.json(users);
     } catch (error) {
         console.error('Get users error:', error);
@@ -93,21 +101,26 @@ async function getUsers(req, res) {
 
 // @desc    Update user role
 // @route   PUT /api/admin/users/:id/role
-// @access  Admin
+// @access  Admin/Vendor/TeamLead
 async function updateUserRole(req, res) {
     try {
-        const { role } = req.body;
+        const reqRole = req.session?.user?.role || req.user?.role;
+        if (!['admin', 'vendor', 'team_lead'].includes(reqRole)) {
+            return res.status(403).json({ error: 'Forbidden: Only Team Leaders, Admins, and Vendors can update departments or roles.' });
+        }
+
+        const { role, department } = req.body;
         const user = await User.findById(req.params.id);
         
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
         
-        user.role = role;
+        if (role) user.role = role;
+        if (department !== undefined) user.department = department.trim().toLowerCase() || 'general';
         await user.save();
         
-        // User role updated
-        res.json({ message: 'User role updated successfully' });
+        res.json({ message: 'User updated successfully' });
     } catch (error) {
         console.error('Update user role error:', error);
         res.status(500).json({ error: 'Failed to update user role' });
@@ -281,14 +294,15 @@ async function deleteComment(req, res) {
     }
 }
 
-// @desc    Get user activity statistics
+// @desc    Get user activity statistics (data sourced from Firebase RTDB on client side)
 // @route   GET /api/admin/user-activity-stats
 // @access  Admin
 async function getUserActivityStats(req, res) {
     try {
-        const users = await getAllUserStatuses();
-        const counts = await getUserStatusCounts();
-        res.json({ success: true, data: { users, counts } });
+        // Activity tracking is handled via Firebase RTDB on the client.
+        // This endpoint now returns a lightweight stub for server-side compatibility.
+        const totalUsers = await User.countDocuments();
+        res.json({ success: true, data: { total: totalUsers, note: 'Live presence via Firebase RTDB' } });
     } catch (error) {
         console.error('Get user activity stats error:', error);
         res.status(500).json({ error: 'Failed to retrieve user activity stats' });
@@ -366,6 +380,54 @@ exports.updateTheme = async (req, res) => {
     }
 };
 
+// @desc    Get all departments
+// @route   GET /api/admin/departments
+// @access  UserManager roles
+async function getDepartments(req, res) {
+    try {
+        const depts = await Department.find({ isActive: true }).sort({ name: 1 });
+        res.json(depts);
+    } catch (error) {
+        console.error('Get departments error:', error);
+        res.status(500).json({ error: 'Failed to retrieve departments' });
+    }
+}
+
+// @desc    Create new department
+// @route   POST /api/admin/departments
+// @access  Admin only
+async function createDepartment(req, res) {
+    try {
+        const reqRole = req.session?.user?.role || req.user?.role;
+        if (reqRole !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden: Only administrators can create departments.' });
+        }
+        
+        const { name, description } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Department name is required' });
+        }
+        
+        const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const existing = await Department.findOne({ slug });
+        if (existing) {
+            return res.status(400).json({ error: 'A department with this name/slug already exists.' });
+        }
+        
+        const dept = await Department.create({
+            name: name.trim(),
+            slug,
+            description: description || '',
+            createdBy: req.session?.user?.id || null
+        });
+        
+        res.status(201).json(dept);
+    } catch (error) {
+        console.error('Create department error:', error);
+        res.status(500).json({ error: 'Failed to create department' });
+    }
+}
+
 module.exports = {
     bulkUploadCands,
     getLogs,
@@ -380,4 +442,6 @@ module.exports = {
     deleteComment,
     getUserActivityStats,
     getUserActivityLogs,
+    getDepartments,
+    createDepartment,
 };

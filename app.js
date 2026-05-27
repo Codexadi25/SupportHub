@@ -4,11 +4,8 @@ const http = require('http');
 const path = require('path');
 const session = require('express-session');
 const connectDB = require('./config/database');
-const { initializeWebSocketServer } = require('./utils/webSocketServer');
 const { errorHandler } = require('./middleware/errorMiddleware');
 const requestLogger = require('./middleware/requestLogger');
-const authRouter = require('./routes/auth');
-// const moment = require('moment')
 // Connect to Database
 connectDB();
 
@@ -27,18 +24,6 @@ app.use('/:lob/sop', sopRoutes);
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
-
-// Initialize WebSocket Server
-const wss = initializeWebSocketServer(server);
-// Prevent unhandled 'error' (e.g., EADDRINUSE re-emitted) from crashing the process
-wss.on('error', (err) => {
-  if (err && err.code === 'EADDRINUSE') {
-    console.warn('WebSocketServer port in use; HTTP server will retry on next port.');
-    return; // swallow; server 'error' handler will retry
-  }
-  console.error('WebSocketServer error:', err);
-});
-app.set('wss', wss); // Make WSS available in controllers
 
 // EJS Setup
 app.set('view engine', 'ejs');
@@ -96,7 +81,6 @@ if (process.env.NODE_ENV !== 'production') {
 app.use('/api', require('./routes/ping'));
 
 // Routes
-app.use('/', authRouter);
 const adminRouter = require('./routes/admin');
 const apiUsersRouter = require('./routes/users'); // for legacy /api/users/bulk route
 app.use('/api/admin', adminRouter);
