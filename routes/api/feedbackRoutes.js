@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 const Feedback = require('../../models/Feedback');
 const { isAuthenticated, isAdmin, isQAOrAbove, isVendorOrAbove } = require('../../middleware/authMiddleware');
 
@@ -7,7 +7,7 @@ const { isAuthenticated, isAdmin, isQAOrAbove, isVendorOrAbove } = require('../.
 router.get('/', isAuthenticated, async (req, res) => {
     try {
         const { type, status, page = 1, limit = 20 } = req.query;
-        const filter = {};
+        const filter = { lob: req.params.lob };
         
         if (type) filter.type = type;
         if (status) filter.status = status;
@@ -37,7 +37,7 @@ router.get('/my', isAuthenticated, async (req, res) => {
     try {
         const sessionUser = req.session.user || {};
         const currentUserId = sessionUser._id || sessionUser.id;
-        const feedback = await Feedback.find({ userId: currentUserId })
+        const feedback = await Feedback.find({ userId: currentUserId, lob: req.params.lob })
             .populate('adminId', 'username')
             .sort({ createdAt: -1 });
         res.json(feedback);
@@ -61,7 +61,8 @@ router.post('/', isAuthenticated, async (req, res) => {
             description,
             priority,
             tags,
-            isPublic
+            isPublic,
+            lob: req.params.lob
         });
         
         await feedback.save();
@@ -77,7 +78,7 @@ router.put('/:id/status', isAuthenticated, isQAOrAbove, async (req, res) => {
         const { status, adminResponse } = req.body;
         const sessionUser = req.session.user || {};
         
-        const feedback = await Feedback.findById(req.params.id);
+        const feedback = await Feedback.findOne({ _id: req.params.id, lob: req.params.lob });
         if (!feedback) {
             return res.status(404).json({ message: 'Feedback not found' });
         }
@@ -97,7 +98,7 @@ router.put('/:id/status', isAuthenticated, isQAOrAbove, async (req, res) => {
 router.post('/:id/vote', isAuthenticated, async (req, res) => {
     try {
         const { voteType } = req.body; // 'upvote' or 'downvote'
-        const feedback = await Feedback.findById(req.params.id);
+        const feedback = await Feedback.findOne({ _id: req.params.id, lob: req.params.lob });
         
         if (!feedback) {
             return res.status(404).json({ message: 'Feedback not found' });
@@ -131,7 +132,7 @@ router.post('/:id/vote', isAuthenticated, async (req, res) => {
 // Delete feedback (vendor or admin)
 router.delete('/:id', isAuthenticated, isVendorOrAbove, async (req, res) => {
     try {
-        const feedback = await Feedback.findByIdAndDelete(req.params.id);
+        const feedback = await Feedback.findOneAndDelete({ _id: req.params.id, lob: req.params.lob });
         if (!feedback) {
             return res.status(404).json({ message: 'Feedback not found' });
         }
@@ -144,7 +145,7 @@ router.delete('/:id', isAuthenticated, isVendorOrAbove, async (req, res) => {
 // Comments: list
 router.get('/:id/comments', isAuthenticated, async (req, res) => {
     try {
-        const feedback = await Feedback.findById(req.params.id).select('comments');
+        const feedback = await Feedback.findOne({ _id: req.params.id, lob: req.params.lob }).select('comments');
         if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
         res.json({ comments: feedback.comments || [] });
     } catch (error) {
@@ -159,7 +160,7 @@ router.post('/:id/comments', isAuthenticated, async (req, res) => {
         if (!content || !content.trim()) {
             return res.status(400).json({ message: 'Comment cannot be empty' });
         }
-        const feedback = await Feedback.findById(req.params.id);
+        const feedback = await Feedback.findOne({ _id: req.params.id, lob: req.params.lob });
         if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
         const sessionUser = req.session.user || {};
         const currentUserId = sessionUser._id || sessionUser.id;
@@ -194,7 +195,7 @@ router.delete('/:id/comments/:commentId', isAuthenticated, async (req, res) => {
             user: req.session.user?.username 
         });
         
-        const feedback = await Feedback.findById(req.params.id);
+        const feedback = await Feedback.findOne({ _id: req.params.id, lob: req.params.lob });
         if (!feedback) {
             console.log('Feedback not found:', req.params.id);
             return res.status(404).json({ message: 'Feedback not found' });
@@ -221,7 +222,7 @@ router.delete('/:id/comments/:commentId', isAuthenticated, async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to delete this comment' });
         }
         
-        comment.remove();
+        feedback.comments.pull(req.params.commentId);
         await feedback.save();
         
         console.log('Comment deleted successfully');

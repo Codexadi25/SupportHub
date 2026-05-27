@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 const Notice = require('../../models/Notice');
 const Logger = require('../../utils/logger');
 const { isAuthenticated, isAdmin } = require('../../middleware/authMiddleware');
@@ -15,7 +15,7 @@ function isAdminOrTeamLead(req, res, next) {
 router.get('/', isAuthenticated, async (req, res) => {
     try {
         const now = new Date();
-        const notices = await Notice.find({ isActive: true, $or: [{ endDate: null }, { endDate: { $gt: now } }] })
+        const notices = await Notice.find({ lob: req.params.lob, isActive: true, $or: [{ endDate: null }, { endDate: { $gt: now } }] })
             .sort({ priority: -1, createdAt: -1 });
         res.json(notices);
     } catch (error) {
@@ -46,7 +46,8 @@ router.post('/', isAuthenticated, isAdmin, async (req, res) => {
             priority,
             authorId,
             authorName: sessionUser.username,
-            endDate: endDate ? new Date(endDate) : null
+            endDate: endDate ? new Date(endDate) : null,
+            lob: req.params.lob
         });
 
         await notice.save();
@@ -66,7 +67,7 @@ router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
         if (content && String(content).length > 300) {
             return res.status(400).json({ message: 'Content exceeds 300 characters' });
         }
-        const notice = await Notice.findById(req.params.id);
+        const notice = await Notice.findOne({ _id: req.params.id, lob: req.params.lob });
         if (!notice) return res.status(404).json({ message: 'Notice not found' });
         if (title !== undefined) notice.title = title;
         if (content !== undefined) notice.content = content;
@@ -90,7 +91,7 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
         if (req.session.user?.role !== 'admin') {
             return res.status(403).json({ message: 'Forbidden: Admin access required.' });
         }
-        const notice = await Notice.findByIdAndDelete(req.params.id);
+        const notice = await Notice.findOneAndDelete({ _id: req.params.id, lob: req.params.lob });
         if (!notice) return res.status(404).json({ message: 'Notice not found' });
         await Logger.logDatabaseChange('DELETE', 'Notice', req.params.id, null, null, req.session.user?._id, req.session.user?.username, { ip: req.ip, userAgent: req.get('User-Agent') });
         res.json({ message: 'Notice deleted successfully' });

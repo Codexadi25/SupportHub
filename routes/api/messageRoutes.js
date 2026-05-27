@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 const Message = require('../../models/Message');
 const User = require('../../models/User');
 const { isAuthenticated, isBroadcaster, isAdmin } = require('../../middleware/authMiddleware');
@@ -8,7 +8,7 @@ const { isAuthenticated, isBroadcaster, isAdmin } = require('../../middleware/au
 router.get('/my', isAuthenticated, async (req, res) => {
     try {
         const user = req.session.user;
-        const messages = await Message.find({ isActive: true })
+        const messages = await Message.find({ isActive: true, lob: req.params.lob })
             .sort({ priority: -1, createdAt: -1 });
         
         // Filter messages that should be shown to this user
@@ -23,7 +23,7 @@ router.get('/my', isAuthenticated, async (req, res) => {
 // Mark message as read
 router.post('/:id/read', isAuthenticated, async (req, res) => {
     try {
-        const message = await Message.findById(req.params.id);
+        const message = await Message.findOne({ _id: req.params.id, lob: req.params.lob });
         if (!message) {
             return res.status(404).json({ message: 'Message not found' });
         }
@@ -51,7 +51,7 @@ router.get('/', isAuthenticated, async (req, res) => {
     if (req.session.user?.role !== 'admin') return res.status(403).json({ message: 'Admin access required' });
     try {
         const { page = 1, limit = 20, type, priority } = req.query;
-        const filter = {};
+        const filter = { lob: req.params.lob };
         
         if (type) filter.type = type;
         if (priority) filter.priority = priority;
@@ -103,7 +103,8 @@ router.post('/', isAuthenticated, isBroadcaster, async (req, res) => {
             targetRoles,
             priority,
             type,
-            endDate: new Date(endDate)
+            endDate: new Date(endDate),
+            lob: req.params.lob
         });
         
         await message.save();
@@ -127,7 +128,7 @@ router.put('/:id', isAuthenticated, isBroadcaster, async (req, res) => {
             isActive
         } = req.body;
         
-        const message = await Message.findById(req.params.id);
+        const message = await Message.findOne({ _id: req.params.id, lob: req.params.lob });
         if (!message) {
             return res.status(404).json({ message: 'Message not found' });
         }
@@ -151,7 +152,7 @@ router.put('/:id', isAuthenticated, isBroadcaster, async (req, res) => {
 // Delete message (team_lead or above per matrix delete messages)
 router.delete('/:id', isAuthenticated, isBroadcaster, async (req, res) => {
     try {
-        const message = await Message.findByIdAndDelete(req.params.id);
+        const message = await Message.findOneAndDelete({ _id: req.params.id, lob: req.params.lob });
         if (!message) {
             return res.status(404).json({ message: 'Message not found' });
         }
@@ -175,7 +176,8 @@ router.get('/users', isAuthenticated, isAdmin, async (req, res) => {
 router.post('/cleanup', isAuthenticated, isAdmin, async (req, res) => {
     try {
         const result = await Message.deleteMany({
-            endDate: { $lt: new Date() }
+            endDate: { $lt: new Date() },
+            lob: req.params.lob
         });
         res.json({ message: `Cleaned up ${result.deletedCount} expired messages` });
     } catch (error) {

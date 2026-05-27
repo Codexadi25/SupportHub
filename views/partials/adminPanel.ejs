@@ -96,6 +96,7 @@
     </div>
   </div>
 
+<% if (user.role === 'admin') { %>
   <div class="admin-section">
     <h3>User Management</h3>
     <p>Manage user accounts (Admin only).</p>
@@ -117,6 +118,7 @@
             <th style="padding:8px;text-align:left">Password</th>
             <th style="padding:8px;text-align:left">Role</th>
             <th style="padding:8px;text-align:left">Department</th>
+            <th style="padding:8px;text-align:left">Aligned TL</th>
             <th style="padding:8px;text-align:left">Modified At</th>
             <th style="padding:8px;text-align:left">Actions</th>
           </tr>
@@ -125,6 +127,7 @@
       </table>
     </div>
   </div>
+<% } %>
 
   <%- include('./userActivityDashboard') %>
 

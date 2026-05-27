@@ -375,7 +375,7 @@
 
                       <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead' || user.role === 'user') { %>
                         <div id="SOP" class="tab-content">
-                          <iframe id="sopPanelFrame" src="/<%= user.lob || 'zomato' %>/sop/view" style="width:100%;height:850px;border:0;" title="SOP Panel"></iframe>
+                          <iframe id="sopPanelFrame" src="/<%= process.env.APP_LOB || 'zomato' %>/sop/<%= user.role === 'admin' ? 'edit' : 'view' %>" style="width:100%;height:850px;border:0;" title="SOP Panel"></iframe>
                         </div>
                       <% } else { %>
                         <div id="SOP" class="tab-content">
@@ -468,7 +468,7 @@
             const deptRef = db.ref('presence/' + dept);
             deptRef.on('value', snap => {
               const val = snap.val() || {};
-              const peers = Object.values(val).filter(u => u.username !== username);
+              const peers = Object.values(val);
 
               const avatarsEl  = document.getElementById('auAvatars');
               const overflowEl = document.getElementById('auOverflow');
@@ -486,9 +486,28 @@
               visible.forEach(u => {
                 const av = document.createElement('div');
                 av.className = 'au-avatar';
-                av.title = u.username + ' (' + u.role + ')';
                 av.textContent = u.username.charAt(0).toUpperCase();
                 av.style.setProperty('--au-hue', strToHue(u.username));
+                
+                // Premium floating hover card (Google Docs Style)
+                const tooltip = document.createElement('div');
+                tooltip.className = 'au-tooltip';
+                
+                const lastSeenTime = u.ts ? new Date(u.ts).toLocaleTimeString() : 'Just now';
+                const statusLabel = u.status === 'on_break' ? 'On Break' : (u.status === 'idle' ? 'Idle' : 'Online');
+                const statusColor = u.status === 'on_break' ? '#ffc107' : (u.status === 'idle' ? '#dc3545' : '#28a745');
+                
+                tooltip.innerHTML = `
+                  <div class="aut-header">
+                    <span class="aut-dot" style="background-color: ${statusColor}"></span>
+                    <strong class="aut-name">${u.username}</strong>
+                  </div>
+                  <div class="aut-dept">🏢 ${u.dept || u.department || 'General'}</div>
+                  <div class="aut-role">🛡️ ${(u.role || 'user').toUpperCase()}</div>
+                  <div class="aut-status">Status: ${statusLabel}</div>
+                  <div class="aut-seen">Last Seen: ${lastSeenTime}</div>
+                `;
+                av.appendChild(tooltip);
                 avatarsEl.appendChild(av);
               });
 

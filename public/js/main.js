@@ -1,4 +1,25 @@
 // ─────────────────────────────────────────────────────────────────────────
+// Global Fetch Interceptor for LOB Routing Scoping
+// Automatically prepends user's LOB parameter to scoped endpoints
+// ─────────────────────────────────────────────────────────────────────────
+(function interceptGlobalFetch() {
+    const originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+        if (typeof input === 'string') {
+            const lob = (window.currentUserDept || 'zomato').toLowerCase().trim();
+            const prefixes = ['/api/cands', '/api/pns', '/api/feedback', '/api/messages', '/api/notices'];
+            for (const prefix of prefixes) {
+                if (input === prefix || input.startsWith(prefix + '/') || input.startsWith(prefix + '?')) {
+                    input = input.replace('/api/', `/api/${lob}/`);
+                    break;
+                }
+            }
+        }
+        return originalFetch.call(this, input, init);
+    };
+})();
+
+// ─────────────────────────────────────────────────────────────────────────
 // Global WebSocket — connects ALL logged-in users so the admin panel
 // can track live presence across the whole app, not just the Admin tab.
 // ─────────────────────────────────────────────────────────────────────────

@@ -7,7 +7,8 @@ const privateNoteSchema = new mongoose.Schema({
     category:   { type: String, required: true, default: 'General' },
     user:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     createdBy:  { type: String, default: '' }, // username of creator (shown on public notes)
-    visibility: { type: String, enum: ['private', 'public'], default: 'private' }
+    visibility: { type: String, enum: ['private', 'public'], default: 'private' },
+    lob:        { type: String, default: 'zomato', lowercase: true, trim: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('PrivateNote', privateNoteSchema);

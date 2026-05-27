@@ -10,8 +10,11 @@ const templateSchema = new mongoose.Schema({
 });
 
 const categorySchema = new mongoose.Schema({
-    title: { type: String, required: true, unique: true },
+    title: { type: String, required: true },
+    lob: { type: String, default: 'zomato', lowercase: true, trim: true },
     templates: [templateSchema]
 }, { timestamps: true });
+
+categorySchema.index({ title: 1, lob: 1 }, { unique: true });
 
 module.exports = mongoose.model('Category', categorySchema);

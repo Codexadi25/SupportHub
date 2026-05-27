@@ -6,6 +6,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   let allUsers = [];
   let filteredUsers = [];
+  let enrolledUsers = [];
   let db = null;
 
   // DOM Elements
@@ -44,13 +45,48 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── Init ────────────────────────────────────────────────────────────────────
   function init() {
     setupEventListeners();
-    connectFirebase();
+    fetchEnrolledUsers().then(() => connectFirebase());
+  }
+
+  async function fetchEnrolledUsers() {
+    try {
+      const res = await fetch('/api/admin/users');
+      if (res.ok) {
+        enrolledUsers = await res.json();
+      }
+    } catch (e) {
+      console.error('Failed to fetch enrolled users for dashboard:', e);
+    }
   }
 
   function setupEventListeners() {
     statusFilter.addEventListener('change', applyFilter);
-    refreshBtn?.addEventListener('click', () => {
-      showToast('Real-time database synchronized!', 'success');
+    refreshBtn?.addEventListener('click', async () => {
+      await fetchEnrolledUsers();
+      if (db) {
+        db.ref('presence').once('value', snap => {
+          const val = snap.val() || {};
+          const allFbUsers = [];
+          Object.keys(val).forEach(d => {
+            const deptUsers = val[d] || {};
+            Object.keys(deptUsers).forEach(u => {
+              const userData = deptUsers[u] || {};
+              allFbUsers.push({
+                userId: userData.username,
+                username: userData.username,
+                role: userData.role || 'user',
+                department: userData.dept || d || 'general',
+                status: userData.status || 'online',
+                lastActivity: userData.ts || Date.now()
+              });
+            });
+          });
+          updateUserList(allFbUsers);
+          showToast('Dashboard stats and users successfully re-synced!', 'success');
+        });
+      } else {
+        showToast('Real-time database synchronized!', 'success');
+      }
     });
   }
 
@@ -125,11 +161,56 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ─── Rendering ───────────────────────────────────────────────────────────────
+  function mergeEnrolledAndPresence(fbPresences) {
+    const isScoped = ['team_lead', 'quality_analyst', 'editor'].includes(window.currentUserRole);
+    const currentUserDept = (window.currentUserDept || '').toLowerCase().trim();
+
+    const fbMap = {};
+    fbPresences.forEach(u => {
+      fbMap[u.username.toLowerCase()] = u;
+    });
+
+    const merged = enrolledUsers.map(eu => {
+      const active = fbMap[eu.username.toLowerCase()];
+      if (active) {
+        return {
+          username: eu.username,
+          role: eu.role || 'user',
+          department: eu.department || 'general',
+          status: active.status || 'online',
+          lastActivity: active.lastActivity || Date.now()
+        };
+      } else {
+        return {
+          username: eu.username,
+          role: eu.role || 'user',
+          department: eu.department || 'general',
+          status: 'unavailable',
+          lastActivity: eu.updatedAt ? new Date(eu.updatedAt).getTime() : Date.now()
+        };
+      }
+    });
+
+    // Add active users not in the enrolled list (failsafe)
+    fbPresences.forEach(p => {
+      const exists = enrolledUsers.some(eu => eu.username.toLowerCase() === p.username.toLowerCase());
+      if (!exists) {
+        if (isScoped && p.department.toLowerCase().trim() !== currentUserDept) {
+          return;
+        }
+        merged.push(p);
+      }
+    });
+
+    return merged;
+  }
+
   function updateUserList(users) {
-    allUsers = users;
+    const merged = mergeEnrolledAndPresence(users);
+    allUsers = merged;
     // Derive live counts
     const counts = { online: 0, on_break: 0, unresponsive: 0, unavailable: 0, idle: 0, total: 0 };
-    users.forEach(u => {
+    merged.forEach(u => {
       const s = u.status || 'online';
       if (counts[s] !== undefined) counts[s]++;
       counts.total++;

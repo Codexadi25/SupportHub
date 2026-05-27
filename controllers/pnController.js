@@ -21,6 +21,7 @@ exports.getNotes = asyncHandler(async (req, res) => {
     if (ELEVATED_ROLES.includes(sessionUser.role)) {
         // Elevated users see: all public notes + their own private notes + all notes they created
         notes = await PrivateNote.find({
+            lob: req.params.lob,
             $or: [
                 { visibility: 'public' },
                 { user: sessionUser.id }
@@ -28,10 +29,11 @@ exports.getNotes = asyncHandler(async (req, res) => {
         }).sort({ createdAt: -1 });
     } else if (sessionUser.role === 'new') {
         // Restricted users — only their own notes
-        notes = await PrivateNote.find({ user: sessionUser.id }).sort({ createdAt: -1 });
+        notes = await PrivateNote.find({ user: sessionUser.id, lob: req.params.lob }).sort({ createdAt: -1 });
     } else {
         // Regular users — own notes + public notes
         notes = await PrivateNote.find({
+            lob: req.params.lob,
             $or: [
                 { visibility: 'public' },
                 { user: sessionUser.id }
@@ -81,7 +83,8 @@ exports.createNote = asyncHandler(async (req, res) => {
         category: safeCategory,
         user: sessionUser.id,
         visibility,
-        createdBy: sessionUser.username
+        createdBy: sessionUser.username,
+        lob: req.params.lob
     });
 
     await Logger.logDatabaseChange('CREATE', 'PrivateNote', note._id.toString(), null,
@@ -101,7 +104,7 @@ exports.updateNote = asyncHandler(async (req, res) => {
     const sessionUser = getSessionUser(req);
     if (!sessionUser) return res.status(401).json({ message: 'Unauthorized' });
 
-    const note = await PrivateNote.findById(req.params.id);
+    const note = await PrivateNote.findOne({ _id: req.params.id, lob: req.params.lob });
     if (!note) {
         res.status(404);
         throw new Error('Note not found');
@@ -161,7 +164,7 @@ exports.deleteNote = asyncHandler(async (req, res) => {
     const sessionUser = getSessionUser(req);
     if (!sessionUser) return res.status(401).json({ message: 'Unauthorized' });
 
-    const note = await PrivateNote.findById(req.params.id);
+    const note = await PrivateNote.findOne({ _id: req.params.id, lob: req.params.lob });
     if (!note) {
         res.status(404);
         throw new Error('Note not found');

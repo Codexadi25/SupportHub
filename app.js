@@ -89,11 +89,11 @@ app.use('/api', require('./routes/api/userActivity'));
 app.use('/', require('./routes/viewRoutes'));
 
 app.use('/auth', require('./routes/authRoutes'));
-app.use('/api/cands', require('./routes/api/candRoutes'));
-app.use('/api/pns', require('./routes/api/pnRoutes'));
-app.use('/api/feedback', require('./routes/api/feedbackRoutes'));
-app.use('/api/messages', require('./routes/api/messageRoutes'));
-app.use('/api/notices', require('./routes/api/noticeRoutes'));
+app.use('/api/:lob/cands', require('./routes/api/candRoutes'));
+app.use('/api/:lob/pns', require('./routes/api/pnRoutes'));
+app.use('/api/:lob/feedback', require('./routes/api/feedbackRoutes'));
+app.use('/api/:lob/messages', require('./routes/api/messageRoutes'));
+app.use('/api/:lob/notices', require('./routes/api/noticeRoutes'));
 // ... other API routes
 
 // Error Handler

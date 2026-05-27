@@ -170,6 +170,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const users = await fetchUsers();
       const filter = (searchInput?.value || '').toLowerCase().trim();
+      
+      // Get all team leads in the system to resolve alignments
+      const teamLeads = users.filter(usr => usr.role === 'team_lead');
+      
       usersTbody.innerHTML = users.filter(u => u.username.toLowerCase().includes(filter)).map((u, i) => {
         const modified = u.updatedAt ? new Date(u.updatedAt).toLocaleString() : '';
         
@@ -190,6 +194,18 @@ document.addEventListener('DOMContentLoaded', () => {
           </select>
         `;
 
+        // Calculate aligned Team Leads for the user's department
+        const uDept = (u.department || '').toLowerCase().trim();
+        const deptTLs = teamLeads.filter(tl => 
+          (tl.department || '').toLowerCase().trim() === uDept && 
+          uDept !== 'none' && 
+          uDept !== 'general' &&
+          String(tl._id) !== String(u._id) // don't list a TL as aligned to themselves
+        );
+        const tlText = deptTLs.length 
+          ? deptTLs.map(tl => `<strong style="color:var(--primary);">${tl.username}</strong>`).join(', ') 
+          : '<span style="color:#94a3b8">None</span>';
+
         return `<tr data-user-id="${u._id}" style="background:${i%2===0?'#fff':'#f7fbff'}">
           <td style="padding:8px">${u.username}</td>
           <td style="padding:8px">
@@ -208,6 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td style="padding:8px">
             ${selectHtml}
+          </td>
+          <td style="padding:8px;font-size:12px;">
+            ${tlText}
           </td>
           <td style="padding:8px">${modified}</td>
           <td style="padding:8px">

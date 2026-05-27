@@ -14,13 +14,13 @@ exports.createCategory = asyncHandler(async (req, res) => {
         throw new Error('Category title is required');
     }
 
-    const existingCategory = await Category.findOne({ title: normalizedTitle });
+    const existingCategory = await Category.findOne({ title: normalizedTitle, lob: req.params.lob });
     if (existingCategory) {
         res.status(409);
         throw new Error('A category with this title already exists');
     }
 
-    const category = await Category.create({ title: normalizedTitle });
+    const category = await Category.create({ title: normalizedTitle, lob: req.params.lob });
     
     // Log database change
     await Logger.logDatabaseChange('CREATE', 'Category', category._id.toString(), null, { title: normalizedTitle }, req.session.user.id, req.session.user.username, {
@@ -33,8 +33,16 @@ exports.createCategory = asyncHandler(async (req, res) => {
 });
 
 exports.updateCategory = asyncHandler(async (req, res) => {
-    const oldCategory = await Category.findById(req.params.id);
-    const category = await Category.findByIdAndUpdate(req.params.id, { title: req.body.title }, { new: true });
+    const oldCategory = await Category.findOne({ _id: req.params.id, lob: req.params.lob });
+    if (!oldCategory) {
+        res.status(404);
+        throw new Error('Category not found');
+    }
+    const category = await Category.findOneAndUpdate(
+        { _id: req.params.id, lob: req.params.lob },
+        { title: req.body.title },
+        { new: true }
+    );
     
     // Log database change
     await Logger.logDatabaseChange('UPDATE', 'Category', category._id.toString(), { title: oldCategory.title }, { title: category.title }, req.session.user.id, req.session.user.username, {
@@ -47,8 +55,12 @@ exports.updateCategory = asyncHandler(async (req, res) => {
 });
 
 exports.deleteCategory = asyncHandler(async (req, res) => {
-    const oldCategory = await Category.findById(req.params.id);
-    await Category.findByIdAndDelete(req.params.id);
+    const oldCategory = await Category.findOne({ _id: req.params.id, lob: req.params.lob });
+    if (!oldCategory) {
+        res.status(404);
+        throw new Error('Category not found');
+    }
+    await Category.findOneAndDelete({ _id: req.params.id, lob: req.params.lob });
     
     // Log database change
     await Logger.logDatabaseChange('DELETE', 'Category', req.params.id, { title: oldCategory.title }, null, req.session.user.id, req.session.user.username, {
@@ -64,7 +76,7 @@ exports.deleteCategory = asyncHandler(async (req, res) => {
 // TEMPLATE CONTROLLERS //
 exports.addTemplate = asyncHandler(async (req, res) => {
     const { text, tags } = req.body;
-    const category = await Category.findById(req.params.categoryId);
+    const category = await Category.findOne({ _id: req.params.categoryId, lob: req.params.lob });
     
     if (category) {
         const autoTags = await generateTags(text);
@@ -98,7 +110,7 @@ exports.addTemplate = asyncHandler(async (req, res) => {
 });
 
 exports.updateTemplate = asyncHandler(async (req, res) => {
-    const category = await Category.findById(req.params.categoryId);
+    const category = await Category.findOne({ _id: req.params.categoryId, lob: req.params.lob });
     if (category) {
         const template = category.templates.id(req.params.templateId);
         const oldData = { text: template.text, tags: template.tags };
@@ -133,7 +145,7 @@ exports.updateTemplate = asyncHandler(async (req, res) => {
 });
 
 exports.deleteTemplate = asyncHandler(async (req, res) => {
-    const category = await Category.findById(req.params.categoryId);
+    const category = await Category.findOne({ _id: req.params.categoryId, lob: req.params.lob });
     if (category) {
         const template = category.templates.id(req.params.templateId);
         const oldData = { text: template.text, tags: template.tags };

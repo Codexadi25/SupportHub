@@ -66,7 +66,8 @@ const messageSchema = new mongoose.Schema({
         mimetype: String,
         size: Number,
         url: String
-    }]
+    }],
+    lob: { type: String, default: 'zomato', lowercase: true, trim: true }
 }, {
     timestamps: true
 });

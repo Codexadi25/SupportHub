@@ -1370,14 +1370,16 @@ body.modal-open { overflow: hidden; }
 .pn-list {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-auto-rows: min-content;
+    gap: 16px;
 }
 
 /* Empty state */
 .pn-empty-state {
+    grid-column: 1 / -1; /* spans full grid width */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1398,6 +1400,9 @@ body.modal-open { overflow: hidden; }
     cursor: pointer;
     transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: fit-content;
 }
 .pn-card:hover {
     box-shadow: 0 4px 14px rgba(37,99,235,.12);
@@ -1450,10 +1455,11 @@ body.modal-open { overflow: hidden; }
 .pn-card-body {
     padding: 4px 12px 10px;
     font-size: .82rem;
-    color: var(--text-muted);
+    color: var(--text); /* enhanced readability contrast */
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
+    flex-grow: 1;
 }
 .pn-card-tags {
     padding: 0 10px 8px;
@@ -1643,7 +1649,113 @@ body.modal-open { overflow: hidden; }
 }
 .au-dropdown-item:hover { background: #334155; }
 
+/* ── Active User Tooltip Overlay (Google Docs & SOP Style) ──────── */
+.au-tooltip {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    background: rgba(15, 23, 42, 0.95); /* Deep slate dark glassmorphism */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 12px;
+    width: 190px;
+    color: #e2e8f0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.75rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s;
+    z-index: 10000;
+    line-height: 1.5;
+    text-align: left;
+}
+
+/* Caret tooltip arrow pointing up */
+.au-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: rgba(15, 23, 42, 0.95);
+    filter: drop-shadow(0 -1px 0px rgba(255, 255, 255, 0.15));
+}
+
+.au-avatar:hover .au-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Tooltip internal elements */
+.aut-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    padding-bottom: 5px;
+}
+
+.aut-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.aut-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aut-dept {
+    font-weight: 600;
+    color: #38bdf8; /* light blue brand color */
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aut-role {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.16);
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: fit-content;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.aut-status {
+    color: #cbd5e1;
+    margin-bottom: 2px;
+}
+
+.aut-seen {
+    color: #94a3b8;
+    font-size: 0.7rem;
+    font-style: italic;
+}
+
 /* responsive: hide bar on very small screens */
 @media (max-width: 300px) {
     .active-users-bar { display: none; }
 }
+

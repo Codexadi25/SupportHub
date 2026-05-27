@@ -66,7 +66,8 @@ const feedbackSchema = new mongoose.Schema({
         content: { type: String, required: true, maxlength: 1000 },
         parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'comments._id', default: null },
         createdAt: { type: Date, default: Date.now }
-    }]
+    }],
+    lob: { type: String, default: 'zomato', lowercase: true, trim: true }
 }, {
     timestamps: true
 });

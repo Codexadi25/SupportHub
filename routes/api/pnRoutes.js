@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 const { getNotes, createNote, updateNote, deleteNote } = require('../../controllers/pnController');
 const { isAuthenticated } = require('../../middleware/authMiddleware');
 

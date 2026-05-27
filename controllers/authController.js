@@ -119,19 +119,23 @@ exports.logoutUser = (req, res) => {
 // @access  Private
 exports.getAppPage = async (req, res) => {
     try {
-        // Fetch all data needed for the UI
-        const categories = await Category.find().sort({ title: 1 });
-        // Fetch private notes respecting visibility rules
         const sessionUser = req.session.user;
+        const userLob = (sessionUser.department || 'zomato').toLowerCase().trim();
+
+        // Fetch all data needed for the UI, filtered by active LOB
+        const categories = await Category.find({ lob: userLob }).sort({ title: 1 });
+        
+        // Fetch private notes respecting visibility rules and active LOB
         const ELEVATED_ROLES = ['admin', 'vendor', 'team_lead', 'quality_analyst', 'editor'];
         let privateNotesQuery;
 
         if (sessionUser.role === 'new') {
             // Restricted users only see their own notes
-            privateNotesQuery = { user: sessionUser.id };
+            privateNotesQuery = { user: sessionUser.id, lob: userLob };
         } else {
             // Everyone else sees public notes + their own private notes
             privateNotesQuery = {
+                lob: userLob,
                 $or: [
                     { visibility: 'public' },
                     { user: sessionUser.id }

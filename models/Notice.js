@@ -40,7 +40,8 @@ const noticeSchema = new mongoose.Schema({
     },
     endDate: {
         type: Date
-    }
+    },
+    lob: { type: String, default: 'zomato', lowercase: true, trim: true }
 }, { timestamps: true });
 
 noticeSchema.index({ isActive: 1, endDate: 1, createdAt: -1 });
