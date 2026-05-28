@@ -19,7 +19,7 @@ let isInitialized = false;
 const initializeFirebase = (serviceAccountKey) => {
   try {
     if (!serviceAccountKey) {
-      console.warn('[Firebase] No service account key provided. Firebase disabled.');
+      console.info('[Firebase] Service account key not provided. Automatically falling back to secure REST API for server-side presence operations.');
       return null;
     }
 
@@ -29,7 +29,7 @@ const initializeFirebase = (serviceAccountKey) => {
     if (typeof serviceAccountKey === 'string') {
       const keyPath = path.resolve(serviceAccountKey);
       if (!fs.existsSync(keyPath)) {
-        console.warn(`[Firebase] Service account key not found at: ${keyPath}`);
+        console.info(`[Firebase] Service account key not found at: ${keyPath}. Automatically falling back to secure REST API for server-side presence operations.`);
         return null;
       }
       credential = admin.credential.cert(require(keyPath));
@@ -67,6 +67,46 @@ const getDatabase = () => {
 };
 
 /**
+ * Call the Firebase Realtime Database REST API
+ * @param {string} dbPath - The path in the database (e.g. `presence/general/username`)
+ * @param {string} method - HTTP method (GET, PUT, PATCH, DELETE)
+ * @param {Object} [body] - Optional request body
+ */
+const callRestApi = async (dbPath, method = 'GET', body = null) => {
+  const dbUrl = process.env.FIREBASE_DATABASE_URL;
+  if (!dbUrl) {
+    console.warn('[Firebase REST] FIREBASE_DATABASE_URL environment variable is not set.');
+    return null;
+  }
+  
+  const baseUrl = dbUrl.endsWith('/') ? dbUrl.slice(0, -1) : dbUrl;
+  const url = `${baseUrl}/${dbPath}.json`;
+  
+  try {
+    const options = {
+      method,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+    
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+    
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`[Firebase REST] Error calling REST API (${method} ${dbPath}):`, error.message);
+    return null;
+  }
+};
+
+/**
  * Sync user data to Firebase RTDB
  * Called during login to populate user presence data
  * @param {Object} user - User object from MongoDB
@@ -74,13 +114,24 @@ const getDatabase = () => {
  */
 const syncUserToFirebase = async (user) => {
   try {
-    const db = getDatabase();
-    if (!db) {
-      console.warn('[Firebase] Firebase not initialized. User sync skipped.');
-      return null;
-    }
-
     const department = (user.department || 'general').toLowerCase();
+    const db = getDatabase();
+    
+    if (!db) {
+      const userData = {
+        username: user.username,
+        userId: user._id.toString(),
+        role: user.role,
+        department: department,
+        status: 'online',
+        lastUpdated: { ".sv": "timestamp" },
+        createdAt: { ".sv": "timestamp" }
+      };
+      
+      await callRestApi(`presence/${department}/${user.username}`, 'PUT', userData);
+      console.log(`[Firebase REST] User synced to Firebase: ${user.username} (${department})`);
+      return userData;
+    }
     
     const userData = {
       username: user.username,
@@ -110,13 +161,16 @@ const syncUserToFirebase = async (user) => {
  */
 const getDepartmentUsers = async (department) => {
   try {
-    const db = getDatabase();
-    if (!db) {
-      console.warn('[Firebase] Firebase not initialized. Returning empty user list.');
-      return [];
-    }
-
     const dept = (department || 'general').toLowerCase();
+    const db = getDatabase();
+    
+    if (!db) {
+      const data = await callRestApi(`presence/${dept}`, 'GET');
+      if (!data) return [];
+      
+      // Filter out null values if any and return array of user objects
+      return Object.values(data).filter(Boolean);
+    }
     
     const snapshot = await db.ref(`presence/${dept}`).once('value');
     const data = snapshot.val() || {};
@@ -136,14 +190,18 @@ const getDepartmentUsers = async (department) => {
  */
 const updateUserStatus = async (username, department, status) => {
   try {
+    const dept = (department || 'general').toLowerCase();
     const db = getDatabase();
+    
     if (!db) {
-      console.warn('[Firebase] Firebase not initialized. Status update skipped.');
-      return false;
+      await callRestApi(`presence/${dept}/${username}`, 'PATCH', {
+        status: status,
+        lastUpdated: { ".sv": "timestamp" }
+      });
+      console.log(`[Firebase REST] User status updated: ${username} -> ${status}`);
+      return true;
     }
 
-    const dept = (department || 'general').toLowerCase();
-    
     await db.ref(`presence/${dept}/${username}`).update({
       status: status,
       lastUpdated: admin.database.ServerValue.TIMESTAMP
@@ -164,14 +222,15 @@ const updateUserStatus = async (username, department, status) => {
  */
 const removeUserPresence = async (username, department) => {
   try {
+    const dept = (department || 'general').toLowerCase();
     const db = getDatabase();
+    
     if (!db) {
-      console.warn('[Firebase] Firebase not initialized. Presence removal skipped.');
-      return false;
+      await callRestApi(`presence/${dept}/${username}`, 'DELETE');
+      console.log(`[Firebase REST] User removed from presence: ${username}`);
+      return true;
     }
 
-    const dept = (department || 'general').toLowerCase();
-    
     await db.ref(`presence/${dept}/${username}`).remove();
     console.log(`[Firebase] User removed from presence: ${username}`);
     return true;
@@ -189,13 +248,31 @@ const removeUserPresence = async (username, department) => {
 const syncAllUsersToFirebase = async (UserModel) => {
   try {
     const db = getDatabase();
-    if (!db) {
-      console.warn('[Firebase] Firebase not initialized. Bulk sync skipped.');
-      return 0;
-    }
-
     const users = await UserModel.find({});
     
+    if (!db) {
+      let syncCount = 0;
+      for (const user of users) {
+        if (user.role !== 'new') {
+          const department = (user.department || 'general').toLowerCase();
+          const userData = {
+            username: user.username,
+            userId: user._id.toString(),
+            role: user.role,
+            department: department,
+            status: 'offline',
+            lastUpdated: { ".sv": "timestamp" }
+          };
+          
+          await callRestApi(`presence/${department}/${user.username}`, 'PUT', userData);
+          syncCount++;
+        }
+      }
+      
+      console.log(`[Firebase REST] Synced ${syncCount} users to Firebase`);
+      return syncCount;
+    }
+
     let syncCount = 0;
     for (const user of users) {
       if (user.role !== 'new') {
@@ -259,14 +336,15 @@ const getUserActivityStats = async (department) => {
  */
 const clearDepartmentPresence = async (department) => {
   try {
+    const dept = (department || 'general').toLowerCase();
     const db = getDatabase();
+    
     if (!db) {
-      console.warn('[Firebase] Firebase not initialized. Clear skipped.');
-      return false;
+      await callRestApi(`presence/${dept}`, 'DELETE');
+      console.log(`[Firebase REST] Cleared presence for department: ${dept}`);
+      return true;
     }
 
-    const dept = (department || 'general').toLowerCase();
-    
     await db.ref(`presence/${dept}`).remove();
     console.log(`[Firebase] Cleared presence for department: ${dept}`);
     return true;

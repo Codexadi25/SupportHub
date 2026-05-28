@@ -2498,7 +2498,7 @@ function startFirebase() {
         const raw = snap.val() || {};
         const now = Date.now();
         const viewers = Object.entries(raw)
-            .filter(([, v]) => v && v.username && (now - (v.ts || v.lastSeen || 0)) < STALE_THRESHOLD)
+            .filter(([, v]) => v && v.username && (firebaseMode || (now - (v.ts || v.lastSeen || 0)) < STALE_THRESHOLD))
             .map(([key, v]) => {
                 const uName = v.username || key;
                 return {
