@@ -2178,7 +2178,6 @@ From 17-Apr-26 update (expected times):
         const label = document.getElementById('pbSheetLabel');
         const isEditor = canEditSheet();
 
-        // Always mark agent-readonly first, then conditionally re-enable linked state
         if (!isEditor) {
             btn.classList.add('agent-readonly');
             btn.title = url
@@ -2214,7 +2213,6 @@ From 17-Apr-26 update (expected times):
         }
     }
 
-    // When linked: single click = open sheet, hold Ctrl/Meta = edit URL
     function handleSheetBtnClick(e) {
         const url = localStorage.getItem(SHEET_KEY);
         if (!url) { openSheetModal(); return; }
@@ -2226,7 +2224,6 @@ From 17-Apr-26 update (expected times):
         }
     }
 
-    // Context menu on sheet btn to quickly open edit modal
     document.addEventListener('DOMContentLoaded', function() {
         const btn = document.getElementById('pbSheetBtn');
         btn.addEventListener('contextmenu', function(e) {
@@ -2248,7 +2245,6 @@ From 17-Apr-26 update (expected times):
     }
 
     function extractSheetName(url) {
-        // Try to extract a readable name from URL params
         try {
             const u = new URL(url);
             const title = u.searchParams.get('title') || u.searchParams.get('rm');
@@ -2258,79 +2254,64 @@ From 17-Apr-26 update (expected times):
     }
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════════════
-     LIVE PRESENCE SYSTEM  (Firebase Realtime Database)
-     ═══════════════════════════════════════════════════════════════════
-
-  HOW TO ENABLE CROSS-DEVICE SYNC (takes ~5 minutes, 100% free):
-  ──────────────────────────────────────────────────────────────────
-  1. Go to https://console.firebase.google.com
-  2. Click "Add project" → name it → disable Analytics → Create
-  3. In the left panel → Build → Realtime Database → Create Database
-     → Start in test mode → Enable
-  4. In left panel → Project Settings (gear icon) → Your Apps
-     → Add App → Web (</>) → Register app → Copy the firebaseConfig
-  5. Paste your values into the FIREBASE_CONFIG object below
-  6. Save the file. All devices now sync in real time.
-  ═══════════════════════════════════════════════════════════════════ -->
-
 <script type="module">
-// ─── ⚙️  PASTE YOUR FIREBASE CONFIG HERE ────────────────────────────
-const FIREBASE_CONFIG = {
-    apiKey: "<%= process.env.FIREBASE_API_KEY %>",
-    authDomain: "<%= process.env.FIREBASE_AUTH_DOMAIN %>",
-    databaseURL: "<%= process.env.FIREBASE_DATABASE_URL %>",
-    projectId: "<%= process.env.FIREBASE_PROJECT_ID %>",
-    storageBucket: "<%= process.env.FIREBASE_STORAGE_BUCKET %>",
-    messagingSenderId: "<%= process.env.FIREBASE_MESSAGING_SENDER_ID %>",
-    appId: "<%= process.env.FIREBASE_APP_ID %>"
-};
-// ─────────────────────────────────────────────────────────────────────
+const HEARTBEAT_MS   = 18000;
+const STALE_THRESHOLD = 40000;
 
-const PRESENCE_PATH  = "wimo_sop_presence";
-const HEARTBEAT_MS   = 18000;   // ping every 18 s
-const STALE_THRESHOLD = 40000;  // remove viewer after 40 s silence
-
-// Avatar palette (10 distinct, WCAG-AA on white text)
 const PALETTE = [
     "#CB202D","#1565C0","#2E7D32","#6A1B9A",
     "#C62828","#00695C","#E65100","#283593",
     "#4E342E","#37474F"
 ];
 
-// Role → accent colour for the panel badge
 const ROLE_COLOR = {
     "Agent":       "#37474F",
     "QA Analyst":  "#1565C0",
     "Team Leader": "#2E7D32",
     "Vendor":      "#6A1B9A",
-    "Admin":       "#CB202D"
+    "Admin":       "#CB202D",
+    "Editor":      "#e65100"
 };
 
-// ─── STATE ───────────────────────────────────────────────────────────
-let myProfile    = null;    // { id, name, role, color, initials, joinedAt }
-let firebaseMode = false;   // true when config is valid & SDK loaded
-let fbRefs       = null;    // { db, myRef, allRef, … firebase fns }
-let localMap     = {};      // demo-mode only: { id → viewer }
+function mapRole(role) {
+    if (!role) return 'Agent';
+    const map = {
+        'admin': 'Admin',
+        'quality_analyst': 'QA Analyst',
+        'qa_analyst': 'QA Analyst',
+        'team_lead': 'Team Leader',
+        'teamlead': 'Team Leader',
+        'vendor': 'Vendor',
+        'user': 'Agent',
+        'editor': 'Editor'
+    };
+    return map[role.toLowerCase()] || role;
+}
+
+let myProfile    = null;
+let firebaseMode = false;
+let fbRefs       = null;
+let localMap     = {};
 let panelOpen    = false;
 
-// ─── SUPPORTHUB INTEGRATION ──────────────────────────────────────────
-// When this HTML is embedded as an EJS view inside SupportHub, the server
-// injects window.__SH_USER before this script runs (see wimoSop route).
-// When served standalone, it tries GET /api/wimo/me with the session cookie.
-// Falls back to localStorage, then manual popup — in that order.
-
-// ─── BOOT ────────────────────────────────────────────────────────────
 (async function boot() {
+    let config = null;
+    try {
+        const res = await fetch('/api/user-activity/firebase-config');
+        if (res.ok) {
+            const data = await res.json();
+            config = data.config;
+        }
+    } catch(err) {
+        console.warn("[WIMO] Failed to fetch Firebase config from API:", err);
+    }
 
-    // ── 1. Init Firebase ──────────────────────────────────────────────
-    const configured = FIREBASE_CONFIG.apiKey !== "FIREBASE_API_KEY";
-    if (configured) {
+    if (config && config.databaseURL) {
         try {
             const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
             const { getDatabase, ref, set, onValue, remove, onDisconnect }
                 = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-            const app = initializeApp(FIREBASE_CONFIG);
+            const app = initializeApp(config);
             const db  = getDatabase(app);
             fbRefs = { db, ref, set, onValue, remove, onDisconnect };
             firebaseMode = true;
@@ -2345,10 +2326,13 @@ let panelOpen    = false;
         if (setupEl) setupEl.classList.add("show");
     }
 
-    // ── 2. Priority A — EJS-injected session (fastest, no network call)
-    //       Set by the SupportHub wimoSop route via: window.__SH_USER = {...}
-    if (window.__SH_USER && window.__SH_USER.name) {
-        myProfile = buildProfile(window.__SH_USER);
+    if (window.__sopUsername) {
+        myProfile = buildProfile({
+            name: window.__sopUsername,
+            role: window.__sopUserRole,
+            id: window.__sopUserId,
+            _fromServer: true
+        });
         localStorage.setItem("wimo_viewer_v2", JSON.stringify(myProfile));
         closeNameModal();
         startPresence();
@@ -2357,8 +2341,6 @@ let panelOpen    = false;
         return;
     }
 
-    // ── 3. Priority B — fetch /api/wimo/me with session cookie
-    //       Works when SupportHub is the host and session is live
     try {
         const r = await fetch("/api/wimo/me", {
             credentials: "include",
@@ -2372,20 +2354,15 @@ let panelOpen    = false;
                 closeNameModal();
                 startPresence();
                 applySheetUrl(localStorage.getItem(SHEET_KEY) || null, false);
-                console.info("[WIMO] Auto-auth via /api/wimo/me:", myProfile.name, "/", myProfile.role);
                 return;
             }
         }
-    } catch(_) {
-        // Not served from SupportHub — silent fallback
-    }
+    } catch(_) {}
 
-    // ── 4. Priority C — localStorage (guest returning from earlier session)
     const saved = localStorage.getItem("wimo_viewer_v2");
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
-            // Reject stale server-originated profiles (server already returned 401)
             if (parsed._fromServer) {
                 localStorage.removeItem("wimo_viewer_v2");
             } else {
@@ -2399,14 +2376,12 @@ let panelOpen    = false;
         } catch(_) {}
     }
 
-    // ── 5. Priority D — show manual name popup (unauthenticated guest)
     openNameModal();
 })();
 
-// Build profile from SupportHub session — uses user.name and user.role directly
 function buildProfile(src) {
-    const name = src.name     || "<%= user.username %>";
-    const role = src.role     || "<%= user.role %>";
+    const name = src.name     || src.username || "<%= user && user.username ? user.username : 'Guest' %>";
+    const role = mapRole(src.role || "<%= user && user.role ? user.role : 'user' %>");
     const color    = src.color    || nameToColor(name);
     const initials = src.initials || getInitials(name);
     return {
@@ -2416,9 +2391,6 @@ function buildProfile(src) {
         _fromServer: !!(src._fromServer || src.fromServer)
     };
 }
-
-// ─── NAME MODAL ──────────────────────────────────────────────────────
-let nmSelectedRole = "Agent";
 
 window.nmSelectRole = function(btn, role) {
     document.querySelectorAll(".nm-role-pill").forEach(b => b.classList.remove("active"));
@@ -2464,10 +2436,8 @@ window.nmSubmit = function() {
 function openNameModal()  { document.getElementById("nameModalBackdrop").classList.add("open"); }
 function closeNameModal() { document.getElementById("nameModalBackdrop").classList.remove("open"); }
 
-// ─── PRESENCE ENGINE ─────────────────────────────────────────────────
 function startPresence() {
     updateYouChip(myProfile);
-
     if (firebaseMode && fbRefs) {
         startFirebase();
     } else {
@@ -2475,66 +2445,97 @@ function startPresence() {
     }
 }
 
-/* FIREBASE path */
 function startFirebase() {
     const { db, ref, set, onValue, remove, onDisconnect } = fbRefs;
-    const myRef  = ref(db, `${PRESENCE_PATH}/${myProfile.id}`);
-    const allRef = ref(db, PRESENCE_PATH);
+    const department = (window.__sopLob || 'zomato').toLowerCase().trim();
+    const myRef  = ref(db, `presence/${department}/${myProfile.name}`);
+    const allRef = ref(db, `presence/${department}`);
+
+    let currentStatus = 'online';
+    let lastActivityTime = Date.now();
+    const IDLE_TIME_LIMIT = 3 * 60 * 1000;
 
     const payload = () => ({
-        name:      myProfile.name,
-        role:      myProfile.role,
-        color:     myProfile.color,
-        initials:  myProfile.initials,
-        joinedAt:  myProfile.joinedAt,
-        lastSeen:  Date.now()
+        username:  myProfile.name,
+        role:      window.__sopUserRole || myProfile.role || 'user',
+        dept:      department,
+        status:    currentStatus,
+        ts:        Date.now()
     });
 
-    // Write on connect
-    set(myRef, payload());
+    const updateFirebaseStatus = (newStatus) => {
+        if (currentStatus === newStatus) return;
+        currentStatus = newStatus;
+        set(myRef, payload());
+    };
 
-    // Auto-delete on disconnect
+    const resetIdleTimer = () => {
+        lastActivityTime = Date.now();
+        if (currentStatus === 'idle') {
+            updateFirebaseStatus('online');
+        }
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach(ev => {
+        document.addEventListener(ev, resetIdleTimer, { passive: true });
+    });
+
+    set(myRef, payload());
     onDisconnect(myRef).remove();
 
-    // Heartbeat
-    const hb = setInterval(() => set(myRef, payload()), HEARTBEAT_MS);
+    const hb = setInterval(() => {
+        const idleDuration = Date.now() - lastActivityTime;
+        if (idleDuration >= IDLE_TIME_LIMIT) {
+            currentStatus = 'idle';
+        } else {
+            currentStatus = 'online';
+        }
+        set(myRef, payload());
+    }, HEARTBEAT_MS);
 
-    // Listen to all viewers (live)
     onValue(allRef, snap => {
         const raw = snap.val() || {};
         const now = Date.now();
         const viewers = Object.entries(raw)
-            .filter(([, v]) => v && (now - (v.lastSeen || 0)) < STALE_THRESHOLD)
-            .map(([id, v]) => ({ id, ...v }));
+            .filter(([, v]) => v && v.username && (now - (v.ts || v.lastSeen || 0)) < STALE_THRESHOLD)
+            .map(([key, v]) => {
+                const uName = v.username || key;
+                return {
+                    id:       uName,
+                    name:     uName,
+                    role:     mapRole(v.role),
+                    color:    v.color || nameToColor(uName),
+                    initials: v.initials || getInitials(uName),
+                    joinedAt: v.ts || v.lastSeen || now,
+                    lastSeen: v.ts || v.lastSeen || now,
+                    status:   v.status || 'online'
+                };
+            });
         renderAll(viewers);
     });
 
-    // Clean up on tab close
     window.addEventListener("beforeunload", () => {
         remove(myRef);
         clearInterval(hb);
     });
 }
 
-/* Demo / localStorage mode */
 function startDemoMode() {
     localMap = {};
-    localMap[myProfile.id] = { ...myProfile, lastSeen: Date.now() };
+    localMap[myProfile.id] = { ...myProfile, lastSeen: Date.now(), status: 'online' };
     renderAll(Object.values(localMap));
 
-    // Still heartbeat so the UI feels alive
     setInterval(() => {
         localMap[myProfile.id].lastSeen = Date.now();
         renderAll(Object.values(localMap));
     }, HEARTBEAT_MS);
 }
 
-// ─── RENDER ──────────────────────────────────────────────────────────
 function renderAll(viewers) {
-    // Sort: me first, then by joinedAt ascending
     viewers.sort((a, b) => {
-        if (a.id === myProfile.id) return -1;
-        if (b.id === myProfile.id) return  1;
+        if (a.id === myProfile.name || a.id === myProfile.id) return -1;
+        if (b.id === myProfile.name || b.id === myProfile.id) return  1;
         return (a.joinedAt || 0) - (b.joinedAt || 0);
     });
 
@@ -2550,14 +2551,15 @@ function renderAvatarStrip(viewers) {
     const overflow = viewers.length - MAX;
 
     container.innerHTML = shown.map((v, i) => {
-        const isMe = v.id === myProfile.id;
+        const isMe = v.id === myProfile.name || v.id === myProfile.id;
+        const statusText = v.status === 'idle' ? 'Idle' : 'Active';
         return `<div class="pb-avatar ${isMe ? "is-you" : ""}"
                      style="background:${v.color||"#999"}; z-index:${50-i}"
                      tabindex="0">
                     ${v.initials || "?"}
                     <div class="pb-avatar-tip">
                         ${esc(v.name)}${isMe ? " <span style=\"color:#ff9090\">(You)</span>" : ""}<br>
-                        <span style="opacity:.75;font-size:.6rem">${v.role || "Viewer"}</span>
+                        <span style="opacity:.75;font-size:.6rem">${v.role || "Viewer"} (${statusText})</span>
                     </div>
                 </div>`;
     }).join("");
@@ -2582,16 +2584,20 @@ function renderCountLabel(count) {
 function renderViewersPanel(viewers) {
     const list = document.getElementById("vpList");
     list.innerHTML = viewers.map(v => {
-        const isMe  = v.id === myProfile.id;
+        const isMe  = v.id === myProfile.name || v.id === myProfile.id;
         const rc    = ROLE_COLOR[v.role] || "#555";
         const since = timeSince(v.joinedAt);
+        const statusLabel = v.status === 'on_break' ? 'On Break' : (v.status === 'idle' ? 'Idle' : 'Online');
+        const statusColor = v.status === 'on_break' ? '#ffc107' : (v.status === 'idle' ? '#dc3545' : '#24963F');
+        const pulseAnim = v.status === 'idle' ? 'none' : 'liveGlow 2s infinite';
+        
         return `<div class="vp-item">
             <div class="vp-avatar" style="background:${v.color||"#999"}">${v.initials||"?"}</div>
             <div class="vp-info">
                 <div class="vp-name">${esc(v.name)}</div>
                 <div class="vp-role" style="color:${rc}">${v.role||"Viewer"}</div>
             </div>
-            <div class="vp-active-dot" title="Active"></div>
+            <div class="vp-active-dot" title="${statusLabel}" style="background-color: ${statusColor}; animation: ${pulseAnim};"></div>
             ${isMe
                 ? `<span class="vp-badge-you">You</span>`
                 : `<span class="vp-joined-time">${since}</span>`}

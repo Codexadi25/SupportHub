@@ -3,6 +3,7 @@ const Category = require('../models/Category');
 const PrivateNote = require('../models/PrivateNote');
 const Logger = require('../utils/logger');
 const asyncHandler = require('express-async-handler');
+const { syncUserToFirebase } = require('../services/firebaseService');
 
 
 // @desc    Show login page
@@ -87,6 +88,12 @@ exports.loginUser = async (req, res) => {
                 role: user.role,
                 department: user.department || 'general',
             };
+            
+            // Sync user to Firebase Realtime Database (async, don't wait)
+            syncUserToFirebase(user).catch(err => {
+                console.error('[Auth] Firebase sync failed (non-critical):', err.message);
+            });
+            
             req.session.save((err) => {
                 if (err) {
                     console.error('Session save error:', err);
@@ -104,7 +111,18 @@ exports.loginUser = async (req, res) => {
 
 // @desc    Logout user
 // @route   GET /auth/logout
-exports.logoutUser = (req, res) => {
+exports.logoutUser = async (req, res) => {
+    const username = req.session.user?.username;
+    const department = req.session.user?.department || 'general';
+    
+    // Remove from Firebase (async, don't wait)
+    if (username && department) {
+        const { removeUserPresence } = require('../services/firebaseService');
+        removeUserPresence(username, department).catch(err => {
+            console.error('[Auth] Firebase presence removal failed (non-critical):', err.message);
+        });
+    }
+    
     req.session.destroy((err) => {
         if (err) {
             return res.redirect('/');

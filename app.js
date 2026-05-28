@@ -6,8 +6,20 @@ const session = require('express-session');
 const connectDB = require('./config/database');
 const { errorHandler } = require('./middleware/errorMiddleware');
 const requestLogger = require('./middleware/requestLogger');
+
 // Connect to Database
 connectDB();
+
+// Initialize Firebase Admin SDK for presence tracking
+const firebaseService = require('./services/firebaseService');
+const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './config/firebase-key.json';
+
+try {
+  firebaseService.initializeFirebase(serviceAccountPath);
+} catch (error) {
+  console.warn('[App] Firebase initialization error (non-critical):', error.message);
+  console.warn('[App] Presence tracking features will be disabled.');
+}
 
 // --- SOP Routes Integration ---
 

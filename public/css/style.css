@@ -199,6 +199,7 @@ body {
 /* --- Panels & Content --- */
 .panel-header {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
