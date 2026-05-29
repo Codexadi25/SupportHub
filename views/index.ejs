@@ -423,7 +423,7 @@
 
                       <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead' || user.role === 'user') { %>
                         <div id="SOP" class="tab-content">
-                          <iframe id="sopPanelFrame" src="/<%= process.env.APP_LOB || 'zomato' %>/sop/<%= user.role === 'admin' ? 'edit' : 'view' %>" style="width:100%;height:850px;border:0;" title="SOP Panel"></iframe>
+                          <iframe src="/sop/<%= user.role === 'admin' ? 'admin/edit' : process.env.APP_LOB || 'zomato' %>/<%= user.role === 'admin' ? 'admin/edit' : 'view' %>" style="width:100%;height:850px;border:0;" title="SOP Panel"></iframe>
                         </div>
                       <% } else { %>
                         <div id="SOP" class="tab-content">
@@ -482,18 +482,18 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="profile-username"><i class="bi bi-person-fill"></i> Username (14-day limit)</label>
+                        <label for="profile-username"><i class="bi bi-person-fill"></i> Username (You can change once in 14-days)</label>
                         <input type="text" id="profile-username" value="<%= user.username %>" required style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">
                     </div>
 
                     <div class="form-group">
-                        <label for="profile-name"><i class="bi bi-person-fill-check"></i> Profile Name (Friendly Name)</label>
-                        <input type="text" id="profile-name" value="<%= user.profileName || '' %>" placeholder="e.g. John Doe" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">
+                        <label for="profile-name"><i class="bi bi-person-fill-check"></i> Display Name</label>
+                        <input type="text" id="profile-name" value="<%= user.profileName || '' %>" required placeholder="e.g. Steve Smith" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">
                     </div>
 
                     <div class="form-group">
                         <label for="profile-email"><i class="bi bi-envelope-fill"></i> Email ID</label>
-                        <input type="email" id="profile-email" value="<%= user.email || '' %>" placeholder="e.g. yourname@gmail.com" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">
+                        <input type="email" id="profile-email" value="<%= user.email || '' %>" required placeholder="e.g. yourname@gmail.com" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">
                     </div>
 
                     <div class="form-group">
@@ -534,11 +534,11 @@
                         <input type="hidden" id="profile-bg-color" value="<%= user.bgColor || '' %>">
                     </div>
 
-                    <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem;background:var(--surface-alt);padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);">
-                        <span style="font-weight:600;"><i class="bi bi-moon-stars-fill"></i> Night Mode (Ambient & Soft)</span>
-                        <label class="switch" style="position:relative;display:inline-block;width:44px;height:24px;">
-                            <input type="checkbox" id="profile-night-mode" <%= user.nightMode ? 'checked' : '' %> style="opacity:0;width:0;height:0;">
-                            <span class="slider round" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#ccc;transition:.4s;border-radius:24px;"></span>
+                    <div class="form-group night-mode-toggle-group">
+                        <span class="night-mode-label"><i class="bi bi-moon-stars-fill"></i> Night Mode (Ambient & Soft)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="profile-night-mode" <%= user.nightMode ? 'checked' : '' %>>
+                            <span class="slider round"></span>
                         </label>
                     </div>
 
