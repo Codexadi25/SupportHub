@@ -23,8 +23,9 @@ WIMOBOT is a comprehensive support hub application built with Node.js, Express, 
 - **Private Notes**: Personal note-taking system with categorization
 - **Feedback System**: User feedback collection with admin/editor response capabilities
 - **Messaging System**: Broadcast messages with targeting and notification system
-- **Admin Panel**: User management, bulk operations, and system administration
-- **Role-based Access Control**: User, Editor, and Admin roles with different permissions
+- **Real-Time User Presence & Collaborator Bar (Google Docs style)**: Live avatars at the top showing active users across all departments in real-time, complete with detailed status tooltips (Online, On Break, Idle, or Unavailable)
+- **Admin Panel**: User management, bulk operations, and real-time user activity monitoring
+- **Role-based Access Control**: User, Editor, Team Lead, and Admin roles with tailored departmental/global visibility permissions
 
 ## Architecture
 
@@ -32,7 +33,7 @@ WIMOBOT is a comprehensive support hub application built with Node.js, Express, 
 - **Framework**: Express.js
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: Session-based authentication
-- **Real-time**: WebSocket support for live updates
+- **Real-time & Presence**: Firebase Realtime Database integration for instant, multi-session user presence sync, augmented by WebSocket support for live updates
 - **File Upload**: Multer for file handling
 
 ### Frontend
@@ -73,12 +74,16 @@ WIMOBOT/
 │   │   ├── feedbackRoutes.js
 │   │   ├── messageRoutes.js
 │   │   ├── pnRoutes.js
-│   │   └── userRoutes.js
+│   │   ├── userRoutes.js
+│   │   └── userActivity.js # User presence and activity routes
 │   ├── auth.js
 │   ├── authRoutes.js
-│   ├── ping.js
+│   ├── ping.js            # Heartbeat and keep-alive ping sync route
 │   ├── users.js
 │   └── viewRoutes.js
+├── services/             # Third-party integrations
+│   ├── aiService.js       # AI generation logic
+│   └── firebaseService.js # Firebase Realtime Database presence logic
 ├── utils/                # Utility functions
 │   ├── autoTagGenerator.js
 │   ├── logger.js
@@ -97,7 +102,8 @@ WIMOBOT/
 │       ├── header.ejs
 │       ├── loggerPanel.ejs
 │       ├── messagePanel.ejs
-│       └── pnPanel.ejs
+│       ├── pnPanel.ejs
+│       └── userActivityDashboard.ejs # Live user activity dashboard panel
 ├── public/               # Static assets
 │   ├── css/
 │   │   ├── feedback.css
@@ -107,7 +113,9 @@ WIMOBOT/
 │       ├── admin.js
 │       ├── feedback.js
 │       ├── main.js
-│       └── messages.js
+│       ├── messages.js
+│       ├── presenceBar.js  # Global top-bar Google Docs-style presence script
+│       └── userActivityDashboard.js # Real-time dashboard client script
 └── package.json
 ```
 
@@ -306,6 +314,13 @@ WIMOBOT/
 - `GET /api/messages/users` - Get all users for targeting (admin only)
 - `POST /api/messages/cleanup` - Cleanup expired messages (admin only)
 
+### User Activity & Presence Routes
+- `GET /api/user-activity/firebase-config` - Fetch client Firebase config securely
+- `GET /api/user-activity/department-users` - Fetch and merge department presence (or all presence for Admins)
+- `GET /api/user-activity/stats` - Fetch real-time active statistics for dashboard
+- `GET /api/ping` - Extended heartbeat ping endpoint; automatically syncs status to Firebase RTDB
+- `POST /api/heartbeat` - Enhanced server heartbeat endpoint; automatically syncs status to Firebase RTDB
+
 ### Admin Routes
 - `GET /api/admin/logs` - Get system logs
 - `GET /api/admin/users` - Get all users
@@ -355,6 +370,13 @@ WIMOBOT/
 - **Bulk Operations**: Bulk user creation and canned response upload
 - **System Logs**: View and manage system logs
 - **Password Management**: Reset and set user passwords
+
+### 6. Real-Time Presence & Collaborator Bar (Google Docs style)
+- **Top-bar Collaborator Indicators**: Renders circular avatars representing currently logged-in and active users across the entire application in real-time, just like Google Docs.
+- **Glassmorphic Status Tooltips**: Hovering over avatars displays live details: active status (Online, On Break, Idle), role, department, and precise last seen timestamp.
+- **Dynamic User Activity Dashboard**: Provides real-time user status lists and telemetry inside the Admin Tab, with auto-calculated counts for active users.
+- **Unified Heartbeat Synchronization**: Connects client-side keep-alive pings and heartbeats directly to Firebase Realtime Database, immediately reflecting user actions.
+- **Premium Client-Side Sorting**: Collaborator bar automatically places the current user first, followed by online users, on-break users, and idle users, with alphabetical tiebreakers.
 
 ## User Roles & Permissions
 
@@ -527,5 +549,5 @@ For issues, questions, or contributions, please refer to the project repository 
 ### Designed & Developed from scratch by Aditya Sahu | [Aditya Tech. & Devoops. &copy; 2025](https://adityatechndevoops.web.app)
 
 ---
-**Last Updated**: 18 September 2025
-**Version**: 2.4.9.18
+**Last Updated**: 29 May 2026
+**Version**: 3.0.0 (Real-Time Presence Edition)
