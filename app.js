@@ -26,6 +26,39 @@ try {
 const app = express();
 const server = http.createServer(app);
 
+// IP normalization middleware to always extract a clean IPv4 address
+app.use((req, res, next) => {
+  let ip = req.headers['x-forwarded-for'] || req.ip || req.connection?.remoteAddress || '127.0.0.1';
+  
+  if (ip.includes(',')) {
+    ip = ip.split(',')[0].trim();
+  }
+  
+  if (ip === '::1') {
+    ip = '127.0.0.1';
+  } else if (ip.startsWith('::ffff:')) {
+    ip = ip.substring(7);
+  }
+  
+  // Normalize req.ip
+  Object.defineProperty(req, 'ip', {
+    value: ip,
+    writable: true,
+    configurable: true
+  });
+  
+  // Normalize req.connection.remoteAddress if it exists
+  if (req.connection) {
+    Object.defineProperty(req.connection, 'remoteAddress', {
+      value: ip,
+      writable: true,
+      configurable: true
+    });
+  }
+  
+  next();
+});
+
 // --- SOP Routes Integration ---
 // Customisable route for different companies/LOBs
 const sopRoutes = require('./routes/sopRoutes');
