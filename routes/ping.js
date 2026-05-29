@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { isAuthenticated } = require('../middleware/authMiddleware');
 const { getOnlineUsers } = require('../utils/webSocketServer');
+const firebaseService = require('../services/firebaseService');
 
 const IDLE_THRESHOLD = 3 * 60 * 1000; // 3 minutes for idle status
 
@@ -52,6 +53,11 @@ router.get('/ping', (req, res) => {
         lastPingAt: now,
         status: 'online'
       });
+
+      // Sync status to Firebase
+      firebaseService.updateUserStatus(user.username, user.department || 'general', 'online').catch(err => {
+        console.warn('[Ping] Firebase status sync failed:', err.message);
+      });
     }
   } catch (err) {
     console.error('Ping handler error:', err);
@@ -90,6 +96,11 @@ router.post('/heartbeat', (req, res) => {
       role: user.role,
       lastPingAt: now,
       status: 'online'
+    });
+
+    // Sync status to Firebase
+    firebaseService.updateUserStatus(user.username, user.department || 'general', 'online').catch(err => {
+      console.warn('[Heartbeat] Firebase status sync failed:', err.message);
     });
     
     res.json({

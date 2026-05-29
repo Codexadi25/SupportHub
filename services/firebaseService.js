@@ -354,11 +354,54 @@ const clearDepartmentPresence = async (department) => {
   }
 };
 
+/**
+ * Get all users across all departments in Firebase
+ */
+const getAllPresenceUsers = async () => {
+  try {
+    const db = getDatabase();
+    
+    if (!db) {
+      const data = await callRestApi('presence', 'GET');
+      if (!data) return [];
+      
+      const allUsers = [];
+      Object.keys(data).forEach(deptKey => {
+        const deptData = data[deptKey];
+        if (deptData && typeof deptData === 'object') {
+          Object.values(deptData).forEach(user => {
+            if (user) allUsers.push(user);
+          });
+        }
+      });
+      return allUsers;
+    }
+    
+    const snapshot = await db.ref('presence').once('value');
+    const data = snapshot.val() || {};
+    
+    const allUsers = [];
+    Object.keys(data).forEach(deptKey => {
+      const deptData = data[deptKey];
+      if (deptData && typeof deptData === 'object') {
+        Object.values(deptData).forEach(user => {
+          if (user) allUsers.push(user);
+        });
+      }
+    });
+    return allUsers;
+  } catch (error) {
+    console.error('[Firebase] Error fetching all presence users:', error.message);
+    return [];
+  }
+};
+
 module.exports = {
   initializeFirebase,
   getDatabase,
   syncUserToFirebase,
   getDepartmentUsers,
+  getAllPresenceUsers,
   updateUserStatus,
   removeUserPresence,
   syncAllUsersToFirebase,

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { isAuthenticated } = require('../../middleware/authMiddleware');
 const User = require('../../models/User');
-const { getDepartmentUsers, getUserActivityStats } = require('../../services/firebaseService');
+const { getDepartmentUsers, getUserActivityStats, getAllPresenceUsers } = require('../../services/firebaseService');
 
 /**
  * GET /api/user-activity/firebase-config
@@ -50,7 +50,7 @@ router.get('/user-activity/department-users', isAuthenticated, async (req, res) 
         const dbUsers = await User.find(query).select('username role department').lean();
 
         // Fetch presence data from Firebase
-        const firebaseUsers = await getDepartmentUsers(department);
+        const firebaseUsers = (role === 'admin') ? await getAllPresenceUsers() : await getDepartmentUsers(department);
 
         // Merge data
         const mergedUsers = dbUsers.map(dbUser => {
@@ -58,7 +58,7 @@ router.get('/user-activity/department-users', isAuthenticated, async (req, res) 
             return {
                 ...dbUser,
                 status: fbUser?.status || 'offline',
-                lastUpdated: fbUser?.lastUpdated || null,
+                lastUpdated: fbUser?.lastUpdated || fbUser?.ts || null,
                 online: fbUser ? true : false
             };
         });

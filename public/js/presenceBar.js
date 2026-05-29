@@ -130,18 +130,45 @@ class PresenceBar {
   }
 
   /**
-   * Listen to department presence changes
+   * Listen to global presence changes across all departments (Google Docs Style)
    */
   listenToDepartmentPresence() {
     if (!this.db || !this.firebaseReady) return;
 
-    this.deptRef = this.db.ref(`presence/${this.department}`);
+    // Listen to root presence to see everyone across all departments
+    this.deptRef = this.db.ref('presence');
 
     this.deptRef.on('value', (snap) => {
       const val = snap.val() || {};
-      const peers = Object.values(val);
+      const peers = [];
 
-      this.renderPresenceBar(peers);
+      // Flatten the department-keyed structures
+      Object.keys(val).forEach(deptKey => {
+        const deptData = val[deptKey];
+        if (deptData && typeof deptData === 'object') {
+          Object.values(deptData).forEach(user => {
+            if (user && user.username) {
+              peers.push(user);
+            }
+          });
+        }
+      });
+
+      // Premium sorting: current user first, then online, then on_break, then idle
+      const statusOrder = { online: 3, on_break: 2, idle: 1 };
+      const sortedPeers = peers.sort((a, b) => {
+        const aIsYou = a.username === this.username ? 1 : 0;
+        const bIsYou = b.username === this.username ? 1 : 0;
+        if (aIsYou !== bIsYou) return bIsYou - aIsYou;
+
+        const aOrder = statusOrder[a.status] || 0;
+        const bOrder = statusOrder[b.status] || 0;
+        if (aOrder !== bOrder) return bOrder - aOrder;
+
+        return a.username.localeCompare(b.username);
+      });
+
+      this.renderPresenceBar(sortedPeers);
     });
   }
 
