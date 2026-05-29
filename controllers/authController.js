@@ -12,7 +12,12 @@ exports.getLoginPage = (req, res) => {
     if (req.session.user) {
         return res.redirect('/');
     }
-    res.render('login', { error: null, success: null, showRegister: true });
+    const reason = req.query.reason;
+    let error = null;
+    if (reason === 'single_device') {
+        error = 'You have been logged out because your account was logged in from another device.';
+    }
+    res.render('login', { error: error, success: null, showRegister: true });
 };
 
 // @desc    Show registration page
@@ -66,9 +71,9 @@ exports.registerUser = asyncHandler(async (req, res) => {
     });
     
     res.render('login', { 
-        error: null, 
-        success: 'Registration successful! Please login with your credentials.',
-        showRegister: true 
+         error: null, 
+         success: 'Registration successful! Please login with your credentials.',
+         showRegister: true 
     });
 });
 
@@ -80,6 +85,11 @@ exports.loginUser = async (req, res) => {
         const user = await User.findOne({ username: username.toLowerCase() });
 
         if (user && (await user.matchPassword(password))) {
+            // Update session tracking and IP in database
+            user.currentSessionId = req.sessionID;
+            user.lastActiveIp = req.ip || req.connection.remoteAddress;
+            await user.save();
+
             // Create session — always include department
             req.session.user = {
                 id: user._id.toString(),
@@ -105,6 +115,7 @@ exports.loginUser = async (req, res) => {
             res.render('login', { error: 'Invalid username or password', success: null });
         }
     } catch (error) {
+        console.error('Login error:', error);
         res.render('login', { error: 'An error occurred. Please try again.', success: null });
     }
 };
@@ -138,7 +149,11 @@ exports.logoutUser = async (req, res) => {
 exports.getAppPage = async (req, res) => {
     try {
         const sessionUser = req.session.user;
-        const userLob = (sessionUser.department || 'zomato').toLowerCase().trim();
+        const userDoc = await User.findById(sessionUser.id || sessionUser._id);
+        if (!userDoc) {
+            return res.redirect('/auth/logout');
+        }
+        const userLob = (userDoc.department || 'zomato').toLowerCase().trim();
 
         // Fetch all data needed for the UI, filtered by active LOB
         const categories = await Category.find({ lob: userLob }).sort({ title: 1 });
@@ -147,16 +162,16 @@ exports.getAppPage = async (req, res) => {
         const ELEVATED_ROLES = ['admin', 'vendor', 'team_lead', 'quality_analyst', 'editor'];
         let privateNotesQuery;
 
-        if (sessionUser.role === 'new') {
+        if (userDoc.role === 'new') {
             // Restricted users only see their own notes
-            privateNotesQuery = { user: sessionUser.id, lob: userLob };
+            privateNotesQuery = { user: userDoc._id, lob: userLob };
         } else {
             // Everyone else sees public notes + their own private notes
             privateNotesQuery = {
                 lob: userLob,
                 $or: [
                     { visibility: 'public' },
-                    { user: sessionUser.id }
+                    { user: userDoc._id }
                 ]
             };
         }
@@ -166,8 +181,8 @@ exports.getAppPage = async (req, res) => {
         // Admin sees ALL users; team_lead / quality_analyst / editor only see their own department
         const DEPT_SCOPED_ROLES = ['team_lead', 'quality_analyst', 'editor'];
         let userQuery = {};
-        if (DEPT_SCOPED_ROLES.includes(sessionUser.role)) {
-            userQuery = { department: sessionUser.department || 'general' };
+        if (DEPT_SCOPED_ROLES.includes(userDoc.role)) {
+            userQuery = { department: userDoc.department || 'general' };
         }
         const users = await User.find(userQuery).select('-password').sort({ username: 1 });
 
@@ -190,7 +205,7 @@ exports.getAppPage = async (req, res) => {
             categories: categories,
             privateNotes: privateNotes,
             allTags: [...allTags].sort(),
-            user: req.session.user,
+            user: userDoc,
             users: users
         });
     } catch (error) {

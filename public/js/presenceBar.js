@@ -66,7 +66,7 @@ class PresenceBar {
       // Setup UI event listeners
       this.setupEventListeners();
 
-      console.log('[PresenceBar] Initialized successfully');
+      // console.log('[PresenceBar] Initialized successfully');
     } catch (error) {
       console.error('[PresenceBar] Initialization failed:', error);
     }
@@ -107,8 +107,11 @@ class PresenceBar {
       username: this.username,
       role: this.role,
       dept: this.department,
+      profilePic: window.currentUserProfilePic || '',
       status: 'online',
-      ts: firebase.database.ServerValue.TIMESTAMP
+      ts: firebase.database.ServerValue.TIMESTAMP,
+      profileName: window.currentUserProfileName || '',
+      bgColor: window.currentUserBgColor || ''
     });
 
     // Remove presence on disconnect
@@ -192,13 +195,13 @@ class PresenceBar {
     // Handle overflow
     if (hidden.length > 0) {
       if (this.moreCount) this.moreCount.textContent = `+${hidden.length}`;
-      if (this.moreBtn) this.moreBtn.title = hidden.map((u) => u.username).join(', ');
+      if (this.moreBtn) this.moreBtn.title = hidden.map((u) => u.profileName || u.username).join(', ');
 
       hidden.forEach((user) => {
         if (this.dropdown) {
           const item = document.createElement('div');
           item.className = 'au-dropdown-item';
-          item.textContent = user.username;
+          item.textContent = user.profileName || user.username;
           this.dropdown.appendChild(item);
         }
       });
@@ -215,8 +218,12 @@ class PresenceBar {
   createAvatarElement(user, container) {
     const av = document.createElement('div');
     av.className = 'au-avatar';
-    av.textContent = user.username.charAt(0).toUpperCase();
-    av.style.setProperty('--au-hue', this.stringToHue(user.username));
+    if (user.profilePic) {
+      av.innerHTML = user.profilePic;
+    } else {
+      av.textContent = (user.profileName || user.username || '?').charAt(0).toUpperCase();
+    }
+    av.style.setProperty('--au-hue', this.stringToHue(user.username || ''));
 
     // Create tooltip
     const tooltip = document.createElement('div');
@@ -230,7 +237,7 @@ class PresenceBar {
     tooltip.innerHTML = `
       <div class="aut-header">
         <span class="aut-dot" style="background-color: ${statusColor}"></span>
-        <strong class="aut-name">${user.username}</strong>
+        <strong class="aut-name">${user.profileName || user.username || ''}</strong>
       </div>
       <div class="aut-dept">🏢 ${user.dept || user.department || 'General'}</div>
       <div class="aut-role">🛡️ ${(user.role || 'user').toUpperCase()}</div>

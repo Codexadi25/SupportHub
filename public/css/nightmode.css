@@ -1,0 +1,169 @@
+/* ═══════════════════════════════════════════════════════════════
+   SupportHub — Soft Ambient Night Mode & Profile settings CSS
+   ═══════════════════════════════════════════════════════════════ */
+body.night-mode {
+    --bg: #070709;
+    --surface: #111115;
+    --surface-alt: #17171e;
+    --border: #23232c;
+    --border-color: #23232c;
+    --border-focus: #3b82f6;
+    --text: #f4f4f7;
+    --text-color: #f4f4f7;
+    --text-muted: #9ea2b0;
+    --text-xs: #5a5f70;
+    --primary-light: rgba(37, 99, 235, 0.18);
+    --panel-background: #111115;
+    --background-color: #070709;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
+    --card-bg-fade: var(--surface-alt);
+}
+
+body.night-mode .top-bar {
+    background: #0d0d12;
+    border-bottom-color: #1e1e26;
+}
+
+body.night-mode .category-nav {
+    border-right-color: var(--border);
+}
+
+body.night-mode .category-nav-btn {
+    background-color: #161e30;
+    outline-color: #2b5db0;
+    color: #4b93ff;
+}
+
+body.night-mode .category-nav-btn.active {
+    background-color: var(--primary);
+    color: white;
+}
+
+body.night-mode .panel-header {
+    background-color: #141419;
+    border-bottom-color: var(--border);
+}
+
+body.night-mode .calculator-widget,
+body.night-mode .au-avatar,
+body.night-mode .status-card,
+body.night-mode .dashboard-controls,
+body.night-mode .users-list-header {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.night-mode .status-card {
+    border-left: 5px solid !important;
+}
+
+body.night-mode .status-card.online {
+    border-left-color: #28a745 !important;
+}
+
+body.night-mode .status-card.on-break {
+    border-left-color: #ffc107 !important;
+}
+
+body.night-mode .status-card.unresponsive {
+    border-left-color: #fd7e14 !important;
+}
+
+body.night-mode .status-card.unavailable {
+    border-left-color: #6c757d !important;
+}
+
+body.night-mode .status-card.idle {
+    border-left-color: #dc3545 !important;
+}
+
+body.night-mode .status-card.total {
+    border-left-color: #007bff !important;
+}
+
+body.night-mode .user-item,
+body.night-mode .cand-item,
+body.night-mode .pn-card {
+    background: var(--surface-alt) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+body.night-mode .cand-header {
+    background: var(--surface) !important;
+    border-bottom-color: var(--border) !important;
+}
+
+body.night-mode .cand-text {
+    background: #14233c !important;
+    border-left-color: #2b5db0 !important;
+    color: #e2f0ff !important;
+}
+
+body.night-mode .cand-tag-chip {
+    background: #13223f !important;
+    color: #5591ff !important;
+    border-color: #2b4578 !important;
+}
+
+body.night-mode .cand-item:hover,
+body.night-mode .pn-card:hover {
+    border-color: var(--primary) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.night-mode input,
+body.night-mode select,
+body.night-mode textarea {
+    background: var(--surface-alt) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+body.night-mode input:focus,
+body.night-mode select:focus,
+body.night-mode textarea:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
+}
+
+body.night-mode .footer {
+    background-color: #0a0a0e;
+    border-top-color: var(--border);
+}
+
+body.night-mode tr {
+    border-bottom: 1px solid var(--border) !important;
+}
+
+body.night-mode tr:nth-child(even) {
+    background-color: #16161d !important;
+}
+
+body.night-mode tr:nth-child(odd) {
+    background-color: #111116 !important;
+}
+
+body.night-mode th {
+    background-color: #171720 !important;
+    color: var(--text) !important;
+    border-bottom: 2px solid var(--border) !important;
+}
+
+body.night-mode .admin-section {
+    background-color: var(--surface) !important;
+    border-color: var(--border) !important;
+}
+
+body.night-mode .tabs {
+    background-color: #0d0d12;
+    border-bottom-color: var(--border);
+}
+
+body.night-mode .tab-link.active {
+    background: #1b2640 !important;
+    color: #4b93ff;
+}

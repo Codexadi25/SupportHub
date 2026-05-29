@@ -1,0 +1,181 @@
+/* ═══════════════════════════════════════════════════════════════
+   SupportHub — Canned Responses (Cands) & Filters
+   ═══════════════════════════════════════════════════════════════ */
+.tag-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.tag-filter {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid #007bff41;
+    background-color: #ccecff;
+    color: #37383a;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 10px;
+}
+
+.tag-filter.active {
+    background-color: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
+.tag-filter.clear,
+.clear-filters-btn {
+    background-color: rgb(255, 0, 0);
+    color: #fff;
+    border-color: #ffffff;
+}
+
+.clear-filters-btn:hover {
+    background-color: #e00000;
+    border-color: #fff;
+}
+
+/* Category header blocks */
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: display 0.2s ease;
+    padding: 14px 16px 8px;
+}
+
+.category-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Cand Items cards */
+.cands-list-container {
+    padding: 8px;
+}
+
+.cand-item {
+    border: 1px solid #007bff99;
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    margin: 8px 0;
+    transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+    background: var(--surface);
+}
+
+.cand-item:hover {
+    box-shadow: 0 4px 14px rgba(37, 99, 235, .15);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.cand-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    padding: 6px 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+}
+
+.cand-category-label {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.cand-actions {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.cand-actions .icon-btn {
+    font-size: 15px;
+}
+
+.cand-tags {
+    padding: 4px 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.cand-tag-chip {
+    background: #eff6ff;
+    border-radius: 4px;
+    color: var(--primary);
+    font-weight: 600;
+    padding: 1px 8px;
+    font-size: 11px;
+    border: 1px solid #bfdbfe;
+}
+
+.cand-status-tag {
+    display: inline-block;
+    border-radius: 4px;
+    margin-right: .4rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-size: 9px;
+    padding: 1px 5px;
+    font-weight: 700;
+}
+
+.cand-status-tag.status-new {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.cand-status-tag.status-updated {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.cand-text {
+    background: #eff6ff;
+    padding: 8px 12px;
+    border-radius: 1px;
+    border-left: 3px solid #bfdbfe;
+    line-height: 1.65;
+    font-size: 12.5px;
+    color: #1e3a5f;
+}
+
+/* Search Mode Indicators and Actions */
+.search-mode .category-header {
+    display: none !important;
+}
+
+.search-mode-indicator {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    display: none;
+    text-align: center;
+    font-weight: 500;
+}
+
+.search-mode-indicator.active {
+    display: block;
+}
+
+.search-mode .cand-item {
+    margin-bottom: 0.75rem;
+    border-left: 3px solid var(--primary-color);
+}
+
+.search-mode .cand-item:hover {
+    border-left-color: var(--primary-hover);
+}

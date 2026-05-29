@@ -157,9 +157,80 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) { showToast(err.message,'error'); }
   });
 
-  // Users table rendering & actions
+  // Users table rendering, real-time presence sync & actions
   const usersTbody = document.getElementById('admin-users-table-body');
   const searchInput = document.getElementById('admin-user-search');
+
+  let presenceMap = new Map();
+  let showLoggedInOnly = false;
+  let adminDb = null;
+
+  async function initFirebasePresence() {
+    const indicator = document.getElementById('connection-indicator');
+    if (!indicator) return;
+    indicator.textContent = '🟡 Connecting…';
+    indicator.className = 'status-indicator connecting';
+
+    try {
+      const res = await fetch('/api/user-activity/firebase-config');
+      if (!res.ok) throw new Error('Firebase config not available');
+      const { config } = await res.json();
+      if (!config.databaseURL) throw new Error('databaseURL missing');
+
+      if (!firebase.apps.length) {
+        firebase.initializeApp(config);
+      }
+      adminDb = firebase.database();
+
+      indicator.textContent = '🟢 Live';
+      indicator.className = 'status-indicator connected';
+
+      // Listen to presence updates
+      adminDb.ref('presence').on('value', snap => {
+        const val = snap.val() || {};
+        presenceMap.clear();
+
+        Object.keys(val).forEach(deptKey => {
+          const deptData = val[deptKey];
+          if (deptData && typeof deptData === 'object') {
+            Object.values(deptData).forEach(u => {
+              if (u && u.username) {
+                presenceMap.set(u.username.toLowerCase(), {
+                  status: u.status || 'offline',
+                  profilePic: u.profilePic || '',
+                  profileName: u.profileName || '',
+                  bgColor: u.bgColor || ''
+                });
+              }
+            });
+          }
+        });
+
+        // Trigger reactive render when presence changes
+        renderUsersTable();
+      });
+    } catch (err) {
+      // Failed to load presence - log is silent
+      indicator.textContent = '🔴 Disconnected';
+      indicator.className = 'status-indicator disconnected';
+    }
+  }
+
+  function togglePresenceCollapse() {
+    showLoggedInOnly = !showLoggedInOnly;
+    const btn = document.getElementById('btn-toggle-presence-collapse');
+    if (btn) {
+      if (showLoggedInOnly) {
+        btn.innerHTML = '<i class="bi bi-arrows-expand"></i> Show All Registered';
+        btn.className = 'btn btn-success';
+      } else {
+        btn.innerHTML = '<i class="bi bi-arrows-collapse"></i> Show Logged-in Only';
+        btn.className = 'btn btn-warning';
+      }
+    }
+    renderUsersTable();
+  }
+  window.togglePresenceCollapse = togglePresenceCollapse;
 
   async function fetchUsers() {
     return api('/api/admin/users');
@@ -172,46 +243,93 @@ document.addEventListener('DOMContentLoaded', () => {
       const filter = (searchInput?.value || '').toLowerCase().trim();
       
       // Get all team leads in the system to resolve alignments
-      const teamLeads = users.filter(usr => usr.role === 'team_lead');
+      const teamLeads = users.filter(usr => usr && usr.role === 'team_lead');
+      const isAdminUser = window.currentUserRole === 'admin';
       
-      usersTbody.innerHTML = users.filter(u => u.username.toLowerCase().includes(filter)).map((u, i) => {
+      const filtered = users.filter(u => {
+        if (!u) return false;
+        // Search filter
+        const matchSearch = (u.username || '').toLowerCase().includes(filter);
+        if (!matchSearch) return false;
+
+        // Logged in filter
+        if (showLoggedInOnly) {
+          const p = presenceMap.get((u.username || '').toLowerCase());
+          const status = p ? p.status : 'offline';
+          return status !== 'offline' && status !== 'unavailable';
+        }
+        return true;
+      });
+
+      // Sort: online users first, then by username
+      filtered.sort((a, b) => {
+        const pA = presenceMap.get((a.username || '').toLowerCase());
+        const pB = presenceMap.get((b.username || '').toLowerCase());
+        const statusA = pA ? pA.status : 'offline';
+        const statusB = pB ? pB.status : 'offline';
+        
+        const onlineA = (statusA !== 'offline' && statusA !== 'unavailable') ? 1 : 0;
+        const onlineB = (statusB !== 'offline' && statusB !== 'unavailable') ? 1 : 0;
+        
+        if (onlineA !== onlineB) return onlineB - onlineA;
+        return (a.username || '').localeCompare(b.username || '');
+      });
+
+      usersTbody.innerHTML = filtered.map((u, i) => {
+        if (!u) return '';
         const modified = u.updatedAt ? new Date(u.updatedAt).toLocaleString() : '';
         
-        const deptOptions = (window.__departmentsList || []).map(d => 
-            `<option value="${d.slug}"${u.department === d.slug ? ' selected' : ''}>${d.name}</option>`
-        ).join('');
+        const p = presenceMap.get((u.username || '').toLowerCase());
+        const status = p ? p.status : 'offline';
+        const livePic = p ? p.profilePic : '';
+        const liveProfileName = p ? p.profileName : '';
         
-        const hasCurrentDept = (window.__departmentsList || []).some(d => d.slug === u.department);
-        const fallbackOption = (!hasCurrentDept && u.department && u.department !== 'none' && u.department !== 'general') ? 
-            `<option value="${u.department}" selected>${u.department}</option>` : '';
+        const statusLabels = {
+          online: 'Online',
+          on_break: 'On Break',
+          idle: 'Idle',
+          unresponsive: 'Unresponsive',
+          offline: 'Offline',
+          unavailable: 'Offline'
+        };
+        const statusLabel = statusLabels[status] || 'Offline';
+        const statusClass = (status === 'offline' || status === 'unavailable') ? 'offline' : status;
         
-        const selectHtml = `
-          <select class="user-dept-select" data-user-id="${u._id}" style="width:110px;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
-            <option value="none"${u.department === 'none' || !u.department ? ' selected' : ''}>None</option>
-            <option value="general"${u.department === 'general' ? ' selected' : ''}>general</option>
-            ${fallbackOption}
-            ${deptOptions}
-          </select>
+        const statusHtml = `
+          <span class="user-status-cell ${statusClass}">
+            <span class="status-dot"></span>
+            <span>${statusLabel}</span>
+          </span>
         `;
 
-        // Calculate aligned Team Leads for the user's department
-        const uDept = (u.department || '').toLowerCase().trim();
-        const deptTLs = teamLeads.filter(tl => 
-          (tl.department || '').toLowerCase().trim() === uDept && 
-          uDept !== 'none' && 
-          uDept !== 'general' &&
-          String(tl._id) !== String(u._id) // don't list a TL as aligned to themselves
-        );
-        const tlText = deptTLs.length 
-          ? deptTLs.map(tl => `<strong style="color:var(--primary);">${tl.username}</strong>`).join(', ') 
-          : '<span style="color:#94a3b8">None</span>';
+        const picToUse = livePic || u.profilePic;
+        const avatarHtml = picToUse
+          ? `<span class="user-avatar-small" style="vertical-align: middle; margin-right: 6px;">${picToUse}</span>`
+          : `<span class="user-avatar-small" style="vertical-align: middle; margin-right: 6px; background:#e2e8f0; color:#475569;">${((liveProfileName || u.profileName || u.username || '?').charAt(0) || '?').toUpperCase()}</span>`;
 
-        return `<tr data-user-id="${u._id}" style="background:${i%2===0?'#fff':'#f7fbff'}">
-          <td style="padding:8px">${u.username}</td>
-          <td style="padding:8px">
-            <span class="masked-pass" data-user-id="${u._id}">••••••••</span>
-          </td>
-          <td style="padding:8px">
+        let selectHtml = '';
+        let roleHtml = '';
+        let actionsHtml = '';
+
+        if (isAdminUser) {
+          const deptOptions = (window.__departmentsList || []).map(d => 
+              `<option value="${d.slug}"${u.department === d.slug ? ' selected' : ''}>${d.name}</option>`
+          ).join('');
+          
+          const hasCurrentDept = (window.__departmentsList || []).some(d => d.slug === u.department);
+          const fallbackOption = (!hasCurrentDept && u.department && u.department !== 'none' && u.department !== 'general') ? 
+              `<option value="${u.department}" selected>${u.department}</option>` : '';
+          
+          selectHtml = `
+            <select class="user-dept-select" data-user-id="${u._id}" style="width:110px;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+              <option value="none"${u.department === 'none' || !u.department ? ' selected' : ''}>None</option>
+              <option value="general"${u.department === 'general' ? ' selected' : ''}>general</option>
+              ${fallbackOption}
+              ${deptOptions}
+            </select>
+          `;
+
+          roleHtml = `
             <select class="user-role-select" data-user-id="${u._id}">
               <option value="new"${u.role==='new'?' selected':''}>new</option>
               <option value="user"${u.role==='user'?' selected':''}>user</option>
@@ -221,31 +339,77 @@ document.addEventListener('DOMContentLoaded', () => {
               <option value="vendor"${u.role==='vendor'?' selected':''}>vendor</option>
               <option value="admin"${u.role==='admin'?' selected':''}>admin</option>
             </select>
-          </td>
-          <td style="padding:8px">
-            ${selectHtml}
-          </td>
-          <td style="padding:8px;font-size:12px;">
-            ${tlText}
-          </td>
-          <td style="padding:8px">${modified}</td>
-          <td style="padding:8px">
+          `;
+
+          actionsHtml = `
             <div style="display:flex;gap:6px">
               <button class="btn btn-set-password" data-user-id="${u._id}">Reset Password</button>
               <button class="btn btn-reset-password" data-user-id="${u._id}" title="Reset password to username">Set Default Password</button>
               <button class="btn btn-delete-user" data-user-id="${u._id}">Delete</button>
             </div>
+          `;
+        } else {
+          selectHtml = `<span style="font-weight:600;color:var(--text-muted);font-size:13px;">${u.department || 'None'}</span>`;
+          roleHtml = `<span class="badge" style="background:var(--primary-light);color:var(--primary);padding:3px 8px;border-radius:12px;font-weight:700;font-size:11px;">${(u.role || '').toUpperCase()}</span>`;
+          actionsHtml = `<span style="color:#94a3b8;font-size:12px;font-style:italic;">Admin Only</span>`;
+        }
+
+        // Calculate aligned Team Leads for the user's department
+        const uDept = (u.department || '').toLowerCase().trim();
+        const deptTLs = teamLeads.filter(tl => 
+          tl && (tl.department || '').toLowerCase().trim() === uDept && 
+          uDept !== 'none' && 
+          uDept !== 'general' &&
+          String(tl._id) !== String(u._id) // don't list a TL as aligned to themselves
+        );
+        const tlText = deptTLs.length 
+          ? deptTLs.map(tl => `<strong style="color:var(--primary);">${tl.username || ''}</strong>`).join(', ') 
+          : '<span style="color:#94a3b8">None</span>';
+
+        const displayName = liveProfileName || u.profileName || '';
+        return `<tr data-user-id="${u._id}">
+          <td style="padding:10px 8px">
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${avatarHtml}
+              <div style="display:flex;flex-direction:column;">
+                <span style="font-weight:600;">${u.username || ''}</span>
+                ${displayName ? `<span style="font-size:11px;color:var(--text-muted);">${displayName}</span>` : ''}
+              </div>
+            </div>
+          </td>
+          <td style="padding:10px 8px">${statusHtml}</td>
+          <td style="padding:10px 8px">
+            <span class="masked-pass" data-user-id="${u._id}">••••••••</span>
+          </td>
+          <td style="padding:10px 8px">
+            ${roleHtml}
+          </td>
+          <td style="padding:10px 8px">
+            ${selectHtml}
+          </td>
+          <td style="padding:10px 8px;font-size:12px;">
+            ${tlText}
+          </td>
+          <td style="padding:10px 8px">${modified}</td>
+          <td style="padding:10px 8px">
+            ${actionsHtml}
           </td>
         </tr>`; }).join('');
     } catch (err) {
+      console.error('[Admin Directory] Refresh Error:', err);
       showToast('Failed to fetch users', 'error');
     }
   }
 
   // initial render and refresh button
-  loadDepartments().then(() => renderUsersTable());
+  loadDepartments().then(() => {
+    renderUsersTable();
+    initFirebasePresence();
+  });
   const refreshUsersBtn = document.getElementById('refreshUsersBtn');
-  if (refreshUsersBtn) refreshUsersBtn.addEventListener('click', renderUsersTable);
+  if (refreshUsersBtn) refreshUsersBtn.addEventListener('click', () => {
+    renderUsersTable();
+  });
   if (searchInput) searchInput.addEventListener('input', renderUsersTable);
 
   // Delegated actions on users table

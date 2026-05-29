@@ -1,0 +1,45 @@
+/* ═══════════════════════════════════════════════════════════════
+   SupportHub — Variables & Design Tokens
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+    --primary: #2563eb;
+    --primary-hover: color-mix(in srgb, var(--primary) 85%, black);
+    --primary-light: color-mix(in srgb, var(--primary) 12%, transparent);
+    --accent: #7c3aed;
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --border: #e2e8f0;
+    --border-focus: #93c5fd;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --text-xs: #94a3b8;
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, .08);
+    --shadow: 0 4px 12px rgba(0, 0, 0, .10);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, .14);
+    --font: 'Inter', system-ui, sans-serif;
+    --transition: .18s ease;
+    --font-scale: 1.0;
+    --card-bg-fade: var(--surface);
+}
+
+/* Backwards compat aliases */
+:root {
+    --primary-color: var(--primary);
+    --primary-hover: color-mix(in srgb, var(--primary) 85%, black);
+    --background-color: var(--bg);
+    --panel-background: var(--surface);
+    --border-color: var(--border);
+    --text-color: var(--text);
+    --text-muted: var(--text-muted);
+    --font-family: var(--font);
+    --success-color: var(--success);
+    --error-color: var(--danger);
+}

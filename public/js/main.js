@@ -22,7 +22,9 @@
 // ─────────────────────────────────────────────────────────────────────────
 // Global WebSocket — connects ALL logged-in users so the admin panel
 // can track live presence across the whole app, not just the Admin tab.
+// WebSocket-based real-time presence has been replaced by Firebase RTDB.
 // ─────────────────────────────────────────────────────────────────────────
+/*
 (function initGlobalWebSocket() {
     if (!window.currentUserId || !window.currentUsername || !window.currentUserRole) return;
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -83,7 +85,7 @@
             }
         });
 
-        ws.addEventListener('error', () => { /* close event handles retry */ });
+        ws.addEventListener('error', () => { // close event handles retry });
     }
 
     connect();
@@ -93,6 +95,7 @@
         if (ws && ws.readyState === WebSocket.OPEN) ws.close(1000, 'Page unload');
     });
 })();
+*/
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -116,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return res.json();
                 })
                 .then(data => {
-                    console.log('User Public IP fetched:', data.ip);
+                    // console.log('User Public IP fetched:', data.ip);
                     return data.ip;
                 })
                 .catch(err => {
@@ -288,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('form-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalForm = document.getElementById('modal-form');
-    const modalCloseBtn = document.querySelector('.modal-close-btn');
+    const modalCloseBtn = modal.querySelector('.modal-close-btn');
     const openModal = () => modal.style.display = 'flex';
     const closeModal = () => modal.style.display = 'none';
     modalCloseBtn.addEventListener('click', closeModal);

@@ -1,5 +1,22 @@
-const isAuthenticated = (req, res, next) => {
+const User = require('../models/User');
+
+const isAuthenticated = async (req, res, next) => {
     if (req.session && req.session.user) {
+        try {
+            const user = await User.findById(req.session.user.id || req.session.user._id).select('currentSessionId');
+            if (user && user.currentSessionId && user.currentSessionId !== req.sessionID) {
+                req.session.destroy(() => {
+                    const isApi = req.originalUrl && req.originalUrl.startsWith('/api');
+                    if (isApi) {
+                        return res.status(401).json({ message: 'logged_in_elsewhere' });
+                    }
+                    res.redirect('/login?reason=single_device');
+                });
+                return;
+            }
+        } catch (err) {
+            console.error('[AuthMiddleware] Single device session verification error:', err);
+        }
         return next();
     }
     // Return JSON for API requests, redirect for views

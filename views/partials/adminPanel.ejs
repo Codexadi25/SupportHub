@@ -96,40 +96,50 @@
     </div>
   </div>
 
-<% if (user.role === 'admin') { %>
   <div class="admin-section">
-    <h3>User Management</h3>
-    <p>Manage user accounts (Admin only).</p>
+    <h3>User Directory & Activity Management</h3>
+    <p>Real-time presence tracking and account management.</p>
 
-    <div class="user-controls" style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
-      <button id="refreshUsersBtn" class="action-btn">Refresh Users</button>
-      <button id="cleanupLogsBtn" class="action-btn">Cleanup Logs</button>
-      <button id="cleanupMessagesBtn" class="action-btn">Cleanup Messages</button>
-      <div style="margin-left:auto">
+    <!-- Connection Status Indicator -->
+    <div class="connection-status" style="margin-bottom:12px;text-align:left;">
+      <span id="connection-indicator" class="status-indicator">🔴 Disconnected</span>
+    </div>
+
+    <div class="user-controls" style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <button id="refreshUsersBtn" class="action-btn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+      <button id="btn-toggle-presence-collapse" class="btn btn-warning" onclick="togglePresenceCollapse()"><i class="bi bi-arrows-collapse"></i> Show Logged-in Only</button>
+      
+      <% if (user.role === 'admin') { %>
+        <button id="cleanupLogsBtn" class="action-btn"><i class="bi bi-trash"></i> Cleanup Logs</button>
+        <button id="cleanupMessagesBtn" class="action-btn"><i class="bi bi-envelope-x"></i> Cleanup Messages</button>
+      <% } %>
+
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+        <label for="admin-user-search" style="font-weight:600;font-size:12px;">Filter:</label>
         <input id="admin-user-search" type="search" placeholder="Filter users..." style="padding:6px;border-radius:6px;border:1px solid #ddd">
       </div>
     </div>
 
-    <div id="admin-users-container" class="panel" style="padding:0;min-height:120px;">
-      <table id="admin-users-table" style="width:100%;border-collapse:collapse;">
+    <div id="admin-users-container" class="panel" style="padding:0;min-height:120px;overflow-x:auto;">
+      <table id="admin-users-table" style="width:100%;border-collapse:collapse;min-width:900px;">
         <thead>
           <tr style="background:#fafafa">
-            <th style="padding:8px;text-align:left">Username</th>
-            <th style="padding:8px;text-align:left">Password</th>
-            <th style="padding:8px;text-align:left">Role</th>
-            <th style="padding:8px;text-align:left">Department</th>
-            <th style="padding:8px;text-align:left">Aligned TL</th>
-            <th style="padding:8px;text-align:left">Modified At</th>
-            <th style="padding:8px;text-align:left">Actions</th>
+            <th style="padding:10px 8px;text-align:left">Username</th>
+            <th style="padding:10px 8px;text-align:left">Status</th>
+            <th style="padding:10px 8px;text-align:left">Password</th>
+            <th style="padding:10px 8px;text-align:left">Role</th>
+            <th style="padding:10px 8px;text-align:left">Department</th>
+            <th style="padding:10px 8px;text-align:left">Aligned TL</th>
+            <th style="padding:10px 8px;text-align:left">Modified At</th>
+            <th style="padding:10px 8px;text-align:left">Actions</th>
           </tr>
         </thead>
-        <tbody id="admin-users-table-body"></tbody>
+        <tbody id="admin-users-table-body">
+            <!-- Populated dynamically via JS -->
+        </tbody>
       </table>
     </div>
   </div>
-<% } %>
-
-  <%- include('./userActivityDashboard') %>
 
 </div>
 
