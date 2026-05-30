@@ -106,6 +106,16 @@ function initializeProfileSettings() {
             fontBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById('profile-font-size').value = size;
+            
+            // Preview font size instantly
+            const fontScaleMap = {
+                small: '0.85',
+                medium: '1.0',
+                large: '1.15',
+                xlarge: '1.3'
+            };
+            const scale = fontScaleMap[size] || '1.0';
+            document.documentElement.style.setProperty('--font-scale', scale);
         });
     });
 
@@ -215,6 +225,16 @@ function closeProfileModal() {
             document.documentElement.classList.remove('night-mode');
             document.body.classList.remove('night-mode');
         }
+
+        // Revert temporary font scale changes if cancel
+        const fontScaleMap = {
+            small: '0.85',
+            medium: '1.0',
+            large: '1.15',
+            xlarge: '1.3'
+        };
+        const savedScale = fontScaleMap[window.currentUserFontSize || 'medium'] || '1.0';
+        document.documentElement.style.setProperty('--font-scale', savedScale);
     }
 }
 

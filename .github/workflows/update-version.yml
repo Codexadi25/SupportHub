@@ -1,0 +1,50 @@
+name: Update Version History
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Trigger: every push to main/master (excluding auto-commits from this workflow).
+# ──────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  update-version:
+    name: Bump version, record history & notify users
+    runs-on: ubuntu-latest
+
+    # Skip if the commit message already contains [skip ci] to avoid loops
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+      # 1. Check out full history so git log works
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2. Set up Node.js LTS
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. Run the version-history updater + broadcast notification
+      #    APP_URL, DEPLOY_SECRET, and LOB must be set as GitHub repository secrets.
+      - name: Run updateVersionHistory.js
+        env:
+          APP_URL:       ${{ secrets.APP_URL }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
+          LOB:           ${{ secrets.APP_LOB || 'zomato' }}
+        run: node scripts/updateVersionHistory.js
+
+      # 4. Commit and push updated files back to the repo
+      - name: Commit updated version files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json public/versionHistory.json
+          git diff --cached --quiet || git commit -m "chore: bump version & update history [skip ci]"
+          git push

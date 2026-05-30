@@ -16,8 +16,11 @@ body {
     background: var(--bg);
     color: var(--text);
     font-size: 1rem;
-    height: 100%;
-    overflow: auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .divider {

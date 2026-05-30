@@ -6,6 +6,7 @@
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 /* Top Bar */
@@ -15,14 +16,14 @@
     align-items: center;
     padding: 0 1.5rem;
     height: 56px;
-    background: rgba(15, 23, 42, 0.95);
+    background: #0f172af2;
     backdrop-filter: blur(8px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid #ffffff14;
     position: relative;
     z-index: 1000;
     flex-shrink: 0;
     gap: 1rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 20px #00000026;
 }
 
 .top-bar>h1 {
@@ -218,7 +219,7 @@
     border: none;
     background: none;
     cursor: pointer;
-    font-size: .88rem;
+    font-size: 1rem;
     font-weight: 500;
     color: var(--text-muted);
     border-bottom: 3px solid transparent;
@@ -262,6 +263,7 @@
 
 #searchInput {
     width: 50vw;
+    height: 32px;
     padding: 0.6rem 0.8rem 0.6rem 2.5rem;
     border-radius: 32px;
     font-size: 1rem;
@@ -273,7 +275,7 @@
     border: 1.5px solid #334155;
     background: #1e293b;
     color: #f1f5f9;
-    font-size: .88rem;
+    font-size: 1rem;
     flex: 1;
     min-width: 300px;
     transition: border-color var(--transition), box-shadow var(--transition);

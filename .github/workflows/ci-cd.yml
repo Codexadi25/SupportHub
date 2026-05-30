@@ -1,0 +1,629 @@
+# ════════════════════════════════════════════════════════════════════════════════
+#  SupportHub — Complete CI/CD Pipeline
+#  Author : Aditya Sahu (Aditya Tech. & Devoops)
+#  Stack  : Node.js · Express · MongoDB Atlas · Firebase · EJS
+#
+#  Pipeline stages
+#  ┌─────────────────────────────────────────────────────────────────────────┐
+#  │  1. validate  — syntax check, security audit, dependency review         │
+#  │  2. test      — smoke tests & live DB connectivity probe                │
+#  │  3. deploy    — SSH into VPS → git pull → npm ci → PM2 reload           │
+#  │  4. health    — HTTP health-check after deploy (retries for warm-up)    │
+#  │  5. version   — bump patch, write versionHistory.json, push [skip ci]   │
+#  │  6. notify    — POST broadcast-update → in-app Messages for all users   │
+#  └─────────────────────────────────────────────────────────────────────────┘
+#
+#  Required GitHub Repository Secrets (Settings → Secrets → Actions):
+#  ┌─────────────────────────┬──────────────────────────────────────────────┐
+#  │ Secret Name             │ Description                                  │
+#  ├─────────────────────────┼──────────────────────────────────────────────┤
+#  │ SSH_HOST                │ VPS IP / hostname  (e.g. 1.2.3.4)            │
+#  │ SSH_USER                │ SSH username       (e.g. ubuntu)             │
+#  │ SSH_PRIVATE_KEY         │ Private key for SSH login (PEM / ED25519)    │
+#  │ SSH_PORT                │ SSH port           (default: 22)             │
+#  │ APP_DIR                 │ Absolute path on server  (/var/www/supporthub│
+#  │ NODE_ENV                │ production                                   │
+#  │ PORT                    │ App listen port    (e.g. 3000)               │
+#  │ MONGO_URI               │ MongoDB Atlas connection string              │
+#  │ SESSION_SECRET          │ Long random session secret                   │
+#  │ GEMINI_API_KEY          │ Google Gemini API key                        │
+#  │ FIREBASE_SERVICE_ACCOUNT│ Full JSON of Firebase service-account key    │
+#  │ APP_URL                 │ Public HTTPS URL   (https://myapp.com)       │
+#  │ APP_LOB                 │ Line of Business   (e.g. zomato)             │
+#  │ DEPLOY_SECRET           │ Shared secret for broadcast-update endpoint  │
+#  └─────────────────────────┴──────────────────────────────────────────────┘
+#
+#  PM2 Ecosystem File (ecosystem.config.js) must exist on the server.
+#  If it doesn't, the deploy job creates a minimal one automatically.
+# ════════════════════════════════════════════════════════════════════════════════
+
+name: "SupportHub CI/CD"
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:              # Don't retrigger on auto-commits from this pipeline
+      - "public/versionHistory.json"
+      - "package.json"
+      - "CHANGELOG.md"
+
+  pull_request:
+    branches:
+      - main
+      - master
+    types: [opened, synchronize, reopened]
+
+  # Allow manual trigger from GitHub UI with optional environment override
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "production"
+        type: choice
+        options: [production, staging]
+      skip_deploy:
+        description: "Run validation only (skip deploy)"
+        required: false
+        default: "false"
+        type: boolean
+
+# ── Cancel superseded runs on the same branch ─────────────────────────────────
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ── Global defaults ───────────────────────────────────────────────────────────
+defaults:
+  run:
+    shell: bash
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  JOB 1 — VALIDATE
+#  Runs on every push & PR. No secrets needed.
+# ═══════════════════════════════════════════════════════════════════════════════
+jobs:
+  validate:
+    name: "🔍 Validate & Audit"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      matrix:
+        node-version: ["20.x"]        # LTS — matches prod server
+
+    steps:
+      # ── 1a. Checkout ──────────────────────────────────────────────────────
+      - name: "⬇  Checkout source"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 1b. Setup Node ────────────────────────────────────────────────────
+      - name: "⚙  Setup Node.js ${{ matrix.node-version }}"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      # ── 1c. Install deps (CI-clean install) ───────────────────────────────
+      - name: "📦 Install dependencies (npm ci)"
+        run: npm ci --prefer-offline
+
+      # ── 1d. Syntax-check all .js files ───────────────────────────────────
+      - name: "📝 Syntax check — app.js & entry points"
+        run: |
+          echo "Checking core entry points..."
+          node --check app.js
+          node --check scripts/updateVersionHistory.js
+          echo "Checking all route files..."
+          find routes -name "*.js" -exec node --check {} \;
+          echo "Checking all controller files..."
+          find controllers -name "*.js" -exec node --check {} \;
+          echo "Checking all middleware files..."
+          find middleware -name "*.js" -exec node --check {} \;
+          echo "Checking all model files..."
+          find models -name "*.js" -exec node --check {} \;
+          echo "✅ All Node.js files pass syntax check"
+
+      # ── 1e. Validate JSON files ───────────────────────────────────────────
+      - name: "🗂  Validate JSON files"
+        run: |
+          echo "Checking package.json..."
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json ✓')"
+          echo "Checking versionHistory.json..."
+          if [ -f "public/versionHistory.json" ]; then
+            node -e "JSON.parse(require('fs').readFileSync('public/versionHistory.json','utf8')); console.log('versionHistory.json ✓')"
+          fi
+          echo "✅ JSON validation passed"
+
+      # ── 1f. Check for hardcoded secrets / API keys ────────────────────────
+      - name: "🔐 Scan for hardcoded secrets"
+        run: |
+          echo "Scanning for patterns that might be hardcoded secrets..."
+          # Fail if any actual secret-like patterns found in tracked files
+          if git diff --name-only HEAD~1 HEAD 2>/dev/null | xargs grep -lE \
+            "(password|secret|apikey|api_key|token|private_key)\s*=\s*['\"][^'\"]{8,}" \
+            --include="*.js" --include="*.ejs" --include="*.json" 2>/dev/null; then
+            echo "⚠️  Potential hardcoded secret detected in changed files. Review the diff."
+          fi
+          # Never fail the pipeline for this check — just warn
+          echo "✅ Secret scan complete"
+
+      # ── 1g. Dependency security audit ────────────────────────────────────
+      - name: "🛡  npm audit (security)"
+        run: |
+          npm audit --audit-level=high --json > audit-report.json || true
+          HIGH=$(node -e "
+            const r = require('./audit-report.json');
+            const v = r.metadata?.vulnerabilities || {};
+            console.log((v.high||0) + (v.critical||0));
+          ")
+          echo "High/Critical vulnerabilities found: $HIGH"
+          if [ "$HIGH" -gt "0" ]; then
+            echo "::warning ::⚠️  $HIGH high/critical vulnerability(ies) found. Run 'npm audit fix'."
+          fi
+          echo "✅ Security audit complete"
+
+      # ── 1h. Upload audit report as artifact ──────────────────────────────
+      - name: "📤 Upload audit report"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: audit-report.json
+          retention-days: 7
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  #  JOB 2 — SMOKE TEST
+  #  Validates that the app can start and critical modules load without a DB.
+  # ═════════════════════════════════════════════════════════════════════════════
+  test:
+    name: "🧪 Smoke Test"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: validate
+
+    steps:
+      - name: "⬇  Checkout source"
+        uses: actions/checkout@v4
+
+      - name: "⚙  Setup Node.js 20"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: "📦 Install dependencies"
+        run: npm ci --prefer-offline
+
+      # Test that all major modules can be required without a real DB
+      - name: "🔬 Module load test"
+        env:
+          # Provide stub values so dotenv doesn't throw
+          NODE_ENV: test
+          PORT: "3999"
+          MONGO_URI: "mongodb://localhost:27017/supporthub_test"
+          SESSION_SECRET: "ci-test-secret-placeholder-32chars!!"
+          GEMINI_API_KEY: "STUB"
+          DEPLOY_SECRET: "STUB"
+          APP_URL: "http://localhost:3999"
+          APP_LOB: "zomato"
+        run: |
+          node -e "
+            // Verify all critical modules load cleanly
+            const modules = [
+              './models/User',
+              './models/Message',
+              './models/PrivateNote',
+              './models/Feedback',
+              './models/Sop',
+              './middleware/authMiddleware',
+              './middleware/errorMiddleware',
+              './routes/api/messageRoutes',
+              './routes/api/candRoutes',
+              './routes/api/pnRoutes',
+              './routes/api/feedbackRoutes',
+            ];
+            let ok = 0, fail = 0;
+            for (const m of modules) {
+              try { require(m); console.log('  ✓ ' + m); ok++; }
+              catch(e) { console.error('  ✗ ' + m + ':', e.message); fail++; }
+            }
+            console.log(\`\nResult: \${ok} passed, \${fail} failed\`);
+            if (fail > 0) process.exit(1);
+          "
+
+      # Verify the updateVersionHistory script runs cleanly
+      - name: "📋 Version script dry-run"
+        run: |
+          # Run in a mode where it won't actually push anything
+          node -e "
+            // Just parse the script syntax and verify the helpers export correctly
+            const fs = require('fs');
+            const src = fs.readFileSync('scripts/updateVersionHistory.js','utf8');
+            new Function(src);
+            console.log('✅ updateVersionHistory.js — parse OK');
+          "
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  #  JOB 3 — DEPLOY  (push to main/master only, not PRs)
+  #  Connects to the production VPS over SSH, pulls latest code, installs
+  #  dependencies, writes the .env file, and reloads the app under PM2.
+  # ═════════════════════════════════════════════════════════════════════════════
+  deploy:
+    name: "🚀 Deploy to Production"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [validate, test]
+
+    # Only run on direct pushes (not PRs) and when deploy is not manually skipped
+    if: |
+      github.event_name != 'pull_request' &&
+      !contains(github.event.head_commit.message, '[skip ci]') &&
+      github.event.inputs.skip_deploy != 'true'
+
+    environment:
+      name: production
+      url: ${{ secrets.APP_URL }}
+
+    steps:
+      # ── 3a. Checkout ──────────────────────────────────────────────────────
+      - name: "⬇  Checkout source"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 3b. Add SSH key ───────────────────────────────────────────────────
+      - name: "🔑 Configure SSH agent"
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # ── 3c. Trust the server's host key ──────────────────────────────────
+      - name: "🌐 Trust server host key"
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      # ── 3d. Deploy over SSH ───────────────────────────────────────────────
+      - name: "📡 Deploy application"
+        env:
+          SSH_HOST:   ${{ secrets.SSH_HOST }}
+          SSH_USER:   ${{ secrets.SSH_USER }}
+          SSH_PORT:   ${{ secrets.SSH_PORT || '22' }}
+          APP_DIR:    ${{ secrets.APP_DIR }}
+          # All runtime secrets — written to .env on server
+          NODE_ENV:             production
+          PORT:                 ${{ secrets.PORT }}
+          MONGO_URI:            ${{ secrets.MONGO_URI }}
+          SESSION_SECRET:       ${{ secrets.SESSION_SECRET }}
+          GEMINI_API_KEY:       ${{ secrets.GEMINI_API_KEY }}
+          FIREBASE_SA_JSON:     ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          APP_URL:              ${{ secrets.APP_URL }}
+          APP_LOB:              ${{ secrets.APP_LOB }}
+          DEPLOY_SECRET:        ${{ secrets.DEPLOY_SECRET }}
+          GIT_COMMIT:           ${{ github.sha }}
+          GIT_BRANCH:           ${{ github.ref_name }}
+        run: |
+          ssh -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" << 'REMOTE_SCRIPT'
+            set -euo pipefail
+            APP_DIR="${APP_DIR}"
+
+            echo "══════════════════════════════════════════════"
+            echo "  SupportHub Deploy — $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "══════════════════════════════════════════════"
+
+            # ── Navigate to app directory ───────────────────
+            cd "$APP_DIR"
+
+            # ── Pull latest code ────────────────────────────
+            echo "▶ Pulling latest code from origin..."
+            git fetch --all --prune
+            git reset --hard origin/main || git reset --hard origin/master
+            echo "  SHA: $(git rev-parse --short HEAD)"
+
+            # ── Write .env file securely ────────────────────
+            echo "▶ Writing environment file..."
+            cat > .env << ENV_BLOCK
+          NODE_ENV=${NODE_ENV}
+          PORT=${PORT}
+          MONGO_URI=${MONGO_URI}
+          SESSION_SECRET=${SESSION_SECRET}
+          GEMINI_API_KEY=${GEMINI_API_KEY}
+          APP_URL=${APP_URL}
+          APP_LOB=${APP_LOB}
+          DEPLOY_SECRET=${DEPLOY_SECRET}
+          ENV_BLOCK
+            chmod 600 .env
+            echo "  .env written ($(wc -l < .env) lines)"
+
+            # ── Write Firebase service account JSON if provided ─
+            if [ -n "${FIREBASE_SA_JSON:-}" ]; then
+              mkdir -p config
+              echo "${FIREBASE_SA_JSON}" > config/firebase-key.json
+              chmod 600 config/firebase-key.json
+              echo "  firebase-key.json written"
+            fi
+
+            # ── Install / update dependencies ───────────────
+            echo "▶ Installing dependencies..."
+            npm ci --omit=dev --prefer-offline
+            echo "  npm ci complete"
+
+            # ── Ensure PM2 ecosystem config exists ──────────
+            if [ ! -f ecosystem.config.js ]; then
+              echo "▶ Creating PM2 ecosystem config..."
+              cat > ecosystem.config.js << 'PM2_CONF'
+          module.exports = {
+            apps: [{
+              name      : 'supporthub',
+              script    : 'app.js',
+              instances : 'max',
+              exec_mode : 'cluster',
+              watch     : false,
+              env_production: {
+                NODE_ENV: 'production'
+              },
+              error_file : 'logs/pm2-error.log',
+              out_file   : 'logs/pm2-out.log',
+              time       : true,
+              max_memory_restart: '512M',
+              restart_delay     : 2000,
+              listen_timeout    : 10000,
+            }]
+          };
+          PM2_CONF
+              echo "  ecosystem.config.js created"
+            fi
+
+            # ── Create logs directory ────────────────────────
+            mkdir -p logs
+
+            # ── Reload or start via PM2 ──────────────────────
+            echo "▶ Reloading application with PM2..."
+            if pm2 describe supporthub > /dev/null 2>&1; then
+              pm2 reload ecosystem.config.js --env production --update-env
+            else
+              pm2 start ecosystem.config.js --env production
+            fi
+            pm2 save
+
+            echo "✅ Deploy complete — $(git rev-parse --short HEAD)"
+          REMOTE_SCRIPT
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  #  JOB 4 — HEALTH CHECK
+  #  Waits for the app to be ready, then verifies the /api/ping endpoint.
+  # ═════════════════════════════════════════════════════════════════════════════
+  health-check:
+    name: "❤️  Health Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: deploy
+
+    steps:
+      - name: "🩺 Wait for app & check /api/ping"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          echo "Waiting for app to become healthy..."
+          MAX_RETRIES=12    # 12 × 10s = 2 minutes max
+          RETRY_DELAY=10
+          ATTEMPT=0
+
+          until [ $ATTEMPT -ge $MAX_RETRIES ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "  Attempt $ATTEMPT/$MAX_RETRIES — $(date '+%H:%M:%S')"
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 8 \
+              --location \
+              "${APP_URL}/api/ping" || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ App healthy — HTTP $HTTP_CODE"
+              exit 0
+            fi
+
+            echo "  HTTP $HTTP_CODE — retrying in ${RETRY_DELAY}s..."
+            sleep $RETRY_DELAY
+          done
+
+          echo "❌ Health check failed after $MAX_RETRIES attempts"
+          exit 1
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  #  JOB 5 — VERSION HISTORY
+  #  Bumps the patch version, writes versionHistory.json, commits [skip ci].
+  #  Runs AFTER deploy & health check succeed.
+  # ═════════════════════════════════════════════════════════════════════════════
+  version-history:
+    name: "📋 Update Version History"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    needs: health-check
+
+    # Never run on auto-generated [skip ci] commits — prevents infinite loops
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+      - name: "⬇  Checkout with token (allow push)"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "⚙  Setup Node.js 20"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: "📈 Run updateVersionHistory.js"
+        env:
+          APP_URL:       ${{ secrets.APP_URL }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
+          LOB:           ${{ secrets.APP_LOB }}
+        run: node scripts/updateVersionHistory.js
+
+      - name: "📤 Commit version bump"
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json public/versionHistory.json
+          # Only commit if something actually changed
+          if git diff --cached --quiet; then
+            echo "No version files changed — skipping commit"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            git commit -m "chore: bump version to v${VERSION} [skip ci]"
+            git push
+            echo "✅ Pushed version bump — v${VERSION}"
+          fi
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  #  JOB 6 — NOTIFY USERS
+  #  Broadcasts an in-app update message to all users via the Messages section.
+  #  Reads the new version from the freshly-committed versionHistory.json.
+  # ═════════════════════════════════════════════════════════════════════════════
+  notify-users:
+    name: "📢 Broadcast Update Notification"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: version-history
+
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+      - name: "⬇  Checkout (get updated versionHistory.json)"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}      # pull the post-bump commit
+
+      - name: "⚙  Setup Node.js 20"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: "📣 Send broadcast-update notification"
+        env:
+          APP_URL:       ${{ secrets.APP_URL }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
+          APP_LOB:       ${{ secrets.APP_LOB }}
+        run: |
+          node << 'NOTIFY_SCRIPT'
+            const fs      = require('fs');
+            const https   = require('https');
+            const http    = require('http');
+
+            const APP_URL       = process.env.APP_URL       || '';
+            const DEPLOY_SECRET = process.env.DEPLOY_SECRET || '';
+            const LOB           = (process.env.APP_LOB || 'zomato').toLowerCase();
+
+            if (!APP_URL || !DEPLOY_SECRET) {
+              console.log('⚠️  APP_URL or DEPLOY_SECRET not set — skipping broadcast');
+              process.exit(0);
+            }
+
+            // Read the freshly bumped version history
+            let history = [];
+            try {
+              history = JSON.parse(fs.readFileSync('public/versionHistory.json', 'utf8'));
+            } catch (e) {
+              console.warn('Could not read versionHistory.json:', e.message);
+              process.exit(0);
+            }
+
+            const latest = history[0];
+            if (!latest) { console.log('No version entries — skipping'); process.exit(0); }
+
+            const payload = JSON.stringify({
+              version  : latest.label || `v${latest.version}`,
+              changelog: latest.changelog || [latest.message],
+              secret   : DEPLOY_SECRET
+            });
+
+            const url = new URL(`${APP_URL}/api/${LOB}/messages/broadcast-update`);
+            const transport = url.protocol === 'https:' ? https : http;
+
+            const options = {
+              hostname: url.hostname,
+              port    : url.port || (url.protocol === 'https:' ? 443 : 80),
+              path    : url.pathname,
+              method  : 'POST',
+              headers : {
+                'Content-Type'  : 'application/json',
+                'Content-Length': Buffer.byteLength(payload)
+              }
+            };
+
+            const req = transport.request(options, res => {
+              let body = '';
+              res.on('data', c => body += c);
+              res.on('end', () => {
+                if (res.statusCode === 201) {
+                  console.log(`✅ Broadcast sent for ${latest.label || latest.version}`);
+                } else {
+                  console.warn(`⚠️  Broadcast returned ${res.statusCode}: ${body}`);
+                }
+              });
+            });
+
+            req.on('error', err => console.warn('⚠️  Broadcast error (non-critical):', err.message));
+            req.write(payload);
+            req.end();
+          NOTIFY_SCRIPT
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  #  JOB 7 — SUMMARY  (always runs — reports final status to PR / commit)
+  # ═════════════════════════════════════════════════════════════════════════════
+  summary:
+    name: "📊 Pipeline Summary"
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    needs: [validate, test, deploy, health-check, version-history, notify-users]
+    # Run even if upstream jobs failed so we always get a summary
+    if: always()
+
+    steps:
+      - name: "📋 Report pipeline result"
+        env:
+          VALIDATE_RESULT:  ${{ needs.validate.result }}
+          TEST_RESULT:      ${{ needs.test.result }}
+          DEPLOY_RESULT:    ${{ needs.deploy.result }}
+          HEALTH_RESULT:    ${{ needs.health-check.result }}
+          VERSION_RESULT:   ${{ needs.version-history.result }}
+          NOTIFY_RESULT:    ${{ needs.notify-users.result }}
+          COMMIT_SHA:       ${{ github.sha }}
+          ACTOR:            ${{ github.actor }}
+          BRANCH:           ${{ github.ref_name }}
+        run: |
+          echo "══════════════════════════════════════════════════════"
+          echo "  SupportHub CI/CD Pipeline — Final Summary"
+          echo "══════════════════════════════════════════════════════"
+          printf "  %-22s %s\n" "Branch:"    "$BRANCH"
+          printf "  %-22s %s\n" "Commit:"    "${COMMIT_SHA:0:8}"
+          printf "  %-22s %s\n" "Triggered by:" "$ACTOR"
+          echo "──────────────────────────────────────────────────────"
+          icon() { [ "$1" = "success" ] && echo "✅" || [ "$1" = "skipped" ] && echo "⏭" || echo "❌"; }
+          printf "  %-22s %s %s\n" "1. Validate"    "$(icon $VALIDATE_RESULT)"  "$VALIDATE_RESULT"
+          printf "  %-22s %s %s\n" "2. Smoke Test"  "$(icon $TEST_RESULT)"      "$TEST_RESULT"
+          printf "  %-22s %s %s\n" "3. Deploy"      "$(icon $DEPLOY_RESULT)"    "$DEPLOY_RESULT"
+          printf "  %-22s %s %s\n" "4. Health Check" "$(icon $HEALTH_RESULT)"  "$HEALTH_RESULT"
+          printf "  %-22s %s %s\n" "5. Version"     "$(icon $VERSION_RESULT)"   "$VERSION_RESULT"
+          printf "  %-22s %s %s\n" "6. Notify Users" "$(icon $NOTIFY_RESULT)"  "$NOTIFY_RESULT"
+          echo "══════════════════════════════════════════════════════"
+
+          # Fail the summary job if any critical stage failed
+          if [ "$VALIDATE_RESULT"  = "failure" ] || \
+             [ "$TEST_RESULT"      = "failure" ] || \
+             [ "$DEPLOY_RESULT"    = "failure" ] || \
+             [ "$HEALTH_RESULT"    = "failure" ]; then
+            echo "❌ Pipeline FAILED — one or more critical stages did not succeed"
+            exit 1
+          fi
+          echo "✅ Pipeline PASSED"

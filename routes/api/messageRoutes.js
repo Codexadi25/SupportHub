@@ -185,5 +185,62 @@ router.post('/cleanup', isAuthenticated, isAdmin, async (req, res) => {
     }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// System: Broadcast a version update notification to ALL users (admin only)
+// Called automatically by the CI deploy script after each push.
+// POST /api/:lob/messages/broadcast-update
+// Body: { version, changelog: string[], secret } 
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/broadcast-update', async (req, res) => {
+    try {
+        const { version, changelog = [], secret } = req.body;
+
+        // Validate deploy secret (must match DEPLOY_SECRET env var)
+        const deploySecret = process.env.DEPLOY_SECRET || '';
+        if (!deploySecret || secret !== deploySecret) {
+            return res.status(403).json({ message: 'Forbidden: invalid deploy secret' });
+        }
+
+        if (!version) {
+            return res.status(400).json({ message: 'version is required' });
+        }
+
+        // Find an admin user to use as the author
+        const adminUser = await User.findOne({ role: 'admin' }).select('_id username');
+        if (!adminUser) {
+            return res.status(500).json({ message: 'No admin user found to author the broadcast' });
+        }
+
+        const changelogText = Array.isArray(changelog) && changelog.length
+            ? changelog.map(line => `• ${line}`).join('\n')
+            : 'See the version history modal for full details.';
+
+        const title   = `🚀 SupportHub updated to ${version}`;
+        const content = `A new version of SupportHub (${version}) has been released.\n\n${changelogText}\n\nClick the version tag in the footer to view the full changelog.`;
+
+        // Expire in 7 days
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 7);
+
+        const message = new Message({
+            title,
+            content,
+            authorId  : adminUser._id,
+            authorName: 'SupportHub System',
+            targetRoles: ['all'],
+            priority  : 'high',
+            type      : 'update',
+            isActive  : true,
+            endDate,
+            lob       : req.params.lob
+        });
+
+        await message.save();
+        res.status(201).json({ message: 'Update notification broadcast successfully', data: message });
+    } catch (error) {
+        res.status(500).json({ message: 'Error broadcasting update', error: error.message });
+    }
+});
+
 module.exports = router;
 

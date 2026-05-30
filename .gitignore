@@ -23,6 +23,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# PM2 — keep ecosystem.config.js in git; ignore runtime snapshots
+.pm2/
+
 # Coverage and caches
 coverage/
 .cache/

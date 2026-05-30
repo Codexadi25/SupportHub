@@ -162,7 +162,10 @@ exports.getAppPage = async (req, res) => {
         const ELEVATED_ROLES = ['admin', 'vendor', 'team_lead', 'quality_analyst', 'editor'];
         let privateNotesQuery;
 
-        if (userDoc.role === 'new') {
+        if (userDoc.role === 'admin') {
+            // Admin sees ALL notes (public & private from everyone)
+            privateNotesQuery = { lob: userLob };
+        } else if (userDoc.role === 'new') {
             // Restricted users only see their own notes
             privateNotesQuery = { user: userDoc._id, lob: userLob };
         } else {

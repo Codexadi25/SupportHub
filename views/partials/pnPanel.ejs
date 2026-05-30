@@ -75,7 +75,7 @@
 
             <% privateNotes.forEach(note => {
                 const mine    = isOwner(note);
-                const canEdit = mine || isMgr;
+                const canEdit = (user.role !== 'new') && (mine || isMgr);
                 const pub     = note.visibility === 'public';
             %>
             <div class="pn-card"
@@ -92,7 +92,7 @@
                         <% } else { %>
                         <span class="pn-badge pn-badge-private">PRIVATE</span>
                         <% } %>
-                        <% if (!mine && pub && note.createdBy) { %>
+                        <% if (!mine && note.createdBy) { %>
                         <span class="pn-badge-author">by <%= note.createdBy %></span>
                         <% } %>
                     </div>

@@ -1,0 +1,37 @@
+[
+  {
+    "version": "2.5.0",
+    "label": "LTS · v2.5.0",
+    "hash": "6ca2620",
+    "fullHash": "6ca2620dc74eaf446eecd143c0587af7907e155b",
+    "branch": "main",
+    "author": "Codexadi25",
+    "email": "contactaditya25@gmail.com",
+    "date": "2026-05-30T08:30:00+05:30",
+    "message": "feat: v2.5.0 — Version History, Masonry PN UI, Font Scaling & Access Policy Enforcement",
+    "changelog": [
+      "🆕 Version History modal — click the footer version tag for a live commit timeline",
+      "🆕 GitHub Actions CI auto-bumps version & broadcasts update notifications on every push",
+      "🆕 In-app update notifications sent to all users via the Messages section on each release",
+      "✨ Private Notes redesigned as a masonry gallery (Pinterest-style dynamic card layout)",
+      "✨ 4-level font size scaling: Small / Medium / Large / Extra Large (per-user setting)",
+      "✨ Private Notes access policy enforced — admins see all; users manage only their own",
+      "🐛 Fixed Private Notes Edit/Delete buttons (SVG nested click delegation via .closest())",
+      "🐛 Footer now correctly sits below the 100vh dashboard wrapper"
+    ]
+  },
+  {
+    "version": "2.4.9",
+    "label": "LTS · v2.4.9",
+    "hash": "previous",
+    "fullHash": "previous",
+    "branch": "main",
+    "author": "Codexadi25",
+    "email": "contactaditya25@gmail.com",
+    "date": "2026-05-01T00:00:00+05:30",
+    "message": "LTS — Previous stable release",
+    "changelog": [
+      "Previous long-term stable release baseline"
+    ]
+  }
+]

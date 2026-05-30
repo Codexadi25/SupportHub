@@ -391,22 +391,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.matches('#btn-create-pn')) {
             showPNForm({});
         }
-        if (e.target.matches('.btn-edit-pn')) {
-            const btn = e.target;
-            const pnItem = btn.closest('.pn-item');
-            const noteId    = btn.dataset.noteId    || pnItem.dataset.noteId;
-            const title     = btn.dataset.title     || pnItem.querySelector('.pn-title')?.textContent?.trim()   || '';
-            const content   = btn.dataset.content   || pnItem.querySelector('.pn-content')?.textContent?.trim() || '';
-            const category  = btn.dataset.category  || pnItem.dataset.pnCategoryTitle || '';
-            const visibility= btn.dataset.visibility|| pnItem.dataset.visibility       || 'private';
+        const btnEditPn = e.target.closest('.btn-edit-pn');
+        if (btnEditPn) {
+            const pnCard = btnEditPn.closest('.pn-card');
+            const noteId    = btnEditPn.dataset.noteId    || pnCard.dataset.noteId;
+            const title     = btnEditPn.dataset.title     || pnCard.querySelector('.pn-card-title')?.textContent?.trim()   || '';
+            const content   = btnEditPn.dataset.content   || pnCard.querySelector('.pn-card-body')?.textContent?.trim() || '';
+            const category  = btnEditPn.dataset.category  || pnCard.dataset.pnCategory || '';
+            const visibility= btnEditPn.dataset.visibility|| pnCard.dataset.visibility       || 'private';
             showPNForm({ noteId, title, content, category, visibility });
         }
-        if (e.target.matches('.btn-delete-pn')) {
+        const btnDeletePn = e.target.closest('.btn-delete-pn');
+        if (btnDeletePn) {
             if (!confirm('Are you sure you want to delete this private note?')) return;
-            const pnItem = e.target.closest('.pn-item');
-            const noteId = pnItem.dataset.noteId;
+            const pnCard = btnDeletePn.closest('.pn-card');
+            const noteId = pnCard.dataset.noteId;
             await apiRequest(`/api/pns/${noteId}`, 'DELETE');
-            pnItem.remove();
+            pnCard.remove();
             showToast('Private note deleted successfully.');
         }
 
@@ -1129,4 +1130,160 @@ function showToast(message, type = 'success') {
         toast.style.animation = 'fadeOut 0.5s forwards';
         setTimeout(() => toast.remove(), 500);
     }, 3000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Version History — Footer label + Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Cached promise for version data so we only fetch once */
+let _versionDataPromise = null;
+
+function _fetchVersionHistory() {
+    if (!_versionDataPromise) {
+        _versionDataPromise = fetch('/versionHistory.json', { cache: 'no-store' })
+            .then(r => {
+                if (!r.ok) throw new Error('Not found');
+                return r.json();
+            })
+            .catch(() => []);
+    }
+    return _versionDataPromise;
+}
+
+/** Initialise footer version label on page load */
+(function initFooterVersion() {
+    _fetchVersionHistory().then(entries => {
+        const link = document.getElementById('footer-version-link');
+        if (!link || !entries.length) return;
+        const entry = entries[0];
+        // Use label field if present (e.g. "LTS · v2.5.0"), else build from version
+        link.textContent = entry.label || `v${entry.version}`;
+        link.title = `Version ${entry.version} — click to view full changelog`;
+    });
+})();
+
+/** Opens the Version History modal and renders the timeline */
+window.openVersionHistoryModal = function openVersionHistoryModal(e) {
+    if (e) e.preventDefault();
+    const modal    = document.getElementById('version-history-modal');
+    const timeline = document.getElementById('version-timeline');
+    if (!modal) return;
+
+    // Always refetch so we get the latest data
+    _versionDataPromise = null;
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    timeline.innerHTML = `
+        <div class="vh-loading">
+            <div class="vh-spinner"></div>
+            <span>Loading history…</span>
+        </div>`;
+
+    _fetchVersionHistory().then(entries => {
+        if (!entries.length) {
+            timeline.innerHTML = `
+                <div class="vh-empty">
+                    <div class="vh-empty-icon">📋</div>
+                    <p>No version history recorded yet.<br>Push a commit to generate the first entry.</p>
+                </div>`;
+            return;
+        }
+
+        timeline.innerHTML = entries.map((entry, idx) => {
+            const isLatest   = idx === 0;
+            const dateStr    = _formatVHDate(entry.date);
+            const initial    = (entry.author || '?').charAt(0).toUpperCase();
+            const safeMsg    = _escVH(entry.message || 'Update');
+            const safeAuth   = _escVH(entry.author  || 'Unknown');
+            const safeBranch = _escVH(entry.branch  || 'main');
+            const safeVer    = _escVH(String(entry.version));
+            const displayLabel = _escVH(entry.label || `v${entry.version}`);
+            const animDelay  = `animation-delay:${idx * 0.05}s`;
+
+            // Build changelog list
+            const clItems = Array.isArray(entry.changelog) && entry.changelog.length
+                ? entry.changelog : [];
+            const changelogHTML = clItems.length ? `
+                <button class="vh-changelog-toggle${isLatest ? ' open' : ''}" onclick="_toggleVHChangelog(this)" aria-expanded="${isLatest}">
+                    <svg class="vh-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    ${clItems.length} release note${clItems.length !== 1 ? 's' : ''}
+                </button>
+                <ul class="vh-changelog" style="${isLatest ? '' : 'display:none'}">
+                    ${clItems.map(item => {
+                        const s = String(item);
+                        let type = 'feat';
+                        if (s.startsWith('🆕') || s.startsWith('🌟')) type = 'new';
+                        else if (s.startsWith('🐛') || s.startsWith('🔧')) type = 'fix';
+                        else if (s.startsWith('⚠️') || s.startsWith('🚨')) type = 'warn';
+                        return `<li data-type="${type}">${_escVH(s)}</li>`;
+                    }).join('')}
+                </ul>` : '';
+
+            return `
+            <div class="vh-entry" style="${animDelay}">
+                <div class="vh-entry-card">
+                    <div class="vh-entry-top">
+                        <span class="vh-version-tag">${displayLabel}</span>
+                        ${isLatest ? '<span class="vh-latest-pill">Latest</span>' : ''}
+                        ${entry.hash && entry.hash !== 'previous' ? `<span class="vh-hash">${_escVH(String(entry.hash))}</span>` : ''}
+                        <span class="vh-branch">⑂ ${safeBranch}</span>
+                    </div>
+                    <p class="vh-message">${safeMsg}</p>
+                    ${changelogHTML}
+                    <div class="vh-meta">
+                        <span class="vh-author">
+                            <span class="vh-author-dot">${initial}</span>
+                            ${safeAuth}
+                        </span>
+                        <span class="vh-date">${dateStr}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    });
+};
+
+/** Toggle changelog list open/closed */
+window._toggleVHChangelog = function _toggleVHChangelog(btn) {
+    const list = btn.nextElementSibling;
+    if (!list) return;
+    const isOpen = list.style.display !== 'none';
+    list.style.display = isOpen ? 'none' : 'flex';
+    btn.classList.toggle('open', !isOpen);
+    btn.setAttribute('aria-expanded', String(!isOpen));
+};
+
+/** Closes the Version History modal */
+window.closeVersionHistoryModal = function closeVersionHistoryModal(e) {
+    if (e && e.target !== document.getElementById('version-history-modal')) return;
+    const modal = document.getElementById('version-history-modal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+};
+
+/** Format ISO date string to a readable label */
+function _formatVHDate(isoStr) {
+    if (!isoStr) return '';
+    try {
+        const d = new Date(isoStr);
+        return d.toLocaleString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    } catch { return isoStr; }
+}
+
+/** Escape HTML entities */
+function _escVH(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }

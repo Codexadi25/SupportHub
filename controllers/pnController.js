@@ -18,7 +18,10 @@ exports.getNotes = asyncHandler(async (req, res) => {
 
     let notes;
 
-    if (ELEVATED_ROLES.includes(sessionUser.role)) {
+    if (sessionUser.role === 'admin') {
+        // Admin sees ALL notes in the LOB (public & private from everyone)
+        notes = await PrivateNote.find({ lob: req.params.lob }).sort({ createdAt: -1 });
+    } else if (ELEVATED_ROLES.includes(sessionUser.role)) {
         // Elevated users see: all public notes + their own private notes + all notes they created
         notes = await PrivateNote.find({
             lob: req.params.lob,

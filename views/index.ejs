@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/feedback.css">
     <link rel="stylesheet" href="/css/messages.css">
+    <link rel="stylesheet" href="/css/versionHistory.css">
 <head>
     <%- include('partials/header') %>
     <script>
@@ -443,8 +444,8 @@
                  <%- include('partials/calculator') %>
             </aside>
         </main>
-        <%- include('partials/footer') %>
     </div>
+    <%- include('partials/footer') %>
     
     <div id="form-modal">
         <div id="modal-box">
@@ -553,6 +554,33 @@
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Version History Modal                                               -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="version-history-modal" class="vh-overlay" onclick="closeVersionHistoryModal(event)" role="dialog" aria-modal="true" aria-label="Version History" style="display:none;">
+        <div class="vh-modal" onclick="event.stopPropagation()">
+            <div class="vh-header">
+                <div class="vh-header-left">
+                    <span class="vh-badge">Changelog</span>
+                    <h2 class="vh-title">Version History</h2>
+                    <p class="vh-subtitle">Every commit, beautifully logged.</p>
+                </div>
+                <button class="vh-close-btn" onclick="closeVersionHistoryModal()" aria-label="Close version history">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="vh-body">
+                <div id="version-timeline" class="vh-timeline">
+                    <!-- Populated dynamically by main.js -->
+                    <div class="vh-loading">
+                        <div class="vh-spinner"></div>
+                        <span>Loading history…</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

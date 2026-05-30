@@ -1,11 +1,13 @@
 {
   "name": "supporthub",
-  "version": "1.0.0",
+  "version": "2.5.0",
   "description": "A real-time canned response and private notes application.",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "check": "find . -name '*.js' -not -path './node_modules/*' -exec node --check {} \\;",
+    "audit:ci": "npm audit --audit-level=high"
   },
   "author": "Aditya Sahu (Aditya Tech. & Devoops)",
   "license": "ISC",
