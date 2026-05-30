@@ -1,0 +1,549 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   guide.css — Feature Guide / Product Tour
+   Premium spotlight tour with animated cursor, glassmorphism tooltip,
+   progress dots, and smooth transitions between steps.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Welcome screen ──────────────────────────────────────────────────────── */
+.guide-welcome-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 14, 26, 0.82);
+    backdrop-filter: blur(10px) saturate(1.2);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+    animation: guideOverlayIn 0.3s ease;
+}
+
+@keyframes guideOverlayIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.guide-welcome-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f0f5ff 100%);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 22px;
+    box-shadow:
+        0 4px 6px rgba(0,0,0,0.06),
+        0 30px 80px rgba(37, 99, 235, 0.22),
+        0 0 0 1px rgba(255,255,255,0.85) inset;
+    padding: 2.25rem 2.5rem 2rem;
+    max-width: 420px;
+    width: calc(100% - 2rem);
+    text-align: center;
+    animation: guideCardIn 0.4s cubic-bezier(0.34, 1.3, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background glow blob */
+.guide-welcome-card::before {
+    content: '';
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+    top: -80px;
+    right: -60px;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+@keyframes guideCardIn {
+    from { opacity: 0; transform: translateY(30px) scale(0.94); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.guide-welcome-icon {
+    font-size: 2.8rem;
+    margin-bottom: 0.75rem;
+    display: block;
+    animation: guideIconBounce 2s ease-in-out infinite;
+}
+
+@keyframes guideIconBounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-6px); }
+}
+
+.guide-welcome-version-pill {
+    display: inline-block;
+    background: linear-gradient(90deg, #2563eb, #6366f1);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.22em 0.75em;
+    border-radius: 999px;
+    margin-bottom: 0.85rem;
+}
+
+.guide-welcome-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.guide-welcome-subtitle {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0 0 1.5rem;
+    line-height: 1.55;
+}
+
+.guide-welcome-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.75rem;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.guide-welcome-features li {
+    font-size: 0.82rem;
+    color: #374151;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.45rem 0.7rem;
+    background: rgba(241, 245, 249, 0.8);
+    border-radius: 8px;
+    line-height: 1.4;
+}
+
+.guide-welcome-features li span:first-child {
+    flex-shrink: 0;
+    font-size: 1rem;
+    margin-top: -0.05rem;
+}
+
+.guide-welcome-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.guide-btn-start {
+    background: linear-gradient(135deg, #2563eb, #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.65rem 1.5rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+}
+
+.guide-btn-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37,99,235,0.45);
+}
+
+.guide-btn-skip-welcome {
+    background: rgba(241, 245, 249, 0.9);
+    color: #64748b;
+    border: 1px solid rgba(148,163,184,0.3);
+    border-radius: 10px;
+    padding: 0.65rem 1.2rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+}
+
+.guide-btn-skip-welcome:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border-color: rgba(239,68,68,0.2);
+}
+
+
+/* ── Spotlight overlay ────────────────────────────────────────────────────── */
+.guide-spotlight-box {
+    position: fixed;
+    z-index: 10100;
+    pointer-events: none;
+    border-radius: 10px;
+    /* Box-shadow creates the dark vignette around the spotlight */
+    box-shadow: 0 0 0 9999px rgba(10, 14, 26, 0.76);
+    transition:
+        top    0.38s cubic-bezier(0.4, 0, 0.2, 1),
+        left   0.38s cubic-bezier(0.4, 0, 0.2, 1),
+        width  0.38s cubic-bezier(0.4, 0, 0.2, 1),
+        height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+        border-radius 0.38s;
+}
+
+/* Pulsing glow ring around spotlight */
+.guide-spotlight-box::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 2.5px solid rgba(99, 102, 241, 0.75);
+    border-radius: 14px;
+    animation: guideSpotPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes guideSpotPulse {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%       { opacity: 1;   transform: scale(1.025); }
+}
+
+
+/* ── Animated cursor ──────────────────────────────────────────────────────── */
+.guide-cursor {
+    position: fixed;
+    z-index: 10200;
+    pointer-events: none;
+    width: 40px;
+    height: 40px;
+    transition:
+        top  0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Inner SVG is animated */
+.guide-cursor svg {
+    animation: guideCursorBob 1.7s ease-in-out infinite;
+    filter: drop-shadow(0 6px 12px rgba(37,99,235,0.45));
+    transform-origin: 10px 4px;
+}
+
+@keyframes guideCursorBob {
+    0%, 100% { transform: translateY(0)   rotate(-8deg);  }
+    50%       { transform: translateY(-9px) rotate(-15deg); }
+}
+
+/* Click-ripple ring around the cursor tip */
+.guide-cursor-ring {
+    position: fixed;
+    z-index: 10199;
+    pointer-events: none;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid rgba(37, 99, 235, 0.7);
+    animation: guideCursorRing 1.7s ease-in-out infinite;
+    transition:
+        top  0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes guideCursorRing {
+    0%        { transform: translate(-50%,-50%) scale(0.7); opacity: 0.9; }
+    70%, 100% { transform: translate(-50%,-50%) scale(1.6); opacity: 0; }
+}
+
+
+/* ── Step tooltip ─────────────────────────────────────────────────────────── */
+.guide-tooltip {
+    position: fixed;
+    z-index: 10300;
+    width: 300px;
+    background: linear-gradient(145deg, #ffffff 0%, #f1f5fb 100%);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+    box-shadow:
+        0 4px 6px rgba(0,0,0,0.07),
+        0 20px 50px rgba(37,99,235,0.2),
+        0 0 0 1px rgba(255,255,255,0.85) inset;
+    padding: 1.15rem 1.3rem 1rem;
+    pointer-events: all;
+    transition:
+        top    0.38s cubic-bezier(0.4, 0, 0.2, 1),
+        left   0.38s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.22s;
+}
+
+/* Caret arrow */
+.guide-tooltip::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    transform: rotate(45deg);
+    z-index: -1;
+}
+
+.guide-tooltip[data-pos="top"]::before {
+    bottom: -6px;
+    left: 50%;
+    margin-left: -6px;
+    border-top: none;
+    border-left: none;
+}
+
+.guide-tooltip[data-pos="bottom"]::before {
+    top: -6px;
+    left: 50%;
+    margin-left: -6px;
+    border-bottom: none;
+    border-right: none;
+}
+
+.guide-tooltip[data-pos="left"]::before {
+    right: -6px;
+    top: 50%;
+    margin-top: -6px;
+    border-left: none;
+    border-top: none;
+}
+
+.guide-tooltip[data-pos="right"]::before {
+    left: -6px;
+    top: 50%;
+    margin-top: -6px;
+    border-right: none;
+    border-bottom: none;
+}
+
+/* Tooltip header */
+.guide-tooltip-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+}
+
+.guide-step-num {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #6366f1;
+    background: rgba(99,102,241,0.1);
+    padding: 0.15em 0.55em;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.guide-tooltip-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.guide-tooltip-emoji {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.guide-tooltip-body {
+    font-size: 0.8rem;
+    color: #475569;
+    line-height: 1.55;
+    margin: 0 0 0.9rem;
+}
+
+/* Progress dots */
+.guide-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.8rem;
+}
+
+.guide-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    transition: all 0.25s;
+    cursor: pointer;
+}
+
+.guide-dot:hover { background: #94a3b8; transform: scale(1.2); }
+
+.guide-dot.active {
+    background: linear-gradient(90deg, #2563eb, #6366f1);
+    width: 18px;
+    border-radius: 99px;
+}
+
+/* Action buttons */
+.guide-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.guide-btn-skip {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.3rem 0.2rem;
+    transition: color 0.18s;
+    font-weight: 500;
+}
+
+.guide-btn-skip:hover { color: #ef4444; }
+
+.guide-btn-next {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: linear-gradient(135deg, #2563eb, #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s;
+    box-shadow: 0 3px 10px rgba(37,99,235,0.3);
+}
+
+.guide-btn-next:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37,99,235,0.4);
+}
+
+.guide-btn-next svg {
+    transition: transform 0.2s;
+}
+
+.guide-btn-next:hover svg {
+    transform: translateX(3px);
+}
+
+
+/* ── Finish celebration ───────────────────────────────────────────────────── */
+.guide-finish-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 14, 26, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    animation: guideOverlayIn 0.25s ease;
+}
+
+.guide-finish-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f0f5ff 100%);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 22px;
+    box-shadow:
+        0 4px 6px rgba(0,0,0,0.06),
+        0 30px 80px rgba(37,99,235,0.22);
+    padding: 2rem 2.5rem;
+    max-width: 380px;
+    width: calc(100% - 2rem);
+    text-align: center;
+    animation: guideCardIn 0.4s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+.guide-finish-emoji {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 0.75rem;
+    animation: guideIconBounce 1.5s ease-in-out 3;
+}
+
+.guide-finish-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 0.45rem;
+    letter-spacing: -0.015em;
+}
+
+.guide-finish-body {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin: 0 0 1.5rem;
+    line-height: 1.6;
+}
+
+.guide-btn-finish {
+    background: linear-gradient(135deg, #2563eb, #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.65rem 1.75rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+    transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.guide-btn-finish:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(37,99,235,0.45);
+}
+
+/* Confetti particle */
+.guide-confetti {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10600;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    animation: guideConfettiFall linear forwards;
+}
+
+@keyframes guideConfettiFall {
+    0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+
+/* ── Night mode overrides ─────────────────────────────────────────────────── */
+.night-mode .guide-welcome-card,
+.night-mode .guide-tooltip,
+.night-mode .guide-finish-card {
+    background: linear-gradient(145deg, #1e2535 0%, #161c2d 100%);
+    border-color: rgba(255,255,255,0.08);
+    box-shadow:
+        0 30px 80px rgba(0,0,0,0.5),
+        0 0 0 1px rgba(255,255,255,0.05) inset;
+}
+
+.night-mode .guide-tooltip::before,
+.night-mode .guide-welcome-card::after { background: #1e2535; }
+
+.night-mode .guide-welcome-title,
+.night-mode .guide-tooltip-title,
+.night-mode .guide-finish-title { color: #e2e8f0; }
+
+.night-mode .guide-welcome-subtitle,
+.night-mode .guide-tooltip-body,
+.night-mode .guide-finish-body  { color: #94a3b8; }
+
+.night-mode .guide-welcome-features li { background: rgba(255,255,255,0.05); color: #cbd5e1; }
+
+.night-mode .guide-btn-skip-welcome { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.1); color: #94a3b8; }
+
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .guide-welcome-card,
+    .guide-finish-card  { padding: 1.5rem 1.25rem; }
+    .guide-tooltip      { width: 270px; }
+    .guide-welcome-actions { flex-direction: column-reverse; }
+    .guide-btn-start,
+    .guide-btn-skip-welcome { width: 100%; text-align: center; }
+}
