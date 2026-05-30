@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
 
   <!-- Main stylesheet -->
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/public.css">
 
   <!-- Per-page extra head content (optional) -->
   <%- typeof extraHead !== 'undefined' ? extraHead : '' %>
@@ -26,8 +26,7 @@
       <a href="/" class="<%= typeof activePage !== 'undefined' && activePage === 'home' ? 'active' : '' %>">Home</a>
       <a href="/#features">Features</a>
       <% if (typeof user !== 'undefined' && user) { %>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/tickets">My Tickets</a>
+        <a href="/">Dashboard</a>
         <a href="/auth/logout">Log out</a>
       <% } else { %>
         <a href="/login" class="<%= typeof activePage !== 'undefined' && activePage === 'login' ? 'active' : '' %>">Login</a>
