@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SupportHub — unified ticket management, team collaboration, and customer communication platform.">
+  <title>Home — SupportHub</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- ── NAVBAR ─────────────────────────────────────────── -->
+  <nav>
+    <a href="/home" class="logo">Support<span>Hub</span></a>
+    <div class="nav-links">
+      <a href="/home" class="active">Home</a>
+      <a href="#features">Features</a>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <a href="/">Dashboard</a>
+        <a href="/auth/logout">Log out</a>
+      <% } else { %>
+        <a href="/login">Login</a>
+        <a href="/register" class="nav-cta">Get Started →</a>
+      <% } %>
+    </div>
+  </nav>
+
+  <main>
+
+<!-- ── HERO ──────────────────────────────────────────────── -->
+<section id="home-hero">
+  <div class="mesh"></div>
+  <div class="grid-lines"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">Now with AI-assisted routing</div>
+
+    <h1>Support that<br>actually <em>works.</em></h1>
+
+    <p class="hero-sub">
+      SupportHub unifies ticket management, team collaboration, and customer
+      communication — so nothing slips through the cracks.
+    </p>
+
+    <div class="hero-btns">
+      <a href="/register" class="btn-primary">Start free trial →</a>
+      <a href="#features" class="btn-secondary">See features</a>
+    </div>
+  </div>
+
+  <!-- Floating stat cards -->
+  <div class="hero-stats">
+    <div class="stat-card">
+      <div class="stat-num">98<span>%</span></div>
+      <div class="stat-label">Resolution rate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">2<span>m</span></div>
+      <div class="stat-label">Avg. first response</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">40<span>k+</span></div>
+      <div class="stat-label">Tickets resolved</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ──────────────────────────────────────────── -->
+<section id="features">
+  <div class="section-header">
+    <div class="section-tag">Why SupportHub</div>
+    <h2>Everything your support<br>team needs</h2>
+    <p class="section-sub">From first contact to final resolution — all in one place.</p>
+  </div>
+
+  <div class="features-grid">
+
+    <div class="feat-card">
+      <div class="feat-icon">🎫</div>
+      <div class="feat-title">Smart Ticket Management</div>
+      <p class="feat-desc">
+        Automatically categorize and prioritize incoming tickets. Assign to the
+        right agent with one click and track progress in real time.
+      </p>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon teal">🔔</div>
+      <div class="feat-title">Real-time Notifications</div>
+      <p class="feat-desc">
+        Stay on top of every update with instant alerts for ticket changes, new
+        messages, and SLA breaches — across email and in-app.
+      </p>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon purple">👥</div>
+      <div class="feat-title">Role-based Access</div>
+      <p class="feat-desc">
+        Define granular permissions for agents, supervisors, and admins. Secure
+        data without bottlenecking your workflow.
+      </p>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon teal">📊</div>
+      <div class="feat-title">Analytics &amp; Reports</div>
+      <p class="feat-desc">
+        Visual dashboards show ticket volume, response times, and agent
+        performance. Export to CSV for deeper analysis.
+      </p>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon">⚡</div>
+      <div class="feat-title">SLA Management</div>
+      <p class="feat-desc">
+        Set custom SLA policies per priority level. Automatic escalation ensures
+        critical issues are never missed.
+      </p>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon purple">🔌</div>
+      <div class="feat-title">API &amp; Integrations</div>
+      <p class="feat-desc">
+        Connect SupportHub to Slack, email, Jira, and more via REST API. Build
+        custom integrations with our developer toolkit.
+      </p>
+    </div>
+
+  </div><!-- /.features-grid -->
+
+  <!-- Wide highlight cards -->
+  <div class="wide-feature">
+    <div class="wide-card">
+      <h3>Multi-channel Inbox</h3>
+      <p>
+        Handle support requests from email, web forms, and in-app chat — all
+        inside a unified inbox. No context switching, no missed messages.
+      </p>
+      <div class="pill-list">
+        <span class="pill">Email</span>
+        <span class="pill">Web Form</span>
+        <span class="pill">In-App Chat</span>
+        <span class="pill">API</span>
+      </div>
+    </div>
+
+    <div class="wide-card">
+      <h3>Knowledge Base &amp; Macros</h3>
+      <p>
+        Build a searchable self-service portal and create one-click macros for
+        common replies. Deflect repetitive tickets and save agent time.
+      </p>
+      <div class="pill-list">
+        <span class="pill teal">Self-service Portal</span>
+        <span class="pill teal">Canned Responses</span>
+        <span class="pill teal">Auto-suggest</span>
+      </div>
+    </div>
+  </div><!-- /.wide-feature -->
+</section><!-- /#features -->
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<footer>
+  <span>&copy; <%= new Date().getFullYear() %> SupportHub &middot; Built with ❤️ & Dedication 🔥in INDIA 🇮🇳 by<a href="https://adityatechndevoops.web.app">Aditya Tech. & Devoops.</a> 🚀</span>
+  <div>
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="https://github.com/Codexadi25/SupportHub" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</footer>
+
+  </main><!-- /main -->
+
+<script>
+  // ── Intersection Observer: scroll-triggered card animations ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.animationPlayState = 'running';
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.feat-card, .wide-card').forEach(el => {
+    el.style.animationPlayState = 'paused';
+    observer.observe(el);
+  });
+
+  // ── Animated stat counters ────────────────────────────────
+  function animateCounter(el, target, suffix) {
+    let start = null;
+    const duration = 1800;
+    const step = (timestamp) => {
+      if (!start) start = timestamp;
+      const progress = Math.min((timestamp - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.querySelector('.stat-num').innerHTML =
+        Math.floor(eased * target) + '<span>' + suffix + '</span>';
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  const statsObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const num = e.target.querySelector('.stat-num');
+        const raw = num.textContent.trim();
+        const match = raw.match(/^(\d+)(.*)$/);
+        if (match) animateCounter(e.target, parseInt(match[1]), match[2]);
+        statsObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  document.querySelectorAll('.stat-card').forEach(el => statsObserver.observe(el));
+</script>
+
+</body>
+</html>

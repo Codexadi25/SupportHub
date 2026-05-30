@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SupportHub — unified ticket management, team collaboration, and customer communication platform.">
+  <title><%= typeof title !== 'undefined' ? title + ' — SupportHub' : 'SupportHub' %></title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+
+  <!-- Main stylesheet -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Per-page extra head content (optional) -->
+  <%- typeof extraHead !== 'undefined' ? extraHead : '' %>
+</head>
+<body>
+
+  <!-- ── NAVBAR ─────────────────────────────────────────── -->
+  <nav>
+    <a href="/" class="logo">Support<span>Hub</span></a>
+    <div class="nav-links">
+      <a href="/" class="<%= typeof activePage !== 'undefined' && activePage === 'home' ? 'active' : '' %>">Home</a>
+      <a href="/#features">Features</a>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/tickets">My Tickets</a>
+        <a href="/auth/logout">Log out</a>
+      <% } else { %>
+        <a href="/login" class="<%= typeof activePage !== 'undefined' && activePage === 'login' ? 'active' : '' %>">Login</a>
+        <a href="/register" class="nav-cta">Get Started →</a>
+      <% } %>
+    </div>
+  </nav>
+
+  <!-- ── PAGE CONTENT ───────────────────────────────────── -->
+  <main>
+    <%- body %>
+  </main>
+
+  <!-- ── SCRIPTS ────────────────────────────────────────── -->
+  <%- typeof extraScripts !== 'undefined' ? extraScripts : '' %>
+
+</body>
+</html>

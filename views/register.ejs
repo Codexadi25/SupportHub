@@ -1,55 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <%- include('partials/header') %>
-    <title>Register - SupportHub</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Create your free SupportHub account.">
+  <title>Register — SupportHub</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="auth-body">
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="auth-header">
-                <h1>SupportHub</h1>
-                <p>Create your account</p>
-            </div>
-            
-            <% if (error) { %>
-                <div class="alert alert-error">
-                    <%= error %>
-                </div>
-            <% } %>
-            <% if (success) { %>
-                <div class="alert alert-success">
-                    <%= success %>
-                </div>
-            <% } %>
-            
-            <form action="/auth/register" method="POST" class="auth-form">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required 
-                           placeholder="Enter your username" 
-                           value="<%= typeof username !== 'undefined' ? username : '' %>">
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required 
-                           placeholder="Enter your password (min 6 characters)">
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" required 
-                           placeholder="Confirm your password">
-                </div>
-                
-                <button type="submit" class="auth-btn">Register</button>
-            </form>
-            
-            <div class="auth-footer">
-                <p>Already have an account? <a href="/login">Login here</a></p>
-            </div>
+<body>
+
+<section id="register-section">
+  <div class="login-mesh"></div>
+  <div class="grid-lines"></div>
+
+  <div class="register-wrap">
+
+    <!-- ── LEFT BRAND PANEL ─────────────────────────────── -->
+    <div class="register-left">
+      <a href="/" class="register-brand">Support<span>Hub</span></a>
+
+      <div class="register-tagline">
+        Join teams that<br><em>deliver more.</em>
+      </div>
+
+      <div class="register-perks">
+        <div class="perk">
+          <div class="perk-dot"></div>
+          Free to start — no credit card needed
         </div>
-    </div>
+        <div class="perk">
+          <div class="perk-dot"></div>
+          Set up in under 2 minutes
+        </div>
+        <div class="perk">
+          <div class="perk-dot"></div>
+          Full access to all core features
+        </div>
+        <div class="perk">
+          <div class="perk-dot"></div>
+          Secure, private, and GDPR-ready
+        </div>
+      </div>
+    </div><!-- /.register-left -->
+
+    <!-- ── RIGHT FORM PANEL ─────────────────────────────── -->
+    <div class="register-right">
+      <div class="register-title">Create account</div>
+      <div class="register-sub">Start your SupportHub journey today</div>
+
+      <% if (typeof error !== 'undefined' && error && error.length) { %>
+        <div class="flash error"><%= error %></div>
+      <% } %>
+      <% if (typeof success !== 'undefined' && success && success.length) { %>
+        <div class="flash success"><%= success %></div>
+      <% } %>
+
+      <form id="register-form" action="/auth/register" method="POST" novalidate>
+
+        <div class="field">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            placeholder="choose-a-username"
+            value="<%= typeof username !== 'undefined' ? username : '' %>"
+            required
+            autocomplete="username"
+            oninput="validateUsername(this)"
+          >
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="min 6 characters"
+              required
+              autocomplete="new-password"
+              oninput="checkStrength(this.value)"
+            >
+            <button type="button" class="toggle-pw" aria-label="Toggle password visibility" onclick="togglePassword('password', this)">👁</button>
+          </div>
+          <div class="pw-strength">
+            <div class="pw-bar"><div class="pw-bar-fill" id="pw-bar-fill"></div></div>
+            <div class="pw-label" id="pw-label"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="confirmPassword">Confirm Password</label>
+          <div class="input-wrap">
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              placeholder="repeat your password"
+              required
+              autocomplete="new-password"
+              oninput="checkMatch()"
+            >
+            <button type="button" class="toggle-pw" aria-label="Toggle password visibility" onclick="togglePassword('confirmPassword', this)">👁</button>
+          </div>
+          <div class="pw-label" id="match-label"></div>
+        </div>
+
+        <button type="submit" id="register-btn" class="btn-register">Create Account →</button>
+
+      </form>
+
+      <div class="login-link">
+        Already have an account? <a href="/login">Sign in here</a>
+      </div>
+
+    </div><!-- /.register-right -->
+  </div><!-- /.register-wrap -->
+</section>
+
+<script>
+  function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = '🙈';
+    } else {
+      input.type = 'password';
+      btn.textContent = '👁';
+    }
+  }
+
+  function checkStrength(pw) {
+    const fill = document.getElementById('pw-bar-fill');
+    const label = document.getElementById('pw-label');
+    let score = 0;
+    if (pw.length >= 6)  score++;
+    if (pw.length >= 10) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+    const levels = [
+      { pct: '0%',   color: 'transparent', text: '' },
+      { pct: '25%',  color: '#ef4444',     text: 'Weak' },
+      { pct: '50%',  color: '#f97316',     text: 'Fair' },
+      { pct: '75%',  color: '#eab308',     text: 'Good' },
+      { pct: '90%',  color: '#22c55e',     text: 'Strong' },
+      { pct: '100%', color: '#00d4aa',     text: 'Excellent' },
+    ];
+    const lvl = levels[Math.min(score, 5)];
+    fill.style.width     = lvl.pct;
+    fill.style.background = lvl.color;
+    label.textContent    = lvl.text;
+    label.style.color    = lvl.color;
+  }
+
+  function checkMatch() {
+    const pw  = document.getElementById('password').value;
+    const cpw = document.getElementById('confirmPassword').value;
+    const lbl = document.getElementById('match-label');
+    if (!cpw) { lbl.textContent = ''; return; }
+    if (pw === cpw) {
+      lbl.textContent = '✓ Passwords match';
+      lbl.style.color = '#00d4aa';
+    } else {
+      lbl.textContent = '✗ Passwords do not match';
+      lbl.style.color = '#ef4444';
+    }
+  }
+
+  function validateUsername(input) {
+    // lowercase only — matches backend toLowerCase()
+    input.value = input.value.toLowerCase().replace(/[^a-z0-9._-]/g, '');
+  }
+
+  // Submit button loading state
+  document.getElementById('register-form').addEventListener('submit', function(e) {
+    const pw  = document.getElementById('password').value;
+    const cpw = document.getElementById('confirmPassword').value;
+    if (pw !== cpw) {
+      e.preventDefault();
+      document.getElementById('match-label').textContent = '✗ Passwords do not match';
+      document.getElementById('match-label').style.color = '#ef4444';
+      return;
+    }
+    const btn = document.getElementById('register-btn');
+    btn.textContent = 'Creating account…';
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+  });
+</script>
+
 </body>
 </html>

@@ -1,73 +1,87 @@
 const Logger = require('../utils/logger');
 
-// Cache to store the last logged timestamp for department-users ping (throttle to 3 mins)
-const lastPingLogs = new Map();
+/**
+ * Read-only GET endpoints polled frequently by the admin UI.
+ *
+ * Rule:
+ *   - Successful responses (2xx, 3xx) are NEVER written to the DB.
+ *     They carry zero diagnostic value and were filling the logs collection.
+ *   - Errors (4xx / 5xx) ARE still logged — those need attention.
+ *   - Slow responses (> 5 s) ARE still logged as timeouts regardless.
+ *
+ * Add any future polling endpoint here to keep the DB clean.
+ */
+const SILENT_READONLY_PATTERNS = [
+    '/api/user-activity/department-users',
+    '/api/admin/users',
+    '/api/admin/user-activity-stats',
+    '/api/admin/departments',
+    '/api/ping',
+];
 
 const requestLogger = (req, res, next) => {
     const startTime = Date.now();
     const originalSend = res.send;
-    
-    // Override res.send to capture response data
-    res.send = function(data) {
+
+    res.send = function (data) {
         const responseTime = Date.now() - startTime;
         const user = req.session?.user;
-        
-        // Only log API requests, not static files or views
+
+        // Only instrument API routes (skip static assets, views)
         if (req.originalUrl.startsWith('/api/')) {
-            let shouldLog = true;
-            
-            // Check if this is the department-users ping endpoint
-            if (req.originalUrl.includes('/api/user-activity/department-users')) {
-                const key = user?.username || req.ip || 'anonymous';
-                const lastLogTime = lastPingLogs.get(key) || 0;
-                const now = Date.now();
-                
-                if (now - lastLogTime < 3 * 60 * 1000) { // 3 minutes
-                    shouldLog = false;
-                } else {
-                    lastPingLogs.set(key, now);
-                }
+
+            const isSilencedRoute =
+                req.method === 'GET' &&
+                SILENT_READONLY_PATTERNS.some(p => req.originalUrl.includes(p));
+
+            const isSuccess = res.statusCode >= 200 && res.statusCode < 400;
+            const isError   = res.statusCode >= 400;
+            const isSlow    = responseTime > 5000;
+
+            // ── Slow-response warning (always log, even for silenced routes) ──
+            if (isSlow) {
+                Logger.logTimeout(
+                    req.originalUrl, responseTime, user?.id, user?.username,
+                    {
+                        ip:        req.ip || req.connection?.remoteAddress,
+                        userAgent: req.get('User-Agent'),
+                    }
+                ).catch(err => console.error('[Logger] timeout log failed:', err));
             }
 
-            if (shouldLog) {
-                // Log the request
+            // ── Error logging (always log, even for silenced routes) ─────────
+            if (isError) {
+                Logger.logError(
+                    `HTTP ${res.statusCode}: ${req.method} ${req.originalUrl}`,
+                    new Error(`HTTP ${res.statusCode}`),
+                    {
+                        user:         user?.id,
+                        username:     user?.username,
+                        ip:           req.ip || req.connection?.remoteAddress,
+                        userAgent:    req.get('User-Agent'),
+                        responseTime,
+                        statusCode:   res.statusCode,
+                        action:       req.method,
+                        resource:     req.originalUrl.split('/')[2] || 'unknown',
+                    }
+                ).catch(err => console.error('[Logger] error log failed:', err));
+            }
+
+            // ── Info logging — skip silenced routes on success ────────────────
+            if (isSuccess && !isSilencedRoute) {
                 Logger.logInfo(`${req.method} ${req.originalUrl}`, {
-                    user: user?.id,
-                    username: user?.username,
-                    ip: req.ip || req.connection.remoteAddress,
-                    userAgent: req.get('User-Agent'),
+                    user:         user?.id,
+                    username:     user?.username,
+                    ip:           req.ip || req.connection?.remoteAddress,
+                    userAgent:    req.get('User-Agent'),
                     responseTime,
-                    statusCode: res.statusCode,
-                    action: req.method,
-                    resource: req.originalUrl.split('/')[2] || 'unknown'
-                }).catch(err => console.error('Failed to log request:', err));
-            }
-
-            // Log timeouts (if response time > 5 seconds)
-            if (responseTime > 5000) {
-                Logger.logTimeout(req.originalUrl, responseTime, user?.id, user?.username, {
-                    ip: req.ip || req.connection.remoteAddress,
-                    userAgent: req.get('User-Agent')
-                }).catch(err => console.error('Failed to log timeout:', err));
-            }
-
-            // Log errors (4xx, 5xx status codes)
-            if (res.statusCode >= 400) {
-                Logger.logError(`HTTP ${res.statusCode}: ${req.method} ${req.originalUrl}`, 
-                    new Error(`HTTP ${res.statusCode}`), {
-                    user: user?.id,
-                    username: user?.username,
-                    ip: req.ip || req.connection.remoteAddress,
-                    userAgent: req.get('User-Agent'),
-                    responseTime,
-                    statusCode: res.statusCode,
-                    action: req.method,
-                    resource: req.originalUrl.split('/')[2] || 'unknown'
-                }).catch(err => console.error('Failed to log error:', err));
+                    statusCode:   res.statusCode,
+                    action:       req.method,
+                    resource:     req.originalUrl.split('/')[2] || 'unknown',
+                }).catch(err => console.error('[Logger] info log failed:', err));
             }
         }
 
-        // Call original send and return for proper chaining
         return originalSend.call(this, data);
     };
 
