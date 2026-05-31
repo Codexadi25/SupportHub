@@ -488,3 +488,32 @@ function showToast(message, type = 'success') {
         toast.remove();
     }, 3500);
 }
+
+function validateProfileUsername(input) {
+    const value = input.value.toLowerCase();
+    input.value = value;
+    const hasSpecial = /[^a-z0-9_]/.test(value);
+    const warning = document.getElementById('profile-username-warning');
+    const form = document.getElementById('profile-settings-form');
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+    
+    if (hasSpecial) {
+        if (warning) {
+            warning.style.display = 'block';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+        }
+    } else {
+        if (warning) {
+            warning.style.display = 'none';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        }
+    }
+}

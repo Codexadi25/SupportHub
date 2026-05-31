@@ -12,6 +12,10 @@
 | Edit mode toolbar | ✅ Done | Sticky banner with Add/Save/View buttons |
 | Old edit injection removed | ✅ Done | No edit buttons on `/view` route |
 | `Department` model created | ✅ Done | `models/Department.js` |
+| Inline Smart SOP Tab Integration | ✅ Done | Replaced `_blank` separate window redirects with standard tab toggling inside the main dashboard panel, routing the iframe dynamically. |
+| Strict Username Validation | ✅ Done | Alphanumeric and underscore-only validation enforced at the Mongoose database schema level, registration and profile settings controllers, and type-in inputs. |
+| Login Security Interceptor | ✅ Done | Caught special character logins using custom guidline check pages warning users of the 30-May-2026 guidelines. |
+| Two-Factor Account Deletion | ✅ Done | Added a secure two-factor account deletion layer in admin directories, requiring precise typing confirmation of usernames before deletion executes. |
 
 ---
 

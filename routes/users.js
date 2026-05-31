@@ -51,6 +51,15 @@ router.put('/users/profile', isAuthenticated, async (req, res) => {
         if (username && username.trim().toLowerCase() !== user.username) {
             const cleanUsername = username.trim().toLowerCase();
             
+            // Username validation: Alphanumeric and underscores only
+            const usernameRegex = /^[a-zA-Z0-9_]+$/;
+            if (!usernameRegex.test(cleanUsername)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'username cant contain special character except _'
+                });
+            }
+            
             // Check 14-day limit
             if (user.usernameLastChanged) {
                 const msSinceChange = Date.now() - new Date(user.usernameLastChanged).getTime();

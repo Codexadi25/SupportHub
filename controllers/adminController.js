@@ -218,21 +218,43 @@ async function bulkCreateUsers(req, res) {
 
         const createdUsers = [];
         const failedUsers = [];
+        const usernameRegex = /^[a-zA-Z0-9_]+$/;
 
         for (const username of usernames) {
             const cleanUsername = username.trim();
             if (cleanUsername) {
+                if (!usernameRegex.test(cleanUsername)) {
+                    failedUsers.push({ 
+                        username: cleanUsername, 
+                        reason: 'Username contains invalid special characters. Only alphanumeric and underscores allowed.' 
+                    });
+                    continue;
+                }
                 const userExists = await User.findOne({ username: cleanUsername });
                 if (!userExists) {
-                    const newUser = new User({ 
-                        username: cleanUsername, 
-                        password: cleanUsername 
-                    });
-                    await newUser.save();
-                    createdUsers.push({ 
-                        username: newUser.username, 
-                        password: cleanUsername 
-                    });
+                    try {
+                        const newUser = new User({ 
+                            username: cleanUsername, 
+                            password: cleanUsername 
+                        });
+                        await newUser.save();
+                        createdUsers.push({ 
+                            username: newUser.username, 
+                            password: cleanUsername 
+                        });
+                    } catch (err) {
+                        if (err.code === 11000 || (err.name === 'MongoServerError' && err.message.includes('E11000'))) {
+                            failedUsers.push({ 
+                                username: cleanUsername, 
+                                reason: 'Already exists' 
+                            });
+                        } else {
+                            failedUsers.push({
+                                username: cleanUsername,
+                                reason: err.message
+                            });
+                        }
+                    }
                 } else {
                     failedUsers.push({ 
                         username: cleanUsername, 

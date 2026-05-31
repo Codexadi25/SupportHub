@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 const multer = require('multer');
 const { Sop, Audit, Theme } = require('../models/Sop');
 const sopController = require('../controllers/sopController');
@@ -52,6 +52,17 @@ router.use((req, res, next) => {
 router.get('/view', isAuthenticated, isNotNew, async (req, res) => {
   try {
     const lob = req?.params?.lob || req?.body?.lob || req?.query?.lob || req?.session?.user?.lob || 'zomato';
+    const user = req.session?.user || req.user;
+    const userDept = (user?.department || 'general').toLowerCase().trim();
+
+    // Authorization check: Zomato SOP (sop_panel) is strictly for Zomato department users only.
+    if (lob.toLowerCase().trim() === 'zomato' && userDept !== 'zomato') {
+      return res.status(403).send('Forbidden: Zomato SOP is restricted to Zomato department users only.');
+    }
+
+    // Determine the view template: Zomato users get 'sop_panel', others get view-only 'sop'
+    const viewTemplate = (userDept === 'zomato') ? 'sop_panel' : 'sop';
+
     const theme = await Theme.findOne({ lob }) || {};
 
     // search & pagination
@@ -83,7 +94,7 @@ router.get('/view', isAuthenticated, isNotNew, async (req, res) => {
     const categories = Object.keys(categoriesMap).map(title => ({ title, items: categoriesMap[title] }));
     const allTags = Array.from(new Set((await Sop.find({ lob })).flatMap(s => s.tags || [])));
 
-    res.render('sop_panel', { categories, allTags, theme, user: req.session?.user || req.user, mode: 'view', lob, pagination: { page, perPage, total } });
+    res.render(viewTemplate, { categories, allTags, theme, user: user, mode: 'view', lob, pagination: { page, perPage, total } });
   } catch (error) {
     console.error("Error fetching SOPs:", error);
     res.status(500).json({ error: "Failed to fetch SOPs" });
@@ -139,6 +150,14 @@ router.post('/create-block', checkRole(['Admin']), async (req, res, next) => {
 router.get('/drafts', checkRole(['Admin','QA','TL','Editor']), async (req, res) => {
   try {
     const lob = req?.params?.lob || req?.query?.lob || req?.body?.lob || req?.session?.user?.lob;
+    const user = req.session?.user || req.user;
+    const userDept = (user?.department || 'general').toLowerCase().trim();
+
+    // Authorization check: Zomato SOP drafts are strictly for Zomato department users only.
+    if (lob && lob.toLowerCase().trim() === 'zomato' && userDept !== 'zomato') {
+      return res.status(403).send('Forbidden: Zomato SOP drafts are restricted to Zomato department users only.');
+    }
+
     const theme = await Theme.findOne({ lob }) || {};
 
     const q = (req.query.q || '').trim();

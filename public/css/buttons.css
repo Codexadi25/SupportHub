@@ -104,21 +104,47 @@
     color: var(--primary-color);
 }
 
-.sop-btn {
-    padding: 5px 14px;
-    margin-bottom: 4px;
-    border: 1.5px solid rgba(255, 255, 255, .6);
-    outline: 1px solid #6d28d9;
-    background: linear-gradient(135deg, #f472b6, #818cf8, #38bdf8);
-    background-size: 200% 200%;
-    animation: gradShift 4s ease infinite;
-    color: white;
-    cursor: pointer;
-    border-radius: 40px;
-    font-weight: 700;
-    font-size: .8rem;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, .2);
-    letter-spacing: .3px;
+.sop-btn,
+.tab-link.sop-btn {
+    padding: 6px 16px !important;
+    margin: 4px 6px 4px 6px !important;
+    border: 1.5px solid rgba(255, 255, 255, .6) !important;
+    outline: 1.5px solid #6d28d9 !important;
+    background: linear-gradient(135deg, #f472b6, #818cf8, #38bdf8) !important;
+    background-size: 200% 200% !important;
+    animation: gradShift 4s ease infinite !important;
+    color: white !important;
+    cursor: pointer !important;
+    border-radius: 40px !important;
+    font-weight: 700 !important;
+    font-size: .85rem !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .2) !important;
+    letter-spacing: .3px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
+    text-transform: none !important;
+    border-bottom: 1.5px solid rgba(255, 255, 255, .6) !important;
+    height: 32px !important;
+}
+
+.sop-btn:hover,
+.tab-link.sop-btn:hover {
+    color: white !important;
+    transform: translateY(-1px) scale(1.03) !important;
+    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.35) !important;
+}
+
+.sop-btn:active,
+.tab-link.sop-btn:active {
+    transform: translateY(0) scale(1) !important;
+}
+
+.tab-link.sop-btn.active {
+    background: linear-gradient(135deg, #ec4899, #6366f1, #06b6d4) !important;
+    box-shadow: 0 0 12px var(--primary) !important;
+    outline: 1.5px solid var(--primary) !important;
 }
 
 @keyframes gradShift {

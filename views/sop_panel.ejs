@@ -1,3 +1,9 @@
+<%
+  const currentUserDept = (user && user.department ? user.department : 'general').toLowerCase().trim();
+  if (currentUserDept !== 'zomato') {
+    throw new Error('Access Denied: Zomato SOP is restricted to Zomato department users only.');
+  }
+%>
 <!DOCTYPE html>
 <html lang="en">
 <head>

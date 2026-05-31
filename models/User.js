@@ -2,7 +2,14 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    username: { 
+        type: String, 
+        required: true, 
+        unique: true, 
+        trim: true, 
+        lowercase: true,
+        match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
+    },
     password: { type: String, required: true },
     role: { type: String, enum: ['new','user', 'editor', 'admin', 'team_lead', 'quality_analyst', 'vendor'], default: 'new' },
     department: { type: String, trim: true, lowercase: true, default: 'none' },

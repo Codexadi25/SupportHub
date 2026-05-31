@@ -15,7 +15,16 @@
                 }
             }
         }
-        return originalFetch.call(this, input, init);
+        return originalFetch.call(this, input, init).then(response => {
+            if (response.status === 401) {
+                response.clone().json().then(data => {
+                    if (data && (data.message === 'logged_in_elsewhere' || data.message === 'Unauthorized')) {
+                        window.location.href = '/login?reason=single_device';
+                    }
+                }).catch(() => {});
+            }
+            return response;
+        });
     };
 })();
 
@@ -98,6 +107,26 @@
 */
 
 document.addEventListener('DOMContentLoaded', () => {
+
+    // --- Single-Device Session Activity Eviction Trigger ---
+    if (window.currentUserId) {
+        let lastActivityCheck = Date.now();
+        const activityEvents = ['click', 'keydown', 'mousedown', 'scroll', 'touchstart'];
+        activityEvents.forEach(ev => {
+            document.addEventListener(ev, () => {
+                const now = Date.now();
+                // Check once every 5 seconds to avoid flooding the server
+                if (now - lastActivityCheck > 5000) {
+                    lastActivityCheck = now;
+                    fetch('/api/ping', { cache: 'no-store' }).then(res => {
+                        if (res.status === 401) {
+                            window.location.href = '/login?reason=single_device';
+                        }
+                    }).catch(() => {});
+                }
+            }, { passive: true });
+        });
+    }
 
     // =========================================================================
     // --- WebSocket initialized globally above — admin panel reuses window.__globalWS ---
@@ -591,7 +620,7 @@ async function fetchAndRenderAdminUsers() {
                 <td>
                     <button class="btn btn-sm btn-reset-password" data-user-id="${u._id}">Reset Password</button>
                     <button class="btn btn-sm btn-set-password" data-user-id="${u._id}">Set Password</button>
-                    <button class="btn btn-sm btn-delete-user" data-user-id="${u._id}">Delete</button>
+                    <button class="btn btn-sm btn-delete-user" data-user-id="${u._id}" data-username="${u.username}">Delete</button>
                 </td>
             </tr>`;
         }).join('');
@@ -678,8 +707,15 @@ document.addEventListener('click', async (e) => {
 
     if (target.matches('.btn-delete-user')) {
         const userId = target.dataset.userId;
+        const username = target.dataset.username || '';
         if (!userId) return;
-        if (!confirm('Delete this user? This action cannot be undone.')) return;
+        
+        const confirmUser = prompt(`To delete user "${username}", please type their username to confirm:`);
+        if (confirmUser !== username) {
+            showToast('Username confirmation failed. User deletion cancelled.', 'error');
+            return;
+        }
+        
         try {
             const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
             const data = await res.json();
@@ -1053,7 +1089,11 @@ function showToast(message, type = 'success') {
             const userId = e.target.dataset.userId;
             const username = e.target.dataset.username;
             
-            if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) return;
+            const confirmUser = prompt(`To delete user "${username}", please type their username to confirm:`);
+            if (confirmUser !== username) {
+                showToast('Username confirmation failed. User deletion cancelled.', 'error');
+                return;
+            }
             
             try {
                 const response = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });

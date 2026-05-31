@@ -84,6 +84,7 @@
               id="password"
               name="password"
               placeholder="••••••••••"
+              value="<%= typeof formData !== 'undefined' && formData.password ? formData.password : '' %>"
               required
               autocomplete="current-password"
             >
@@ -98,7 +99,33 @@
           <a href="/forgot-password" class="forgot">Forgot password?</a>
         </div>
 
-        <button type="submit" id="login-btn" class="btn-login">Sign In →</button>
+        <% if (typeof isDuplicateSession !== 'undefined' && isDuplicateSession) { %>
+          <% if (typeof step !== 'undefined' && step === 'warn_duplicate') { %>
+            <div class="flash warn" style="background:#fff7ed; border:1px solid #ffedd5; color:#c2410c; padding:12px; border-radius:6px; margin-bottom:16px; font-size: 0.85rem; line-height: 1.4;">
+              ⚠️ <strong>Active session detected on another device.</strong><br>
+              You might already be logged in from another device. If this is unauthorized, kindly report the issue immediately. If you proceed, you will verify the next step.
+            </div>
+            <input type="hidden" name="step" value="confirm_logout">
+            
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; width:100%;">
+              <button type="submit" id="login-btn" class="btn-login" style="margin:0; width:100%;">Continue to Log In →</button>
+              <button type="button" onclick="reportUnauthorized()" class="btn" style="background:#ef4444; color:white; padding: 10.5px; border-radius: 6px; font-weight: 600; text-align: center; border: none; cursor: pointer; transition: all 0.2s; font-size: 0.85rem;">Report Unauthorized Access 🚨</button>
+            </div>
+          <% } else if (typeof step !== 'undefined' && step === 'confirm_logout') { %>
+            <div class="flash warn" style="background:#fff7ed; border:1px solid #ffedd5; color:#c2410c; padding:12px; border-radius:6px; margin-bottom:16px; font-size: 0.85rem; line-height: 1.4;">
+              ⚠️ <strong>Warning: Terminate other session?</strong><br>
+              If you still try to login, the other active device session will be automatically logged out.
+            </div>
+            <input type="hidden" name="step" value="proceed">
+            
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; width:100%;">
+              <button type="submit" id="login-btn" class="btn-login" style="margin:0; width:100%;">Force Log In &amp; Terminate Other Device →</button>
+              <a href="/login" class="btn" style="background:#6b7280; color:white; padding: 10.5px; border-radius: 6px; font-weight: 600; text-align: center; text-decoration: none; font-size: 0.85rem; transition: all 0.2s;">Cancel</a>
+            </div>
+          <% } %>
+        <% } else { %>
+          <button type="submit" id="login-btn" class="btn-login">Sign In →</button>
+        <% } %>
 
       </form>
 
@@ -125,10 +152,35 @@
   // Submit button loading state
   document.getElementById('login-form').addEventListener('submit', function() {
     const btn = document.getElementById('login-btn');
-    btn.textContent = 'Signing in…';
-    btn.disabled = true;
-    btn.style.opacity = '0.7';
+    if (btn) {
+      btn.textContent = 'Signing in…';
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+    }
   });
+
+  async function reportUnauthorized() {
+    const username = document.getElementById('username').value.trim();
+    if (!username) return alert('Username is required to report.');
+    try {
+        const btn = event?.target;
+        if (btn) btn.disabled = true;
+        const res = await fetch('/auth/report-unauthorized', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            alert('🚨 Issue reported to the administrators. Safe security measures are initiated.');
+        } else {
+            alert(data.message || 'Report failed.');
+        }
+        if (btn) btn.disabled = false;
+    } catch(err) {
+        alert('Failed to report issue.');
+    }
+  }
 </script>
 
 </body>

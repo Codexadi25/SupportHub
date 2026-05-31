@@ -124,6 +124,8 @@ const syncUserToFirebase = async (user) => {
         role: user.role,
         department: department,
         status: 'online',
+        profilePic: user.profilePic || '',
+        profileName: user.profileName || '',
         lastUpdated: { ".sv": "timestamp" },
         createdAt: { ".sv": "timestamp" }
       };
@@ -139,6 +141,8 @@ const syncUserToFirebase = async (user) => {
       role: user.role,
       department: department,
       status: 'online',
+      profilePic: user.profilePic || '',
+      profileName: user.profileName || '',
       lastUpdated: admin.database.ServerValue.TIMESTAMP,
       createdAt: admin.database.ServerValue.TIMESTAMP
     };
@@ -261,6 +265,8 @@ const syncAllUsersToFirebase = async (UserModel) => {
             role: user.role,
             department: department,
             status: 'offline',
+            profilePic: user.profilePic || '',
+            profileName: user.profileName || '',
             lastUpdated: { ".sv": "timestamp" }
           };
           
@@ -283,6 +289,8 @@ const syncAllUsersToFirebase = async (UserModel) => {
           role: user.role,
           department: department,
           status: 'offline',
+          profilePic: user.profilePic || '',
+          profileName: user.profileName || '',
           lastUpdated: admin.database.ServerValue.TIMESTAMP
         };
         

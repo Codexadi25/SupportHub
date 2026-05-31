@@ -5,6 +5,20 @@ Format: `## [version] — YYYY-MM-DD`
 
 ---
 
+## [2.5.1] — 2026-05-31
+
+### 🆕 New Features
+- **Strict Username Characters Validation** — Users are now restricted from using any special characters in their usernames except for underscores (`_`) during registration and profile settings. Enforced at the Mongoose database schema level.
+- **🛡️ Login Security Interception** — Attempting to log in with an invalid username containing special characters automatically triggers a security guidelines warning block on 30-May-2026 guidelines.
+- **🔑 Admin Delete Two-Factor Layer** — Administrative deletion of user accounts now requires prompt confirmation by typing the exact username of the target account to prevent accidental deletes.
+- **Inline Smart SOP Panel Integration** — The "Smart SOP" button now opens the SOP view/editor inline directly inside the dashboard tabs rather than redirecting the user to a separate browser tab, providing a more cohesive experience.
+
+### ✨ Improvements
+- Added live oninput frontend sanitization for the username input field during registration and profile setting changes to automatically strip out disallowed special characters.
+- Implemented character validation inside the admin bulk user creation loop, cleanly filtering disallowed usernames to the failed operations table.
+
+---
+
 ## [2.5.0] — 2026-05-30
 
 ### 🆕 New Features

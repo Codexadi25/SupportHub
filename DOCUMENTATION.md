@@ -181,9 +181,9 @@ WIMOBOT/
 ### User Model
 ```javascript
 {
-  username: String (required, unique, lowercase)
+  username: String (required, unique, lowercase, alphanumeric & underscores only)
   password: String (required, hashed)
-  role: String (enum: ['user', 'editor', 'admin'], default: 'user')
+  role: String (enum: ['new','user', 'editor', 'admin', 'team_lead', 'quality_analyst', 'vendor'], default: 'new')
   createdAt: Date
   updatedAt: Date
 }
@@ -549,5 +549,5 @@ For issues, questions, or contributions, please refer to the project repository 
 ### Designed & Developed from scratch by Aditya Sahu | [Aditya Tech. & Devoops. &copy; 2025](https://adityatechndevoops.web.app)
 
 ---
-**Last Updated**: 29 May 2026
-**Version**: 3.0.0 (Real-Time Presence Edition)
+**Last Updated**: 31 May 2026
+**Version**: 2.5.1 (Real-Time Presence & Strict Security Edition)

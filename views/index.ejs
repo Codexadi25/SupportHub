@@ -134,10 +134,10 @@
                     </span>
                 </button>
                 <% if (user.role !== 'new') { %>
-                  <a href="/<%= process.env.APP_LOB || 'zomato' %>/sop/view" target="_blank"><button class="sop-btn" data-tab="SOP-View">Smart SOP</button></a>
+                  <button class="tab-link sop-btn" data-tab="SmartSOP">Smart SOP</button>
                 <% } %>
-                <% if (user.role === 'admin') { %>
-                  <button class="tab-link" data-tab="SOP">SOP Builder</button>
+                <% if (user.role === 'admin' || user.role === 'quality_analyst') { %>
+                  <button class="tab-link" data-tab="SOPBuilder">SOP Builder</button>
                 <% } %>
                 <% if (user.role === 'vendor' || user.role === 'admin') { %>
                   <button class="tab-link" data-tab="Logger">Logger</button>
@@ -423,13 +423,19 @@
                       </div>
                     <% } %>
 
-                      <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead' || user.role === 'user') { %>
-                        <div id="SOP" class="tab-content">
-                          <iframe src="/sop/<%= user.role === 'admin' ? 'admin/edit' : process.env.APP_LOB || 'zomato' %>/<%= user.role === 'admin' ? 'admin/edit' : 'view' %>" style="width:100%;height:850px;border:0;" title="SOP Panel"></iframe>
+                      <% if (user.role !== 'new') { %>
+                        <div id="SmartSOP" class="tab-content">
+                          <iframe src="/<%= (user.department || 'zomato').toLowerCase().trim() %>/sop/view" style="width:100%;height:850px;border:0;" title="Smart SOP Panel"></iframe>
                         </div>
                       <% } else { %>
-                        <div id="SOP" class="tab-content">
+                        <div id="SmartSOP" class="tab-content">
                           <span class="no-admin">⚠️ Forbidden: SOP Panel access requires elevated privileges.</span>
+                        </div>
+                      <% } %>
+
+                      <% if (user.role === 'admin' || user.role === 'quality_analyst') { %>
+                        <div id="SOPBuilder" class="tab-content">
+                          <iframe src="/<%= (user.department || 'zomato').toLowerCase().trim() %>/sop/edit" style="width:100%;height:850px;border:0;" title="SOP Builder Panel"></iframe>
                         </div>
                       <% } %>
 
@@ -471,7 +477,7 @@
                             <% if (user.profilePic) { %>
                                 <%- user.profilePic %>
                             <% } else { %>
-                                <%= user.username.charAt(0).toUpperCase() %>
+                                <%= (user.profileName || user.username).charAt(0).toUpperCase() %>
                             <% } %>
                         </div>
                         <label class="avatar-upload-btn">
@@ -485,14 +491,14 @@
 
                     <div class="form-group">
                         <label for="profile-username"><i class="bi bi-person-fill"></i> Username (You can change once in 14-days)</label>
-                        <input type="text" id="profile-username" value="<%= user.username %>" required style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">
+                        <input type="text" id="profile-username" value="<%= user.username %>" required style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);" oninput="validateProfileUsername(this)">
+                        <div id="profile-username-warning" style="color: #ef4444; font-size: 0.8rem; margin-top: 4px; display: none;">Username can't contain special character except "_underscore_"</div>
                     </div>
 
                     <div class="form-group">
                         <label for="profile-name"><i class="bi bi-person-fill-check"></i> Display Name</label>
                         <input type="text" id="profile-name" value="<%= user.profileName || '' %>" required placeholder="e.g. Steve Smith" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">
                     </div>
-
                     <div class="form-group">
                         <label for="profile-email"><i class="bi bi-envelope-fill"></i> Email ID</label>
                         <input type="email" id="profile-email" value="<%= user.email || '' %>" required placeholder="e.g. yourname@gmail.com" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">

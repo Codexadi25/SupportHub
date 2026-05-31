@@ -33,7 +33,7 @@ const getUserPublicIP = () => {
 };
 // GET /api/ping
 // Touches session to extend cookie and tracks active users
-router.get('/ping', (req, res) => {
+router.get('/ping', isAuthenticated, (req, res) => {
   if (!req.session) return res.status(200).json({ ok: true });
 
   try {
@@ -72,7 +72,7 @@ router.get('/ping', (req, res) => {
 
 // POST /api/heartbeat
 // Enhanced heartbeat endpoint for better reliability
-router.post('/heartbeat', (req, res) => {
+router.post('/heartbeat', isAuthenticated, (req, res) => {
   if (!req.session || !req.session.user) {
     return res.status(401).json({ 
       success: false, 

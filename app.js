@@ -59,11 +59,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- SOP Routes Integration ---
-// Customisable route for different companies/LOBs
-const sopRoutes = require('./routes/sopRoutes');
-app.use('/:lob/sop', sopRoutes);
-
 // If your app is behind a proxy/load balancer in production (e.g., Heroku, nginx),
 // enable trust proxy so secure cookies work properly.
 if (process.env.NODE_ENV === 'production') {
@@ -132,6 +127,10 @@ app.use('/api/admin', adminRouter);
 app.use('/api', apiUsersRouter);
 app.use('/api', require('./routes/api/userActivity'));
 app.use('/', require('./routes/viewRoutes'));
+
+// SOP Routes
+const sopRoutes = require('./routes/sopRoutes');
+app.use('/:lob/sop', sopRoutes);
 
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/api/:lob/cands', require('./routes/api/candRoutes'));

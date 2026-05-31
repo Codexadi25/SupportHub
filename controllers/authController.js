@@ -46,6 +46,12 @@ exports.registerUser = asyncHandler(async (req, res) => {
     if (password.length < 6) {
         return res.render('register', { error: 'Password must be at least 6 characters long', success: null });
     }
+
+    // Username validation: Alphanumeric and underscores only
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
+        return res.render('register', { error: 'Username can\'t contain special character except "_underscore_"', success: null });
+    }
     
     // Check if user already exists
     const existingUser = await User.findOne({ username: username.toLowerCase() });
@@ -53,28 +59,35 @@ exports.registerUser = asyncHandler(async (req, res) => {
         return res.render('register', { error: 'Username already exists', success: null });
     }
     
-    // Create new user with default 'user' role
-    const user = await User.create({
-        username: username.toLowerCase(),
-        password,
-        role: 'new' // Default role
-    });
-    
-    // Log user registration
-    await Logger.logInfo(`New user registered: ${user.username}`, {
-        user: user._id,
-        username: user.username,
-        ip: req.ip || req.connection.remoteAddress,
-        userAgent: req.get('User-Agent'),
-        action: 'REGISTER',
-        resource: 'User'
-    });
-    
-    res.render('login', { 
-         error: null, 
-         success: 'Registration successful! Please login with your credentials.',
-         showRegister: true 
-    });
+    try {
+        // Create new user with default 'user' role
+        const user = await User.create({
+            username: username.toLowerCase(),
+            password,
+            role: 'new' // Default role
+        });
+        
+        // Log user registration
+        await Logger.logInfo(`New user registered: ${user.username}`, {
+            user: user._id,
+            username: user.username,
+            ip: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent'),
+            action: 'REGISTER',
+            resource: 'User'
+        });
+        
+        res.render('login', { 
+             error: null, 
+             success: 'Registration successful! Please login with your credentials.',
+             showRegister: true 
+        });
+    } catch (error) {
+        if (error.code === 11000 || (error.name === 'MongoServerError' && error.message.includes('E11000'))) {
+            return res.render('register', { error: 'Username already exists', success: null });
+        }
+        throw error;
+    }
 });
 
 // @desc    Authenticate user & get token
@@ -82,21 +95,61 @@ exports.registerUser = asyncHandler(async (req, res) => {
 exports.loginUser = async (req, res) => {
     const { username, password } = req.body;
     try {
+        // Strict Username Check: Alphanumeric and underscores only
+        const usernameRegex = /^[a-zA-Z0-9_]+$/;
+        if (username && !usernameRegex.test(username)) {
+            return res.render('login', { 
+                error: 'Invalid username or password or the ID has been terminated due to new new security guidelines after 30-May-2026. Kindly create a fresh account.', 
+                success: null 
+            });
+        }
+
         const user = await User.findOne({ username: username.toLowerCase() });
 
         if (user && (await user.matchPassword(password))) {
+            // Check if account is already logged in on another device
+            if (user.currentSessionId && user.currentSessionId !== req.sessionID) {
+                const { step } = req.body;
+                if (!step) {
+                    // Step 1: Prompt about active session on another device and report option
+                    return res.render('login', {
+                        error: null,
+                        success: null,
+                        isDuplicateSession: true,
+                        step: 'warn_duplicate',
+                        formData: { username, password }
+                    });
+                } else if (step === 'confirm_logout') {
+                    // Step 2: Prompt that the other session will be automatically logged out
+                    return res.render('login', {
+                        error: null,
+                        success: null,
+                        isDuplicateSession: true,
+                        step: 'confirm_logout',
+                        formData: { username, password }
+                    });
+                }
+            }
+
             // Update session tracking and IP in database
             user.currentSessionId = req.sessionID;
             user.lastActiveIp = req.ip || req.connection.remoteAddress;
             await user.save();
 
-            // Create session — always include department
+            // Create session — include all user attributes
             req.session.user = {
                 id: user._id.toString(),
                 _id: user._id.toString(),
                 username: user.username,
                 role: user.role,
                 department: user.department || 'general',
+                email: user.email || '',
+                profilePic: user.profilePic || '',
+                fontSize: user.fontSize || 'medium',
+                uiColor: user.uiColor || '#2563eb',
+                nightMode: user.nightMode || false,
+                profileName: user.profileName || '',
+                bgColor: user.bgColor || '',
             };
             
             // Sync user to Firebase Realtime Database (async, don't wait)
@@ -126,6 +179,19 @@ exports.logoutUser = async (req, res) => {
     const username = req.session.user?.username;
     const department = req.session.user?.department || 'general';
     
+    // Clear currentSessionId in user model if user is logged in
+    if (req.session.user) {
+        try {
+            const user = await User.findById(req.session.user.id || req.session.user._id);
+            if (user) {
+                user.currentSessionId = '';
+                await user.save();
+            }
+        } catch (err) {
+            console.error('Failed to clear currentSessionId on logout:', err);
+        }
+    }
+
     // Remove from Firebase (async, don't wait)
     if (username && department) {
         const { removeUserPresence } = require('../services/firebaseService');
@@ -142,6 +208,32 @@ exports.logoutUser = async (req, res) => {
         res.redirect('/login');
     });
 };
+
+// @desc    Report unauthorized access
+// @route   POST /auth/report-unauthorized
+exports.reportUnauthorized = asyncHandler(async (req, res) => {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json({ success: false, message: 'Username is required' });
+    }
+    
+    const user = await User.findOne({ username: username.toLowerCase() });
+    if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    // Log the security alert to admin using exact required message format
+    await Logger.logInfo(`SECURITY ALERT: Unauthorized session reported for ${user.username}`, {
+        user: user._id,
+        username: user.username,
+        ip: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent'),
+        action: 'SECURITY_ALERT',
+        resource: 'User'
+    });
+    
+    res.json({ success: true, message: 'Security alert successfully recorded.' });
+});
 
 // @desc    Show main application page
 // @route   GET /

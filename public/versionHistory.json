@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.5.1",
+    "label": "LTS · v2.5.1",
+    "hash": "34cf47e",
+    "fullHash": "34cf47e4caa1345daba586980b981662bf305dd0",
+    "branch": "main",
+    "author": "Codexadi25",
+    "email": "contactaditya25@gmail.com",
+    "date": "2026-05-31T02:41:40+05:30",
+    "message": "fix: restore LTS CSS architecture broken by cc52980",
+    "changelog": [
+      "🔒 **Strict Username Policy & Validation** — Block special characters (except underscores) during registration, admin bulk-creation, and profile settings, enforced at Mongoose schema, controller, route, and input layers.",
+      "🛡️ **Login Security Interception** — Login attempts using usernames containing special characters are instantly caught by an interception layer displaying an explicit security warning.",
+      "🔑 **Two-Factor Admin Deletion Confirmation** — Admin-scoped deletes now prompt for exact username confirmation to prevent accidental account deletion.",
+      "⚡ **Inline Smart SOP Panel Integration** — The \"Smart SOP\" button now opens the SOP view/editor inline inside the dashboard tabs rather than redirecting the user to a separate browser tab, providing a more cohesive experience.",
+      "✨ Added live oninput frontend sanitization for the username input field during registration and profile settings."
+    ]
+  },
+  {
     "version": "2.5.0",
     "label": "LTS · v2.5.0",
     "hash": "6ca2620",

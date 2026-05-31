@@ -345,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="display:flex;gap:6px">
               <button class="btn btn-set-password" data-user-id="${u._id}">Reset Password</button>
               <button class="btn btn-reset-password" data-user-id="${u._id}" title="Reset password to username">Set Default Password</button>
-              <button class="btn btn-delete-user" data-user-id="${u._id}">Delete</button>
+              <button class="btn btn-delete-user" data-user-id="${u._id}" data-username="${u.username}">Delete</button>
             </div>
           `;
         } else {
@@ -480,8 +480,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // delete user
     if (target.matches('.btn-delete-user')) {
       const id = target.dataset.userId;
-      const username = target.closest('tr')?.firstElementChild?.textContent || 'this user';
-      if (!confirm(`Delete "${username}"? This action cannot be undone.`)) return;
+      const username = target.dataset.username || 'this user';
+      
+      const confirmUser = prompt(`To delete user "${username}", please type their username to confirm:`);
+      if (confirmUser !== username) {
+        showToast('Username confirmation failed. User deletion cancelled.', 'error');
+        return;
+      }
+      
       try {
         await api(`/api/admin/users/${id}`, 'DELETE');
         showToast('User deleted', 'success');
