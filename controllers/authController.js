@@ -145,10 +145,12 @@ exports.loginUser = async (req, res) => {
                 department: user.department || 'general',
                 email: user.email || '',
                 profilePic: user.profilePic || '',
+                image: user.image || '',
                 fontSize: user.fontSize || 'medium',
                 uiColor: user.uiColor || '#2563eb',
                 nightMode: user.nightMode || false,
                 profileName: user.profileName || '',
+                displayName: user.displayName || '',
                 bgColor: user.bgColor || '',
             };
             

@@ -20,10 +20,12 @@ router.get('/users/profile', isAuthenticated, async (req, res) => {
                 username: user.username,
                 email: user.email || '',
                 profilePic: user.profilePic || '',
+                image: user.image || '',
                 fontSize: user.fontSize || 'medium',
                 uiColor: user.uiColor || '#2563eb',
                 nightMode: user.nightMode || false,
                 profileName: user.profileName || '',
+                displayName: user.displayName || '',
                 bgColor: user.bgColor || '',
                 usernameLastChanged: user.usernameLastChanged || null,
                 ip: req.ip || req.connection.remoteAddress || 'unknown'
@@ -43,7 +45,7 @@ router.put('/users/profile', isAuthenticated, async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        const { username, email, profilePic, fontSize, uiColor, nightMode, profileName, bgColor } = req.body;
+        const { username, email, profilePic, image, fontSize, uiColor, nightMode, profileName, displayName, bgColor } = req.body;
         const oldUsername = user.username;
         let usernameChanged = false;
 
@@ -85,11 +87,19 @@ router.put('/users/profile', isAuthenticated, async (req, res) => {
         }
 
         if (email !== undefined) user.email = email.trim();
-        if (profilePic !== undefined) user.profilePic = profilePic;
+        if (profilePic !== undefined) {
+            user.profilePic = profilePic;
+            user.image = profilePic;
+        }
+        if (image !== undefined) user.image = image;
         if (fontSize !== undefined) user.fontSize = fontSize;
         if (uiColor !== undefined) user.uiColor = uiColor;
         if (nightMode !== undefined) user.nightMode = nightMode;
-        if (profileName !== undefined) user.profileName = profileName.trim();
+        if (profileName !== undefined) {
+            user.profileName = profileName.trim();
+            user.displayName = profileName.trim();
+        }
+        if (displayName !== undefined) user.displayName = displayName.trim();
         if (bgColor !== undefined) user.bgColor = bgColor.trim();
 
         await user.save();
@@ -98,10 +108,12 @@ router.put('/users/profile', isAuthenticated, async (req, res) => {
         req.session.user.username = user.username;
         req.session.user.email = user.email;
         req.session.user.profilePic = user.profilePic;
+        req.session.user.image = user.image;
         req.session.user.fontSize = user.fontSize;
         req.session.user.uiColor = user.uiColor;
         req.session.user.nightMode = user.nightMode;
         req.session.user.profileName = user.profileName;
+        req.session.user.displayName = user.displayName;
         req.session.user.bgColor = user.bgColor;
 
         // Also sync profile updates to Firebase presence if active!
@@ -115,9 +127,11 @@ router.put('/users/profile', isAuthenticated, async (req, res) => {
                     await db.ref(`presence/${dept}/${oldUsername}`).remove();
                 }
                 await db.ref(`presence/${dept}/${user.username}`).update({
-                    profilePic: user.profilePic || '',
+                    profilePic: user.image || user.profilePic || '',
+                    image: user.image || '',
                     email: user.email || '',
                     profileName: user.profileName || '',
+                    displayName: user.displayName || '',
                     bgColor: user.bgColor || ''
                 });
             }
@@ -137,10 +151,12 @@ router.put('/users/profile', isAuthenticated, async (req, res) => {
                     username: user.username,
                     email: user.email,
                     profilePic: user.profilePic,
+                    image: user.image,
                     fontSize: user.fontSize,
                     uiColor: user.uiColor,
                     nightMode: user.nightMode,
                     profileName: user.profileName,
+                    displayName: user.displayName,
                     bgColor: user.bgColor,
                     usernameLastChanged: user.usernameLastChanged
                 }

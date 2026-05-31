@@ -2394,7 +2394,9 @@ function buildProfile(src) {
         id:          src.id || src._id || genId(),
         name, role, color, initials,
         joinedAt:    Date.now(),
-        _fromServer: !!(src._fromServer || src.fromServer)
+        _fromServer: !!(src._fromServer || src.fromServer),
+        image:       src.image || src.profilePic || "<%= user && (user.image || user.profilePic) ? user.image || user.profilePic : '' %>",
+        displayName: src.displayName || src.profileName || "<%= user && (user.displayName || user.profileName) ? user.displayName || user.profileName : '' %>"
     };
 }
 
@@ -2466,7 +2468,9 @@ function startFirebase() {
         role:      window.__sopUserRole || myProfile.role || 'user',
         dept:      department,
         status:    currentStatus,
-        ts:        Date.now()
+        ts:        Date.now(),
+        image:     myProfile.image || '',
+        displayName: myProfile.displayName || ''
     });
 
     const updateFirebaseStatus = (newStatus) => {
@@ -2515,7 +2519,10 @@ function startFirebase() {
                     initials: v.initials || getInitials(uName),
                     joinedAt: v.ts || v.lastSeen || now,
                     lastSeen: v.ts || v.lastSeen || now,
-                    status:   v.status || 'online'
+                    status:   v.status || 'online',
+                    image:    v.image || v.profilePic || '',
+                    profilePic: v.profilePic || '',
+                    displayName: v.displayName || ''
                 };
             });
         renderAll(viewers);
@@ -2559,12 +2566,16 @@ function renderAvatarStrip(viewers) {
     container.innerHTML = shown.map((v, i) => {
         const isMe = v.id === myProfile.name || v.id === myProfile.id;
         const statusText = v.status === 'idle' ? 'Idle' : 'Active';
+        const nameToDisplay = v.displayName || v.name || '';
+        const avatarContent = (v.image || v.profilePic)
+            ? v.image || v.profilePic
+            : (v.initials || "?");
         return `<div class="pb-avatar ${isMe ? "is-you" : ""}"
                      style="background:${v.color||"#999"}; z-index:${50-i}"
                      tabindex="0">
-                    ${v.initials || "?"}
+                    ${avatarContent}
                     <div class="pb-avatar-tip">
-                        ${esc(v.name)}${isMe ? " <span style=\"color:#ff9090\">(You)</span>" : ""}<br>
+                        ${esc(nameToDisplay)}${isMe ? " <span style=\"color:#ff9090\">(You)</span>" : ""}<br>
                         <span style="opacity:.75;font-size:.6rem">${v.role || "Viewer"} (${statusText})</span>
                     </div>
                 </div>`;
@@ -2596,11 +2607,15 @@ function renderViewersPanel(viewers) {
         const statusLabel = v.status === 'on_break' ? 'On Break' : (v.status === 'idle' ? 'Idle' : 'Online');
         const statusColor = v.status === 'on_break' ? '#ffc107' : (v.status === 'idle' ? '#dc3545' : '#24963F');
         const pulseAnim = v.status === 'idle' ? 'none' : 'liveGlow 2s infinite';
+        const nameToDisplay = v.displayName || v.name || '';
+        const avatarContent = (v.image || v.profilePic)
+            ? v.image || v.profilePic
+            : (v.initials || "?");
         
         return `<div class="vp-item">
-            <div class="vp-avatar" style="background:${v.color||"#999"}">${v.initials||"?"}</div>
+            <div class="vp-avatar" style="background:${v.color||"#999"}">${avatarContent}</div>
             <div class="vp-info">
-                <div class="vp-name">${esc(v.name)}</div>
+                <div class="vp-name">${esc(nameToDisplay)}</div>
                 <div class="vp-role" style="color:${rc}">${v.role||"Viewer"}</div>
             </div>
             <div class="vp-active-dot" title="${statusLabel}" style="background-color: ${statusColor}; animation: ${pulseAnim};"></div>
@@ -2618,9 +2633,13 @@ function updateYouChip(p) {
     const name  = document.getElementById("pbYouName");
     const role  = document.getElementById("pbYouRole");
 
-    av.textContent    = p.initials || "?";
+    const avatarContent = (p.image || p.profilePic)
+        ? p.image || p.profilePic
+        : (p.initials || "?");
+
+    av.innerHTML    = avatarContent;
     av.style.background = p.color || "#999";
-    name.textContent  = p.name;
+    name.textContent  = p.displayName || p.name;
     role.textContent  = p.role || "Viewer";
     chip.classList.add("visible");
 }

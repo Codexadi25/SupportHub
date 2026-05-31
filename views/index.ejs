@@ -90,13 +90,13 @@
             <div class="login-user-info" style="display:flex;align-items:center;gap:10px;padding:4px 6px 4px 10px;">
                 <span class="user-name" id="top-bar-username-display" style="cursor:pointer;display:flex;align-items:center;gap:8px;" onclick="openProfileModal()" title="View Profile & Settings">
                     <span class="user-avatar-small" id="user-avatar-topbar">
-                        <% if (user.profilePic) { %>
-                            <%- user.profilePic %>
+                        <% if (user.image || user.profilePic) { %>
+                            <%- user.image || user.profilePic %>
                         <% } else { %>
-                            <%= (user.profileName || user.username).charAt(0).toUpperCase() %>
+                            <%= (user.displayName || user.profileName || user.username).charAt(0).toUpperCase() %>
                         <% } %>
                     </span>
-                    Hi, <span id="top-bar-user-name-text"><%= user.profileName || user.username %></span>
+                    Hi, <span id="top-bar-user-name-text"><%= user.displayName || user.profileName || user.username %></span>
                 </span>
                 <a href="/auth/logout" class="logout-btn">
                   Logout
@@ -474,10 +474,10 @@
                 <div class="profile-modal-body">
                     <div class="profile-avatar-wrapper">
                         <div class="profile-avatar-preview" id="profile-avatar-preview">
-                            <% if (user.profilePic) { %>
-                                <%- user.profilePic %>
+                            <% if (user.image || user.profilePic) { %>
+                                <%- user.image || user.profilePic %>
                             <% } else { %>
-                                <%= (user.profileName || user.username).charAt(0).toUpperCase() %>
+                                <%= (user.displayName || user.profileName || user.username).charAt(0).toUpperCase() %>
                             <% } %>
                         </div>
                         <label class="avatar-upload-btn">
@@ -614,11 +614,12 @@
         window.currentUsername = '<%= user.username %>';
         window.currentUserDept = '<%= user.department || "general" %>';
         window.currentUserEmail = '<%= user.email || "" %>';
-        window.currentUserProfilePic = `<%- user.profilePic || "" %>`;
+        window.currentUserProfilePic = `<%- user.image || user.profilePic || "" %>`;
         window.currentUserFontSize = '<%= user.fontSize || "medium" %>';
         window.currentUserUiColor = '<%= user.uiColor || "#2563eb" %>';
         window.currentUserNightMode = <%= user.nightMode || false %>;
         window.currentUserProfileName = '<%= user.profileName || "" %>';
+        window.currentUserDisplayName = '<%= user.displayName || "" %>';
         window.currentUserBgColor = '<%= user.bgColor || "" %>';
 
         // Click-to-copy for cand items and PN cards

@@ -124,8 +124,10 @@ const syncUserToFirebase = async (user) => {
         role: user.role,
         department: department,
         status: 'online',
-        profilePic: user.profilePic || '',
+        profilePic: user.image || user.profilePic || '',
+        image: user.image || '',
         profileName: user.profileName || '',
+        displayName: user.displayName || '',
         lastUpdated: { ".sv": "timestamp" },
         createdAt: { ".sv": "timestamp" }
       };
@@ -141,8 +143,10 @@ const syncUserToFirebase = async (user) => {
       role: user.role,
       department: department,
       status: 'online',
-      profilePic: user.profilePic || '',
+      profilePic: user.image || user.profilePic || '',
+      image: user.image || '',
       profileName: user.profileName || '',
+      displayName: user.displayName || '',
       lastUpdated: admin.database.ServerValue.TIMESTAMP,
       createdAt: admin.database.ServerValue.TIMESTAMP
     };
@@ -265,8 +269,10 @@ const syncAllUsersToFirebase = async (UserModel) => {
             role: user.role,
             department: department,
             status: 'offline',
-            profilePic: user.profilePic || '',
+            profilePic: user.image || user.profilePic || '',
+            image: user.image || '',
             profileName: user.profileName || '',
+            displayName: user.displayName || '',
             lastUpdated: { ".sv": "timestamp" }
           };
           
@@ -289,8 +295,10 @@ const syncAllUsersToFirebase = async (UserModel) => {
           role: user.role,
           department: department,
           status: 'offline',
-          profilePic: user.profilePic || '',
+          profilePic: user.image || user.profilePic || '',
+          image: user.image || '',
           profileName: user.profileName || '',
+          displayName: user.displayName || '',
           lastUpdated: admin.database.ServerValue.TIMESTAMP
         };
         

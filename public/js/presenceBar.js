@@ -108,9 +108,11 @@ class PresenceBar {
       role: this.role,
       dept: this.department,
       profilePic: window.currentUserProfilePic || '',
+      image: window.currentUserProfilePic || '',
       status: 'online',
       ts: firebase.database.ServerValue.TIMESTAMP,
       profileName: window.currentUserProfileName || '',
+      displayName: window.currentUserDisplayName || '',
       bgColor: window.currentUserBgColor || ''
     });
 
@@ -195,13 +197,13 @@ class PresenceBar {
     // Handle overflow
     if (hidden.length > 0) {
       if (this.moreCount) this.moreCount.textContent = `+${hidden.length}`;
-      if (this.moreBtn) this.moreBtn.title = hidden.map((u) => u.profileName || u.username).join(', ');
+      if (this.moreBtn) this.moreBtn.title = hidden.map((u) => u.displayName || u.profileName || u.username).join(', ');
 
       hidden.forEach((user) => {
         if (this.dropdown) {
           const item = document.createElement('div');
           item.className = 'au-dropdown-item';
-          item.textContent = user.profileName || user.username;
+          item.textContent = user.displayName || user.profileName || user.username;
           this.dropdown.appendChild(item);
         }
       });
@@ -218,10 +220,10 @@ class PresenceBar {
   createAvatarElement(user, container) {
     const av = document.createElement('div');
     av.className = 'au-avatar';
-    if (user.profilePic) {
-      av.innerHTML = user.profilePic;
+    if (user.image || user.profilePic) {
+      av.innerHTML = user.image || user.profilePic;
     } else {
-      av.textContent = (user.profileName || user.username || '?').charAt(0).toUpperCase();
+      av.textContent = (user.displayName || user.profileName || user.username || '?').charAt(0).toUpperCase();
     }
     av.style.setProperty('--au-hue', this.stringToHue(user.username || ''));
 
@@ -234,10 +236,12 @@ class PresenceBar {
     const statusColor =
       user.status === 'on_break' ? '#ffc107' : user.status === 'idle' ? '#dc3545' : '#28a745';
 
+    const tooltipName = user.displayName || user.username || '';
+
     tooltip.innerHTML = `
       <div class="aut-header">
         <span class="aut-dot" style="background-color: ${statusColor}"></span>
-        <strong class="aut-name">${user.profileName || user.username || ''}</strong>
+        <strong class="aut-name">${tooltipName}</strong>
       </div>
       <div class="aut-dept">🏢 ${user.dept || user.department || 'General'}</div>
       <div class="aut-role">🛡️ ${(user.role || 'user').toUpperCase()}</div>

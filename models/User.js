@@ -15,12 +15,14 @@ const userSchema = new mongoose.Schema({
     department: { type: String, trim: true, lowercase: true, default: 'none' },
     email: { type: String, default: '' },
     profilePic: { type: String, default: '' },
+    image: { type: String, default: '' },
     fontSize: { type: String, default: 'medium' },
     uiColor: { type: String, default: '#2563eb' },
     nightMode: { type: Boolean, default: false },
     currentSessionId: { type: String, default: '' },
     lastActiveIp: { type: String, default: '' },
     profileName: { type: String, default: '' },
+    displayName: { type: String, default: '' },
     usernameLastChanged: { type: Date, default: null },
     bgColor: { type: String, default: '' }
 }, { timestamps: true });
