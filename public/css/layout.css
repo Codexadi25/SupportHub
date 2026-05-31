@@ -855,18 +855,8 @@
     margin-left: -6px;
     flex-shrink: 0;
     position: relative;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
     user-select: none;
-    overflow: hidden;        /* clips SVG children to the circle */
-}
-
-.au-avatar svg {
-    position: absolute;      /* fills the circle regardless of flexbox */
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-    pointer-events: none;
-    object-fit: cover;
 }
 
 .au-avatars .au-avatar:first-child {

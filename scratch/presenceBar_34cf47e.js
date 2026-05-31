@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Presence Bar Module
  * Client-side module for displaying and managing real-time presence indicators
  * Uses Firebase Realtime Database for user presence tracking
@@ -239,8 +239,8 @@ class PresenceBar {
         <span class="aut-dot" style="background-color: ${statusColor}"></span>
         <strong class="aut-name">${user.profileName || user.username || ''}</strong>
       </div>
-      <div class="aut-dept">🏢 ${user.dept || user.department || 'General'}</div>
-      <div class="aut-role">🛡️ ${(user.role || 'user').toUpperCase()}</div>
+      <div class="aut-dept">≡ƒÅó ${user.dept || user.department || 'General'}</div>
+      <div class="aut-role">≡ƒ¢í∩╕Å ${(user.role || 'user').toUpperCase()}</div>
       <div class="aut-status">Status: ${statusLabel}</div>
       <div class="aut-seen">Last Seen: ${lastSeenTime}</div>
     `;
