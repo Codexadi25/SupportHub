@@ -134,7 +134,7 @@
                     </span>
                 </button>
                 <% if (user.role !== 'new') { %>
-                  <button class="tab-link sop-btn" data-tab="SmartSOP">Smart SOP</button>
+                  <button class="tab-link sop-btn" target="_blank" data-tab="SmartSOP">Smart SOP</button>
                 <% } %>
                 <% if (user.role === 'admin' || user.role === 'quality_analyst') { %>
                   <button class="tab-link" data-tab="SOPBuilder">SOP Builder</button>
@@ -592,6 +592,19 @@
     </div>
 
     <div id="toast-container"></div>
+
+    <!-- ── Offline / Weak Connection Alert ───────────────────────────── -->
+    <div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
+         background:linear-gradient(90deg,#dc2626,#b91c1c);color:#fff;
+         text-align:center;padding:9px 16px;font-size:.85rem;font-weight:600;
+         letter-spacing:.2px;box-shadow:0 2px 8px rgba(0,0,0,.25);
+         display:none;align-items:center;justify-content:center;gap:8px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+        <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+      </svg>
+      ⚡ Weak or No Internet Connection — Some features may not work properly.
+    </div>
     <script src="/js/presenceBar.js"></script>
     <script src="/js/profile.js"></script>
     <script>
@@ -627,8 +640,16 @@
                 const text = pnCard.querySelector('.pn-card-body')?.textContent?.trim();
                 if (text) {
                     navigator.clipboard.writeText(text).then(() => {
-                        pnCard.style.boxShadow = '0 0 0 2px #2563eb';
-                        setTimeout(() => pnCard.style.boxShadow = '', 800);
+                        // GitHub-style ✓ Copied badge
+                        let badge = pnCard.querySelector('.pn-copied-badge');
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'pn-copied-badge';
+                            badge.innerHTML = '&#10003; Copied';
+                            pnCard.appendChild(badge);
+                        }
+                        badge.classList.add('pn-copied-badge--visible');
+                        setTimeout(() => badge.classList.remove('pn-copied-badge--visible'), 1600);
                     }).catch(() => {});
                 }
             }
@@ -646,6 +667,18 @@
             moreCountId: 'auMoreCount',
             dropdownId: 'auDropdown'
         });
+    </script>
+
+    <script>
+    // ── Offline / Weak Connection Detection ──────────────────────────────
+    (function() {
+        const banner = document.getElementById('offline-banner');
+        function showBanner() { if (banner) banner.style.display = 'flex'; }
+        function hideBanner() { if (banner) banner.style.display = 'none'; }
+        window.addEventListener('offline', showBanner);
+        window.addEventListener('online',  hideBanner);
+        if (!navigator.onLine) showBanner();
+    })();
     </script>
     <script src="/js/main.js"></script>
     <script src="/js/notices.js"></script>

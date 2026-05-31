@@ -496,3 +496,30 @@
     background: #f3e5f5;
     color: #6a1b9a;
 }
+
+/* ── GitHub-style "✓ Copied" badge on PN cards ─────────────────────── */
+.pn-copied-badge {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: #16a34a;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-4px) scale(.9);
+    transition: opacity .18s ease, transform .18s ease;
+    z-index: 10;
+    white-space: nowrap;
+    letter-spacing: .2px;
+    box-shadow: 0 2px 6px rgba(22,163,74,.35);
+}
+
+.pn-copied-badge--visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+

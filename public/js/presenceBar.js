@@ -114,6 +114,17 @@ class PresenceBar {
       bgColor: window.currentUserBgColor || ''
     });
 
+    // Re-sync presence whenever the user saves their profile
+    document.addEventListener('presenceBar:refreshProfile', () => {
+      if (this.presenceRef && this.firebaseReady) {
+        this.presenceRef.update({
+          profilePic: window.currentUserProfilePic || '',
+          profileName: window.currentUserProfileName || '',
+          ts: firebase.database.ServerValue.TIMESTAMP
+        });
+      }
+    });
+
     // Remove presence on disconnect
     this.presenceRef.onDisconnect().remove();
 
@@ -150,7 +161,7 @@ class PresenceBar {
         const deptData = val[deptKey];
         if (deptData && typeof deptData === 'object') {
           Object.values(deptData).forEach(user => {
-            if (user && user.username) {
+            if (user && user.username && !user.username.includes('_tester')) {
               peers.push(user);
             }
           });
@@ -218,12 +229,26 @@ class PresenceBar {
   createAvatarElement(user, container) {
     const av = document.createElement('div');
     av.className = 'au-avatar';
-    if (user.profilePic) {
-      av.innerHTML = user.profilePic;
-    } else {
-      av.textContent = (user.profileName || user.username || '?').charAt(0).toUpperCase();
-    }
     av.style.setProperty('--au-hue', this.stringToHue(user.username || ''));
+
+    // Resolve the best display name
+    const displayName = user.profileName && user.profileName.trim()
+      ? user.profileName.trim()
+      : (user.username
+          ? user.username.charAt(0).toUpperCase() + user.username.slice(1)
+          : '?');
+
+    if (user.profilePic && user.profilePic.trim() && user.profilePic.includes('<svg')) {
+      // Make every SVG id/reference unique per user to prevent cross-avatar id collisions
+      const uid = (user.username || String(Math.random())).replace(/[^a-z0-9]/gi, '');
+      const safeSvg = user.profilePic
+        .replace(/\bid="([^"]+)"/g, `id="$1-${uid}"`)
+        .replace(/url\(#([^)]+)\)/g, `url(#$1-${uid})`);
+      av.innerHTML = safeSvg;
+      // CSS handles sizing via position:absolute + inset:0 on .au-avatar svg
+    } else {
+      av.textContent = displayName.charAt(0).toUpperCase();
+    }
 
     // Create tooltip
     const tooltip = document.createElement('div');
@@ -237,7 +262,7 @@ class PresenceBar {
     tooltip.innerHTML = `
       <div class="aut-header">
         <span class="aut-dot" style="background-color: ${statusColor}"></span>
-        <strong class="aut-name">${user.profileName || user.username || ''}</strong>
+        <strong class="aut-name">${displayName}</strong>
       </div>
       <div class="aut-dept">🏢 ${user.dept || user.department || 'General'}</div>
       <div class="aut-role">🛡️ ${(user.role || 'user').toUpperCase()}</div>

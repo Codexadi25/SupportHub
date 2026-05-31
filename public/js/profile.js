@@ -386,6 +386,9 @@ async function saveProfileSettings(e) {
 
         showToast('Profile and appearance settings saved!', 'success');
         closeProfileModal();
+
+        // Notify presence bar to re-sync updated avatar & display name to Firebase
+        document.dispatchEvent(new CustomEvent('presenceBar:refreshProfile'));
     } catch (err) {
         showToast(err.message, 'error');
     }
