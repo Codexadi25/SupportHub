@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4 style="margin: 0 0 8px; color: var(--clr-text-main, #1e293b); font-weight: 700; font-size: 1.05rem;">No matching canned responses found</h4>
                     <p style="margin: 0 0 16px; color: var(--clr-text-muted, #64748b); font-size: 0.85rem; line-height: 1.5;">
                         Create a new AI-generated response for these tags:<br>
-                        <strong>\${[...activeTags].map(t => '#' + t).join(' ')}</strong>
+                        <strong>${[...activeTags].map(t => '#' + t).join(' ')}</strong>
                     </p>
                     <button id="btn-generate-ai-cand" class="btn btn-primary" style="background: var(--clr-primary, #2563eb); color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(37,99,235,0.2);">
                         Generate with AI
@@ -420,7 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
-                showToast(err.message || 'AI Generation failed', 'error');
             }
             return;
         }
@@ -607,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     candTextEl.value = data.text;
                     showToast('Rephrased professionally! ✨', 'success');
                 } catch (err) {
-                    showToast(err.message || 'Failed to rephrase', 'error');
+                    // error already toasted by apiRequest
                 } finally {
                     rephraseBtn.disabled = false;
                     rephraseBtn.innerHTML = originalHtml;
@@ -879,16 +878,6 @@ document.addEventListener('change', async (e) => {
     window.addEventListener('beforeunload', () => {
         if (keepAliveTimer) clearInterval(keepAliveTimer);
     });
-
-    // --- Toast Notification Function (same as before) ---
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
 
     // --- Click to Copy ---
     document.body.addEventListener('click', (e) => {
