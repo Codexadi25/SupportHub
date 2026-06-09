@@ -11,6 +11,11 @@ const messageSchema = new mongoose.Schema({
         required: true,
         maxlength: 2000
     },
+    contentType: {
+        type: String,
+        enum: ['plain', 'html', 'markdown'],
+        default: 'plain'
+    },
     authorId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

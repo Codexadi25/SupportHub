@@ -21,11 +21,13 @@ const userSchema = new mongoose.Schema({
     nightMode: { type: Boolean, default: false },
     currentSessionId: { type: String, default: '' },
     lastActiveIp: { type: String, default: '' },
+    lastActiveAt: { type: Date, default: Date.now },
     profileName: { type: String, default: '' },
     displayName: { type: String, default: '' },
     usernameLastChanged: { type: Date, default: null },
     bgColor: { type: String, default: '' }
-}, { timestamps: true });
+    }, 
+{ timestamps: true });
 
 // Hash password before saving a new user
 userSchema.pre('save', async function(next) {

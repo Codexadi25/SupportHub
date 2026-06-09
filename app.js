@@ -132,6 +132,19 @@ app.use('/', require('./routes/viewRoutes'));
 const sopRoutes = require('./routes/sopRoutes');
 app.use('/:lob/sop', sopRoutes);
 
+// --- Dynamic Zomato WIMO-AI-Handover SOP and Editor Routes ---
+const zomatoSopController = require('./controllers/zomatoSopController');
+const { isAuthenticated } = require('./middleware/authMiddleware');
+
+app.get('/zomato/WIMO-AI-Handover', isAuthenticated, zomatoSopController.getWimoSop);
+app.post('/api/sop/category', isAuthenticated, zomatoSopController.createCategory);
+app.put('/api/sop/category', isAuthenticated, zomatoSopController.updateCategory);
+app.delete('/api/sop/category', isAuthenticated, zomatoSopController.deleteCategory);
+app.post('/api/sop/card', isAuthenticated, zomatoSopController.createCard);
+app.put('/api/sop/card/:id', isAuthenticated, zomatoSopController.updateCard);
+app.delete('/api/sop/card/:id', isAuthenticated, zomatoSopController.deleteCard);
+app.post('/api/sop/reorder', isAuthenticated, zomatoSopController.reorderCard);
+
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/api/:lob/cands', require('./routes/api/candRoutes'));
 app.use('/api/:lob/pns', require('./routes/api/pnRoutes'));

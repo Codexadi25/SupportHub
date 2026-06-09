@@ -69,6 +69,8 @@
     <!-- Firebase Realtime Database (compat CDN) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -88,6 +90,7 @@
             </div>
 
             <div class="login-user-info" style="display:flex;align-items:center;gap:10px;padding:4px 6px 4px 10px;">
+
                 <span class="user-name" id="top-bar-username-display" style="cursor:pointer;display:flex;align-items:center;gap:8px;" onclick="openProfileModal()" title="View Profile & Settings">
                     <span class="user-avatar-small" id="user-avatar-topbar">
                         <% if (user.image || user.profilePic) { %>
@@ -134,17 +137,14 @@
                     </span>
                 </button>
                 <% if (user.role !== 'new') { %>
-                  <button class="tab-link sop-btn" target="_blank" data-tab="SmartSOP">Smart SOP</button>
-                <% } %>
-                <% if (user.role === 'admin' || user.role === 'quality_analyst') { %>
-                  <button class="tab-link" data-tab="SOPBuilder">SOP Builder</button>
+                  <a href="/<%= (user.department || 'zomato').toLowerCase().trim() %>/sop/edit" class="tab-link sop-btn" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;">Smart SOP</a>
                 <% } %>
                 <% if (user.role === 'vendor' || user.role === 'admin') { %>
                   <button class="tab-link" data-tab="Logger">Logger</button>
                 <% } %>
                   <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
-                      <button class="tab-link" data-tab="Admin">Admin Panel</button>
-                    <% } %>
+                       <button class="tab-link" data-tab="Admin">Admin Panel</button>
+                     <% } %>
               </div>
 
               <div id="Cands" class="tab-content active">
@@ -423,21 +423,7 @@
                       </div>
                     <% } %>
 
-                      <% if (user.role !== 'new') { %>
-                        <div id="SmartSOP" class="tab-content">
-                          <iframe src="/<%= (user.department || 'zomato').toLowerCase().trim() %>/sop/view" style="width:100%;height:850px;border:0;" title="Smart SOP Panel"></iframe>
-                        </div>
-                      <% } else { %>
-                        <div id="SmartSOP" class="tab-content">
-                          <span class="no-admin">⚠️ Forbidden: SOP Panel access requires elevated privileges.</span>
-                        </div>
-                      <% } %>
 
-                      <% if (user.role === 'admin' || user.role === 'quality_analyst') { %>
-                        <div id="SOPBuilder" class="tab-content">
-                          <iframe src="/<%= (user.department || 'zomato').toLowerCase().trim() %>/sop/edit" style="width:100%;height:850px;border:0;" title="SOP Builder Panel"></iframe>
-                        </div>
-                      <% } %>
 
                     <% if (user.role === 'vendor' || user.role === 'admin') { %>
                       <div id="Logger" class="tab-content">

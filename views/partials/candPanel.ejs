@@ -34,7 +34,7 @@
                         <% } %>
                     </div>
                     <% category.templates.forEach(template => { %>
-                        <div class="cand-item" data-category-id="<%= category._id %>" data-template-id="<%= template._id %>" data-tags="<%= template.tags.join(' ') %>" title="Click to copy">
+                        <div class="cand-item<%= template.isAi ? ' cand-ai-item' : '' %>" data-category-id="<%= category._id %>" data-template-id="<%= template._id %>" data-tags="<%= template.tags.join(' ') %>" title="Click to copy">
                             <div class="cand-header">
                                 <span class="cand-category-label"><%= category.title.toUpperCase() %>
                                     <span class="cand-tags">
@@ -50,6 +50,9 @@
                                         const isUpdated = daysSinceUpdated <= 4 && daysSinceUpdated < daysSinceCreated;
                                         %>
                                         
+                                        <% if (template.isAi) { %>
+                                            <span class="cand-status-tag status-ai">✨ AI</span>
+                                        <% } %>
                                         <% if (isNew) { %>
                                             <span class="cand-status-tag status-new">NEW</span>
                                         <% } %>

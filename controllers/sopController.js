@@ -1,4 +1,5 @@
 const { Sop, Audit } = require('../models/Sop');
+const Notification = require('../models/Notification');
 
 /**
  * Handles the Approval/Publishing Workflow
@@ -26,6 +27,19 @@ exports.approveDraft = async (req, res) => {
                 details: `Approved by ${req.user?.username || 'unknown'} | ${req.user?.role || ''}`,
                 user: req.user?.username || 'system'
             });
+
+            // Dispatch notification alert
+            try {
+                await Notification.create({
+                    title: `New SOP Published: ${sop.title}`,
+                    content: `A new SOP under category "${sop.category}" has been approved and published.`,
+                    type: 'sop_update',
+                    recipientDepartment: sop.lob,
+                    lob: sop.lob
+                });
+            } catch (notifErr) {
+                console.error('[Notification Trigger] Failed to create SOP approval notification:', notifErr);
+            }
         } else {
             sop.status = 'Draft'; // Or 'Rejected'
             await sop.save();

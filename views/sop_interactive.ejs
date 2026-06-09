@@ -1132,7 +1132,80 @@
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .toast.success { background: #1b5e20; }
         .toast.warning { background: #e65100; }
-    </style>
+    
+        /* ─── SOP EDITOR CUSTOM STYLES ───────────────────────────────── */
+        .mode-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+        }
+        .mode-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+        }
+        .mode-btn.active {
+            background: white;
+            color: var(--z-red);
+            border-color: white;
+        }
+        .card-edit-overlay {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            display: none;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 4px 6px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+        body.edit-mode-active .card-edit-overlay {
+            display: flex;
+        }
+        .btn-card-action {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 4px;
+            color: #64748b;
+            border-radius: 4px;
+            transition: background 0.15s, color 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+        }
+        .btn-card-action:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+        .btn-card-action.delete:hover {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+        .btn-card-action.edit:hover {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        body.edit-mode-active .sop-card {
+            border-color: #cbd5e1;
+            background: #fafafa;
+        }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
@@ -1338,586 +1411,79 @@
 <!-- ═══ TOAST ════════════════════════════════════════════════════════ -->
 <div class="toast" id="toast"></div>
 
+
 <div class="layout">
    <header class="search-section">
-      <img class="h-8 w-auto lg:h-8 xl:h-10 2xl:h-14" src="https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png" loading="eager" height="30" alt="Zomato">
+      <img class="h-8 w-auto" src="https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png" loading="eager" height="30" alt="Zomato">
       <input type="text" id="sopSearch" placeholder="Search scenario (e.g., 'mall', 'device', 'spillage')..." onkeyup="filterSOP()">
-      <a href="/"><i class="fa fa-home" style="font-size:36px; color:white;"></i></a>
+      
+      <% if (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) { %>
+         <div class="mode-toggle-container" style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+             <button id="toggleEditModeBtn" class="mode-btn" onclick="toggleEditMode()">
+                 <i class="fa fa-pencil"></i> Manage SOP
+             </button>
+             <button id="addCatBtn" class="mode-btn edit-only" onclick="addCategory()" style="display:none;">
+                 <i class="fa fa-plus"></i> Add Category
+             </button>
+         </div>
+      <% } %>
+      <a href="/" style="<%= (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) ? 'margin-left:12px;' : 'margin-left:auto;' %>"><i class="fa fa-home" style="font-size:36px; color:white;"></i></a>
    </header>
 
    <main class="sop-container">
-
-      <!-- ═══ CATEGORY 1: PRE-PICKUP / FOOD NOT READY ═══════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">01. PRE-PICKUP CONCERNS <span>(Phase: Restaurant / Assigning)</span></div>
-         <div class="sop-grid">
-
-            <!-- 1 -->
-            <div class="sop-card" data-tags="restaurant unresponsive delay cancellation food not ready dp mx 40 mins" onclick="openModal(this)">
-               <div class="card-header">Restaurant Unresponsive (Food Not Ready)</div>
-               <div class="card-cond">DP at restaurant, food not ready, MX not answering</div>
-               <span class="action-tag tag-cancel">Cancel if Delay &gt;40m</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Check if the DP is at the restaurant and try connecting with MX through the DP.
-• If delay &gt;40 mins, food still not ready, and both DP &amp; MX are unresponsive → Proceed with Cancellation.
-• If DP responds and confirms food is being prepared → Compensate the customer and explain the delay reason.
-• If food is ready → Provide compensation based on delay duration.
-• If delay &gt;40 mins and food not ready, MX UR, but DP confirms he is on the way to pickup → Set status: Arrival at Restaurant, time as confirmed by DP.
-Note: In food not ready case — call MX. If MX unresponsive, it is mandatory to check with DP for reason of delay. Ask DP to pass call to MX.
+   <% if (!categories || categories.length === 0) { %>
+      <p style="padding:20px;text-align:center;color:#64748b;">No categories or cards created yet.</p>
+   <% } else { %>
+      <% categories.forEach(function(cat){ %>
+         <div class="category-block" data-category="<%= cat.category %>" data-phase="<%= cat.phase %>">
+            <div class="category-title" style="display:flex;justify-content:space-between;align-items:center;">
+               <div>
+                   <span class="cat-name" style="font-weight:700;"><%= cat.category %></span>
+                   <span class="cat-phase" style="font-size:0.85rem;font-weight:normal;color:#666;margin-left:8px;"><%= cat.phase %></span>
                </div>
+               <% if (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) { %>
+                  <div class="cat-edit-actions edit-only" style="display:none;gap:6px;">
+                     <button class="mode-btn" onclick="editCategory('<%= cat.category %>', '<%= cat.phase %>')" style="padding:4px 8px;font-size:0.75rem;background:#f1f5f9;color:#475569;border-color:#cbd5e1;"><i class="fa fa-pencil"></i> Rename</button>
+                     <button class="mode-btn" onclick="deleteCategory('<%= cat.category %>')" style="padding:4px 8px;font-size:0.75rem;background:#fee2e2;color:#ef4444;border-color:#fca5a5;"><i class="fa fa-trash"></i> Delete</button>
+                  </div>
+               <% } %>
             </div>
-
-            <!-- 2 -->
-            <div class="sop-card" data-tags="no delivery partner available area valet bot prompt less moderate high" onclick="openModal(this)">
-               <div class="card-header">No DP Available in Area</div>
-               <div class="card-cond">Less/moderate/high DP availability status</div>
-               <span class="action-tag tag-cancel">Cancel if Delay &gt;30m</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Check the Delivery Partner's availability status (less / moderate / high) and create a prompt for the bot.
-• Prompt example: Due to less availability of the delivery partners, it is taking longer than usual to assign a partner.
-• In case valet not assigned, if delay &gt;25–30 mins → Send prompt for waiting.
-• Cancel if delay is &gt;30 mins.
-               </div>
+            <div class="sop-grid" data-category="<%= cat.category %>">
+               <% cat.items.forEach(function(sop){ %>
+                  <div class="sop-card" 
+                       data-id="<%= sop._id %>"
+                       data-tags="<%= (sop.tags || []).join(' ') %>"
+                       onclick="openSopModal(this)">
+                     <div class="card-header"><%= sop.title %></div>
+                     <div class="card-cond"><%= sop.condition %></div>
+                     <span class="action-tag tag-<%= (sop.action && sop.action.toLowerCase().includes('cancel')) ? 'cancel' : (sop.action && sop.action.toLowerCase().includes('escalate')) ? 'esc' : 'wait' %>">
+                         <%= sop.action %>
+                     </span>
+                     <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+                     <div class="card-detail-data" style="display:none"><%= sop.details %></div>
+                     
+                     <% if (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) { %>
+                        <div class="card-edit-overlay" onclick="event.stopPropagation()">
+                           <button class="btn-card-action edit" onclick="editCard('<%= sop._id %>')" title="Edit"><i class="fa fa-pencil"></i></button>
+                           <button class="btn-card-action move-up" onclick="moveCard('<%= sop._id %>', 'up')" title="Move Up"><i class="fa fa-arrow-up"></i></button>
+                           <button class="btn-card-action move-down" onclick="moveCard('<%= sop._id %>', 'down')" title="Move Down"><i class="fa fa-arrow-down"></i></button>
+                           <button class="btn-card-action delete" onclick="deleteCard('<%= sop._id %>')" title="Delete"><i class="fa fa-trash"></i></button>
+                        </div>
+                     <% } %>
+                  </div>
+               <% }) %>
+               <% if (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) { %>
+                  <div class="sop-card add-card-placeholder edit-only" onclick="addCard('<%= cat.category %>', '<%= cat.phase %>')" style="display:none;justify-content:center;align-items:center;border:2px dashed #ccc;background:none;height:120px;">
+                     <div style="font-size:2rem;color:#94a3b8;margin-bottom:4px;">＋</div>
+                     <div style="color:#64748b;font-size:0.8rem;font-weight:700;">Add Card</div>
+                  </div>
+               <% } %>
             </div>
-
-            <!-- 3 -->
-            <div class="sop-card" data-tags="valet not assigned food not ready mx unresponsive prep end 30 mins" onclick="openModal(this)">
-               <div class="card-header">Valet Not Assigned Case</div>
-               <div class="card-cond">DP not assigned, food not ready, MX unresponsive</div>
-               <span class="action-tag tag-esc">Check &amp; Set Status</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If DP is not assigned and food not ready → Call MX.
-• If MX unresponsive → Set expected time: 10 mins → Order status: "Prep End" (only for less than 30 mins case).
-• Call MX → MX unresponsive → food not ready → 10 mins time → prep end (from 17-Apr-26 update).
-               </div>
-            </div>
-
-            <!-- 4 -->
-            <div class="sop-card" data-tags="device issues merchant restaurant unable see order prompt cancel" onclick="openModal(this)">
-               <div class="card-header">Restaurant Device Issues</div>
-               <div class="card-cond">Restaurant can't see or process the order</div>
-               <span class="action-tag tag-cancel">Send Prompt &amp; Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Send prompt and select cancellation.
-• Prompt example: Upon checking, the restaurant informed that they are facing device issues due to which they are unable to process your order.
-               </div>
-            </div>
-
-            <!-- 5 -->
-            <div class="sop-card" data-tags="device issues delivery partner unable see order details reassign cancel" onclick="openModal(this)">
-               <div class="card-header">DP Device Issues</div>
-               <div class="card-cond">DP can't see order details on their device</div>
-               <span class="action-tag tag-cancel">Reassign or Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Try to reassign first.
-• If driver not available → Cancel.
-• Prompt example: The delivery partner is facing device issues due to which he is unable to see your order at the moment.
-               </div>
-            </div>
-
-            <!-- 6 -->
-            <div class="sop-card" data-tags="out of stock missing partial prepaid cod alternate item escalate cancel" onclick="openModal(this)">
-               <div class="card-header">Out of Stock / Missing Items</div>
-               <div class="card-cond">Restaurant confirms items unavailable or partial</div>
-               <span class="action-tag tag-esc">Escalate to Agent</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-1. If MX confirms items are partially missing (some items in the order are missing) → Escalate to agent.
-   Example: If a customer ordered two items and only one can be prepared, the case must be escalated.
-
-2. If COD order → Select cancellation.
-   If prepaid order → Check with the restaurant partner if an alternate item can be prepared.
-   • If NO → Cancel.
-   • If YES (alternate item can be prepared) → Escalate to agent.
-
-Note: If DP stated that the item is out of stock, agent must confirm this from MX.
-• If restaurant unresponsive → Select cancellation.
-• If MX said CX denied to accept alternate of the order → Select Cancellation.
-               </div>
-            </div>
-
-            <!-- 7 -->
-            <div class="sop-card" data-tags="marked ready early by mistake restaurant priority prompt" onclick="openModal(this)">
-               <div class="card-header">Marked Ready Early (by Mistake)</div>
-               <div class="card-cond">Restaurant marked order ready prematurely</div>
-               <span class="action-tag tag-wait">Send Prompt</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Ask the restaurant to prepare the order on priority and ask how much time it will take.
-• Create a prompt and mention the delay reason.
-• Prompt example: The restaurant has marked the order ready before time by mistake but we have asked them to speed up the process for you.
-               </div>
-            </div>
-
-            <!-- 8 -->
-            <div class="sop-card" data-tags="outlet closed restaurant cancelled dp voc unresponsive" onclick="openModal(this)">
-               <div class="card-header">Outlet Closed</div>
-               <div class="card-cond">Restaurant confirmed closed or unresponsive</div>
-               <span class="action-tag tag-cancel">Select Cancellation</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If confirmed (with restaurant) → Select cancellation.
-• If restaurant is unresponsive → Go with the DP VOC and select cancellation.
-               </div>
-            </div>
-
-            <!-- 9 -->
-            <div class="sop-card" data-tags="wrong restaurant address cancel dp voc unresponsive confirmed" onclick="openModal(this)">
-               <div class="card-header">Wrong Restaurant Address</div>
-               <div class="card-cond">Restaurant address is incorrect or mismatched</div>
-               <span class="action-tag tag-cancel">Select Cancellation</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If confirmed (with restaurant) → Select cancellation.
-• If restaurant is unresponsive → Go with the DP VOC and select cancellation.
-               </div>
-            </div>
-
-            <!-- 10 -->
-            <div class="sop-card" data-tags="mall order inside premises gate delivery partner waiting food ready prep end 5 mins" onclick="openModal(this)">
-               <div class="card-header">Mall Orders</div>
-               <div class="card-cond">Order falls inside a mall / restricted premises</div>
-               <span class="action-tag tag-wait">Prompt &amp; Compensate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Call the restaurant. If they don't respond, call the Delivery Partner.
-• Ask the DP for the estimation and create a prompt. Compensate according to the delay.
-• Prompt example: Since the order falls inside a mall's premises, the delivery partner is not allowed to enter the gate. Trying our best to expedite the order for you.
-• In case DP is waiting outside the mall, food is ready but DP is waiting outside → Set status: Prep End, expected time: 5 mins (from 17-Apr-26: Mall order food waiting = Expected 5 mins).
-               </div>
-            </div>
-
          </div>
-      </div>
-
-      <!-- ═══ CATEGORY 2: AWAITING PICKUP ═══════════════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">02. AWAITING PICK UP <span>(Phase: Pre-Transit)</span></div>
-         <div class="sop-grid">
-
-            <!-- 11 -->
-            <div class="sop-card" data-tags="awaiting pickup restaurant confirms picked up status 30 mins wait escalate reassign" onclick="openModal(this)">
-               <div class="card-header">Awaiting Pickup — Order Picked but Status Not Updated</div>
-               <div class="card-cond">Restaurant says order picked, status still shows Awaiting Pickup</div>
-               <span class="action-tag tag-wait">Wait or Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-Scenario 1: Restaurant confirms order already picked up but status shows "Awaiting Pickup":
-• If less than 30 minutes → Send wait prompt.
-• If more than 30 minutes → Escalate the case.
-
-Scenario 2: Both DP &amp; MX unresponsive (Status: Awaiting Pickup):
-• If delay &gt;30 mins → Reassign the order.
-• If no rider available for reassignment → Escalate the case.
-
-Scenario 3: Delay &gt;37 mins, status still "Waiting for Pickup", DP en route to restaurant:
-• Contact both DP and MX. Reassign the order to another available DP.
-
-Scenario 4: DP &amp; MX unresponsive but DP was just assigned a few minutes ago:
-• Call the DP. If still unresponsive → Mention in PN: "DP recently assigned by backend and is on the way to the restaurant; hence escalated" (only if delay &gt;30 mins).
-
-Case 1 – DP denies delivery (vehicle / accident / rain):
-• Try to reassign. If DP unavailable → Cancel the order (applies pre &amp; post pickup; time does not matter).
-• Note: In rain, another DP can pick if available.
-
-Case 2 – DP says no longer working with Zomato:
-• Try to reassign. If DP unavailable → Escalate the case.
-
-Case 3 – Mismatch in DP &amp; MX response (Delay &gt;30 mins):
-• DP: Food not ready / MX: Food is ready → Reconnect with DP and confirm order is ready for pickup.
-
-Case 4 – DP says "just reached the restaurant":
-• Expected time: 2–3 minutes. Order status: Arrived at restaurant.
-
-Case 5 – Delay &lt;30 mins, DP &amp; MX unresponsive, food ready &amp; DP waiting at restaurant:
-• Set order status: Preparation End. Set expected time: 5–10 minutes.
-
-Case 6 – DP cannot see order on device:
-• Ask DP to refresh the app. If still not visible → Reassign. If fails → Cancel.
-
-If MX unresponsive and DP unsure about prep time and delay reason:
-• If delay &gt;40 mins → Escalate the case.
-
-Scenario: DP &amp; MX both unresponsive, delay &lt;30 mins:
-• Set order status: Preparation End. Expected time: up to 5 mins.
-• Note: Do not add expected time less or more than 5 mins.
-
-Scenario: Delay &gt;30 mins, DP says caught by police (Status: Awaiting Pickup):
-• First reassign. If no DP available → Escalate.
-
-Scenario: DP confirms will reach restaurant and gives time (e.g., 20 mins):
-• Give waiting prompt. Compensate as per delay.
-               </div>
-            </div>
-
-            <!-- 12 -->
-            <div class="sop-card" data-tags="picked another dp awaiting pickup mx prepare again cancel prompt" onclick="openModal(this)">
-               <div class="card-header">Picked by Another DP</div>
-               <div class="card-cond">Current DP says another DP already picked the order</div>
-               <span class="action-tag tag-cancel">Check MX — Cancel if Needed</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-If the current DP says another delivery partner has already picked up the order:
-• Call MX and confirm if the order can be prepared again.
-• If MX confirms YES (can prepare again) → Provide waiting prompt. Compensate as per delay.
-• If MX confirms NO (cannot prepare again) → Cancel the order.
-• Cancellation Prompt: The order was picked up by a different delivery partner, which caused a delay. Unfortunately, the restaurant is unable to prepare it again, so the order has been cancelled.
-• If MX is unresponsive → Check with the DP for confirmation.
-               </div>
-            </div>
-
-         </div>
-      </div>
-
-      <!-- ═══ CATEGORY 3: POST-PICKUP CONCERNS ══════════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">03. POST-PICKUP CONCERNS <span>(Phase: In-Transit)</span></div>
-         <div class="sop-grid">
-
-            <!-- 13 -->
-            <div class="sop-card" data-tags="dp not responding calls tracking movement map double tracking pn compensate escalate 30 mins ur" onclick="openModal(this)">
-               <div class="card-header">DP Not Responding to Calls</div>
-               <div class="card-cond">Post-pickup, DP unreachable but order in transit</div>
-               <span class="action-tag tag-esc">Track &amp; Escalate if &gt;30m</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Track the DP's location from the map and see if he is moving. Include double tracking details in PN.
-• Prompt: The delivery partner is not responding to our calls at the moment but we can track his movement and he is getting closer to your location.
-• Compensate according to the delay. Mention delay time and tracking details in private notes (PN).
-
-If DP is not moving (order is Picked Up):
-• If delay &lt;30 mins → Ask customer to wait.
-• If delay &gt;30 mins → Escalate.
-
-In DP UR case: Time doesn't matter — if KMs are not reducing, escalate above 30 mins delay.
-               </div>
-            </div>
-
-            <!-- 14 -->
-            <div class="sop-card" data-tags="dp unable deliver after pickup vehicle mobile app issue reassign cancel" onclick="openModal(this)">
-               <div class="card-header">DP Unable to Deliver After Pickup</div>
-               <div class="card-cond">DP says cannot deliver — vehicle, mobile, or app issue</div>
-               <span class="action-tag tag-cancel">Reassign or Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• DP says order is picked up but unable to deliver (reasons: vehicle issue, mobile issue, app issue, etc.).
-• Check with reassignment first.
-• If reassignment not happening → Proceed with cancellation.
-               </div>
-            </div>
-
-            <!-- 15 -->
-            <div class="sop-card" data-tags="dp unable find customer location map real time update prompt escalate" onclick="openModal(this)">
-               <div class="card-header">DP Unable to Find Customer Location</div>
-               <div class="card-cond">DP struggling to locate delivery address</div>
-               <span class="action-tag tag-esc">Assist or Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Ask the DP to call the customer and get a real-time update.
-• Prompt: The delivery partner is facing difficulty to locate your location as per the map. He should be reaching you anytime now. You can also try calling him.
-• If the DP needs assistance → Escalate the case to an agent.
-               </div>
-            </div>
-
-            <!-- 16 -->
-            <div class="sop-card" data-tags="traffic festive delay cancellation deliver prompt compensate" onclick="openModal(this)">
-               <div class="card-header">Traffic / Festive Delay</div>
-               <div class="card-cond">DP delayed due to traffic or festive conditions</div>
-               <span class="action-tag tag-wait">Prompt &amp; Compensate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-Case 1 – If order can be delivered:
-• Prompt: Due to a festive occasion, the delivery partner is taking longer than usual to reach your location.
-• Compensate according to the delay.
-
-Case 2 – If the order cannot be delivered:
-• Prompt: Due to a festive occasion, the delivery partner is taking longer than usual and is unable to move.
-• Select cancellation.
-               </div>
-            </div>
-
-            <!-- 17 -->
-            <div class="sop-card" data-tags="post pickup order transfer previous dp unresponsive reassign new dp switched off escalate cancel" onclick="openModal(this)">
-               <div class="card-header">Post-Pickup Order Transfer — Old DP Unresponsive</div>
-               <div class="card-cond">New DP assigned but old DP unresponsive / unavailable</div>
-               <span class="action-tag tag-cancel">Reassign / Cancel / Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-Prompt: The primary delivery partner is not responding due to which the new assigned partner is unable to collect the order. Select cancellation.
-
-Case 1 – New DP says no old DP available, number is switched off:
-• Agent must attempt call from his/her end. If old DP number is switched off → Cancel.
-
-Case 2 – New DP says no old DP available, number is unresponsive but calls connecting:
-• Escalate the ticket.
-
-Case 3 – Both DPs not responding to calls:
-• Escalate the ticket.
-               </div>
-            </div>
-
-            <!-- 18 -->
-            <div class="sop-card" data-tags="customer address mismatch dp deliver updated whatsapp location long distance cancel escalate" onclick="openModal(this)">
-               <div class="card-header">Customer Address Mismatch</div>
-               <div class="card-cond">DP cannot deliver due to incorrect address</div>
-               <span class="action-tag tag-cancel">Resolve or Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Try to request the DP to deliver to the updated address or take the location on WhatsApp and get the order delivered.
-• If DP is unable to connect with the customer but still needs assistance → Escalate to agent.
-• If DP says distance is long → Select cancellation.
-• Prompt: The delivery partner confirmed that the location is incorrect due to which he is unable to deliver the order.
-               </div>
-            </div>
-
-            <!-- 19 -->
-            <div class="sop-card" data-tags="cx unresponsive dp reached location prompt calls attend escalate agent" onclick="openModal(this)">
-               <div class="card-header">Customer Unresponsive — DP at Location</div>
-               <div class="card-cond">DP at delivery location, CX not answering calls</div>
-               <span class="action-tag tag-esc">Prompt CX or Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Prompt: The delivery partner has reached your location and is trying to connect with you. Kindly attend the call so that the order can be delivered.
-• If DP says customer not responding to calls and he needs help → Escalate to agent.
-               </div>
-            </div>
-
-            <!-- 20 -->
-            <div class="sop-card" data-tags="spillage damaged order minor major cancel prompt delivery partner" onclick="openModal(this)">
-               <div class="card-header">Spillage / Damaged Order</div>
-               <div class="card-cond">DP reports order is damaged or spilled</div>
-               <span class="action-tag tag-cancel">Minor: Prompt | Major: Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Check with the delivery partner.
-• Minor damaged: Send prompt — As confirmed by the delivery partner, there is a minor spillage but the order can be handed over.
-• Major / Fully damaged: Delay does not matter — Select cancellation.
-               </div>
-            </div>
-
-            <!-- 21 -->
-            <div class="sop-card" data-tags="language barrier smartplugs 30 mins wait escalate tracking" onclick="openModal(this)">
-               <div class="card-header">Language Barrier</div>
-               <div class="card-cond">Communication issue with DP due to language</div>
-               <span class="action-tag tag-esc">Smartplugs / Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Check with Smartplugs.
-• If delay &lt;30 mins → Send waiting prompt as per tracking and close the ticket.
-• If delay &gt;30 mins → Escalate.
-               </div>
-            </div>
-
-            <!-- 22 -->
-            <div class="sop-card" data-tags="awaiting pickup post transit dp mx unresponsive reassign escalate 30 mins" onclick="openModal(this)">
-               <div class="card-header">Awaiting Pickup — Post-Transit Stuck</div>
-               <div class="card-cond">Order stuck at awaiting pickup, DP &amp; MX unreachable</div>
-               <span class="action-tag tag-esc">Reassign or Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-If DP &amp; MX are unresponsive and unable to track order status (Status: Awaiting Pick Up):
-• If delay &gt;30 mins → Reassign. If not possible → Escalate to agent.
-
-If MX is responsive and stating order is ready but DP is unresponsive (Status: Awaiting Pick Up):
-• If delay &lt;30 mins → Ask to wait.
-• If delay &gt;30 mins → Reassign. If not possible → Escalate to agent.
-               </div>
-            </div>
-
-            <!-- 23 -->
-            <div class="sop-card" data-tags="cx asked dp cancel escalate agent" onclick="openModal(this)">
-               <div class="card-header">CX Asked DP to Cancel</div>
-               <div class="card-cond">Customer requests cancellation directly to DP</div>
-               <span class="action-tag tag-esc">Escalate to Agent</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If CX asks DP to cancel the order → Escalate to the agent.
-               </div>
-            </div>
-
-            <!-- 24 -->
-            <div class="sop-card" data-tags="dp updated delivered but didnt give order damage stolen escalate post pickup" onclick="openModal(this)">
-               <div class="card-header">DP Marked Delivered but Didn't Hand Over Order</div>
-               <div class="card-cond">DP updated status as delivered but order not given (damage/stolen)</div>
-               <span class="action-tag tag-esc">Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If DP says he has updated the status as delivered but didn't give order to customer since it is damaged / stolen → Escalate the ticket.
-               </div>
-            </div>
-
-            <!-- 25 -->
-            <div class="sop-card" data-tags="partial items missing customer denied accept escalate post pickup" onclick="openModal(this)">
-               <div class="card-header">Partial Items Missing — CX Denied Order</div>
-               <div class="card-cond">DP says partial items missing, customer refuses to accept</div>
-               <span class="action-tag tag-esc">Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If delivery partner says partial items are missing and customer denied to accept the order → Escalate the ticket.
-               </div>
-            </div>
-
-            <!-- 26 -->
-            <div class="sop-card" data-tags="dp caught police post pickup cancel delay 30 mins order picked" onclick="openModal(this)">
-               <div class="card-header">DP Caught by Police (Post-Pickup)</div>
-               <div class="card-cond">DP detained by police after picking up order</div>
-               <span class="action-tag tag-cancel">Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If delay is more than 30 minutes and the DP says they are caught by the police and cannot deliver the order, and the order is already picked up → Cancel the order.
-               </div>
-            </div>
-
-            <!-- 27 -->
-            <div class="sop-card" data-tags="post pickup dp reassigned ppc primary second eta arrival cx location 10 mins 5 mins smartplug" onclick="openModal(this)">
-               <div class="card-header">Post-Pickup DP Reassigned Case (PPC)</div>
-               <div class="card-cond">Primary DP has initiated or completed reassignment</div>
-               <span class="action-tag tag-wait">Set Status &amp; ETA</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-1. If Primary DP confirms reassignment is already initiated and waiting for second DP:
-   → Order status: "Arrival at CX Location"
-   → Expected time: "10 mins + ETA" (if DP not yet assigned)
-
-2. If Primary DP has reassigned and second DP details are visible, and second DP confirms on the way to collect from primary DP:
-   → Expected time: "5 mins + ETA" (if time not confirmed)
-   → If time confirmed → Mention exact as per DP's VOC.
-
-3. In PPC:
-   → No need to ask reason for delay (order already assigned to another DP with delay from previous).
-   → Verify the delay through Smart Plug and mention accordingly.
-               </div>
-            </div>
-
-            <!-- 28 -->
-            <div class="sop-card" data-tags="cancellation scenario unable deliver reassign misplaced multi-order train order cod prepaid mx" onclick="openModal(this)">
-               <div class="card-header">Cancellation Scenarios</div>
-               <div class="card-cond">When to select cancellation — all applicable scenarios</div>
-               <span class="action-tag tag-cancel">Select Cancellation</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-Select Cancellation when:
-• DP is unable to deliver the order (after trying to reassign first).
-• MX is unable to cancel the order.
-• MX is unable to prepare the order.
-• Food is not ready and delay &gt;40 mins (DP &amp; MX unresponsive).
-• Order is misplaced by DP (e.g., multi-order assignment).
-• DP says customer asked to cancel order as it's a train order and train has left.
-               </div>
-            </div>
-
-            <!-- 29 -->
-            <div class="sop-card" data-tags="private note mandatory pn reason assign delay tracking details ticket" onclick="openModal(this)">
-               <div class="card-header">Private Note — Mandatory Rules</div>
-               <div class="card-cond">PN must be filled on every ticket</div>
-               <span class="action-tag tag-esc">Mandatory on Every Ticket</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If an agent wants to remove their assigned ticket, they must mention the reason in PN before assigning it to someone else.
-• On each ticket it is mandatory to mention delay and tracking details in PN.
-               </div>
-            </div>
-
-         </div>
-      </div>
-
-      <!-- ═══ CATEGORY 4: GROUPED / MULTI-ORDER ═════════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">04. GROUPED ORDER SCENARIOS <span>(Phase: Multi-Order)</span></div>
-         <div class="sop-grid">
-
-            <!-- 30 -->
-            <div class="sop-card" data-tags="grouped order multi dp support different cx order number lifeline eta buffer 5 mins prompt" onclick="openModal(this)">
-               <div class="card-header">Grouped / Multi-Order Delay</div>
-               <div class="card-cond">DP carrying multiple orders causing delay</div>
-               <span class="action-tag tag-wait">Prompt &amp; Compensate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If DP says they need support for another order from a different CX → Do NOT escalate. Ask them to contact DP Support for that specific order.
-• Ask DP for delivery details of the specific order (order number). If DP provides the details → Give appropriate prompt. If not → Check Lifeline ETA.
-• If DP not confirming time → Agents can add buffer time of 5 mins to ETA.
-• If DP unresponsive → Add 5 mins to ETA.
-• If DP informed waiting for second order delivery (CX getting change, not home, coming down, etc.) → Buffer time (5 mins) + ETA and add expected time.
-
-Case 1 – DP at another restaurant:
-• Prompt: The delivery partner is currently picking up another order from a different restaurant, which is causing a delay. Your order is being prioritized and will be delivered as soon as possible.
-
-Case 2 – DP on another drop:
-• Prompt: The delivery partner is currently completing another delivery and will reach your location shortly.
-• Note: Compensation should be provided as per the delay.
-
-If DP is on the way and not responding (delay &lt;30 mins):
-• Check the order series. If first order = assigned ticket's order → Give ETA.
-• If second order = assigned ticket's order → ETA + 5 mins.
-               </div>
-            </div>
-
-         </div>
-      </div>
-
-      <!-- ═══ CATEGORY 5: ORDER STATUS EXPECTED TIME ═════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">05. ORDER STATUS &amp; EXPECTED TIME <span>(Quick Reference)</span></div>
-         <div class="sop-grid">
-
-            <!-- 31 -->
-            <div class="sop-card" data-tags="order status expected time mx voc dp voc preparation end arrival restaurant cx location eta" onclick="openModal(this)">
-               <div class="card-header">Order Status &amp; Expected Time — Reference</div>
-               <div class="card-cond">What status and time to set based on VOC</div>
-               <span class="action-tag tag-wait">Set Correct Status</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-MX VOC: Packing food / Preparing food / Giving food → Set Status: Preparation End
-
-Arriving soon (order picked up, on way to deliver):
-• Expected time: Less than 5 mins (if ETA not showing)
-
-Reassigned case (order picked up by 1st DP):
-• If DP says he is on the way to collect order from 2nd DP → Status: Arrival at CX Location
-• Expected time: Pickup time + ETA
-
-From 17-Apr-26 update (expected times):
-• Post pick-up case: 10 mins (5 mins for search + 5 mins for pickup)
-• Valet not assigned: 10 mins
-• Food not ready: 10 mins
-• Mall order (food waiting): 5 mins
-• Multi-order case: 5 mins
-• Arriving soon status: 5 mins
-• DP waiting at restaurant, DP UR, MX confirmed food ready → Status: Arrival at Restaurant, Time: 5 mins
-               </div>
-            </div>
-
-         </div>
-      </div>
-
-      <!-- ═══ CATEGORY 6: COMPENSATION POLICY ═══════════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">06. COMPENSATION POLICY <span>(Delay-Based)</span></div>
-         <div class="sop-grid">
-
-            <div class="sop-card" data-tags="compensation policy delay 30 45 minutes ov order value min max" onclick="openModal(this)">
-               <div class="card-header">New Compensation Policy</div>
-               <div class="card-cond">Delay-based compensation slabs (effective Apr 2026)</div>
-               <span class="action-tag tag-wait">Apply Per Slab</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If delay is &lt;30 mins → No compensation should be given.
-• If delay is 30–45 minutes → 35% of OV (Min. ₹50, Max ₹100).
-• If delay is 45+ minutes → 100% of OV (Max ₹500).
-               </div>
-            </div>
-
-         </div>
-      </div>
-
+      <% }) %>
+   <% } %>
    </main>
-
-   <aside class="sidebar">
+<aside class="sidebar">
 
       <!-- Compensation Calculator -->
       <div class="widget">
@@ -3043,6 +2609,298 @@ if (SOP_MODE === 'edit') {
     document.body.setAttribute('data-mode', 'edit');
 }
 
+</script>
+
+
+<script>
+    // Toggle Edit Mode
+    function toggleEditMode() {
+        const btn = document.getElementById('toggleEditModeBtn');
+        const isEdit = document.body.classList.toggle('edit-mode-active');
+        
+        if (isEdit) {
+            btn.classList.add('active');
+            btn.innerHTML = `<i class="fa fa-eye"></i> View Mode`;
+            document.querySelectorAll('.edit-only').forEach(el => el.style.display = 'flex');
+            document.querySelectorAll('.cat-edit-actions').forEach(el => el.style.display = 'flex');
+            document.querySelectorAll('.add-card-placeholder').forEach(el => el.style.display = 'flex');
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = `<i class="fa fa-pencil"></i> Manage SOP`;
+            document.querySelectorAll('.edit-only').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.cat-edit-actions').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.add-card-placeholder').forEach(el => el.style.display = 'none');
+        }
+    }
+
+    // Modal helpers
+    function escapeHtmlAttr(str) {
+        return String(str || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Category Operations
+    function addCategory() {
+        const backdrop = buildBackdrop('catModalBackdrop');
+        backdrop.innerHTML = `
+            <div style="background:#fff;border-radius:14px;padding:28px 32px;width:480px;max-width:97%;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;box-sizing:border-box;">
+                <button onclick="document.getElementById('catModalBackdrop').remove()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+                <h3 style="margin:0 0 16px;font-size:1.1rem;color:var(--z-red);font-family:inherit;">＋ Add New Category</h3>
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;font-family:inherit;">CATEGORY NAME *</label>
+                <input id="cat-name" type="text" placeholder="e.g. 07. POST-DELIVERY CONCERNS" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:14px;box-sizing:border-box;">
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;font-family:inherit;">PHASE INFO (optional)</label>
+                <input id="cat-phase" type="text" placeholder="e.g. (Phase: Delivery Done)" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:18px;box-sizing:border-box;">
+                <button id="saveCatBtn" class="mode-btn" style="width:100%;padding:12px;background:var(--z-red);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem;justify-content:center;box-sizing:border-box;font-family:inherit;">Create Category</button>
+            </div>
+        `;
+        document.body.appendChild(backdrop);
+        document.getElementById('saveCatBtn').addEventListener('click', async () => {
+            const category = document.getElementById('cat-name').value.trim();
+            const phase = document.getElementById('cat-phase').value.trim();
+            if (!category) { alert('Category name is required.'); return; }
+            try {
+                const res = await fetch('/api/sop/category', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category, phase })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to create category');
+                location.reload();
+            } catch (err) { alert(err.message); }
+        });
+    }
+
+    function editCategory(oldCategory, oldPhase) {
+        const backdrop = buildBackdrop('catModalBackdrop');
+        backdrop.innerHTML = `
+            <div style="background:#fff;border-radius:14px;padding:28px 32px;width:480px;max-width:97%;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;box-sizing:border-box;">
+                <button onclick="document.getElementById('catModalBackdrop').remove()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+                <h3 style="margin:0 0 16px;font-size:1.1rem;color:var(--z-red);font-family:inherit;">✏️ Rename Category</h3>
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;font-family:inherit;">CATEGORY NAME *</label>
+                <input id="cat-name" type="text" value="${escapeHtmlAttr(oldCategory)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:14px;box-sizing:border-box;">
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;font-family:inherit;">PHASE INFO</label>
+                <input id="cat-phase" type="text" value="${escapeHtmlAttr(oldPhase)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:18px;box-sizing:border-box;">
+                <button id="saveCatBtn" class="mode-btn" style="width:100%;padding:12px;background:var(--z-red);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem;justify-content:center;box-sizing:border-box;font-family:inherit;">Save Changes</button>
+            </div>
+        `;
+        document.body.appendChild(backdrop);
+        document.getElementById('saveCatBtn').addEventListener('click', async () => {
+            const newCategory = document.getElementById('cat-name').value.trim();
+            const phase = document.getElementById('cat-phase').value.trim();
+            if (!newCategory) { alert('Category name is required.'); return; }
+            try {
+                const res = await fetch('/api/sop/category', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ oldCategory, newCategory, phase })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to update category');
+                location.reload();
+            } catch (err) { alert(err.message); }
+        });
+    }
+
+    async function deleteCategory(category) {
+        if (!confirm(`Are you sure you want to delete the category "${category}" and all its SOP cards? This action cannot be undone.`)) return;
+        try {
+            const res = await fetch('/api/sop/category', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to delete category');
+            location.reload();
+        } catch (err) { alert(err.message); }
+    }
+
+    // Card Operations
+    function addCard(category, phase) {
+        const backdrop = buildBackdrop('cardModalBackdrop');
+        backdrop.innerHTML = `
+            <div style="background:#fff;border-radius:14px;padding:28px 32px;width:600px;max-width:97%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;box-sizing:border-box;font-family:inherit;">
+                <button onclick="document.getElementById('cardModalBackdrop').remove()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+                <h3 style="margin:0 0 16px;font-size:1.1rem;color:var(--z-red);">＋ Add Card in "${escapeHtmlAttr(category)}"</h3>
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CARD TITLE *</label>
+                <input id="card-title" type="text" placeholder="Scenario title" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;box-sizing:border-box;">
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CONDITION *</label>
+                <input id="card-cond" type="text" placeholder="Trigger condition" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;box-sizing:border-box;">
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">ACTION TAG TEXT *</label>
+                <input id="card-action" type="text" placeholder="e.g. Cancel if Delay >40m" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;box-sizing:border-box;">
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">SEARCH TAGS (comma-separated)</label>
+                <input id="card-tags" type="text" placeholder="e.g. delay, food, cancel" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;box-sizing:border-box;">
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">DETAILED INSTRUCTIONS (Markdown/HTML/Text) *</label>
+                <textarea id="card-details" rows="8" placeholder="Bullet points, guidelines..." style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.88rem;resize:vertical;margin-bottom:18px;box-sizing:border-box;"></textarea>
+                
+                <button id="saveCardBtn" class="mode-btn" style="width:100%;padding:12px;background:var(--z-red);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem;justify-content:center;box-sizing:border-box;font-family:inherit;">Create Card</button>
+            </div>
+        `;
+        document.body.appendChild(backdrop);
+        document.getElementById('saveCardBtn').addEventListener('click', async () => {
+            const title = document.getElementById('card-title').value.trim();
+            const condition = document.getElementById('card-cond').value.trim();
+            const action = document.getElementById('card-action').value.trim();
+            const details = document.getElementById('card-details').value;
+            const tags = document.getElementById('card-tags').value;
+            
+            if (!title || !condition || !action || !details) {
+                alert('Please fill out all required fields.');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/sop/card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category, phase, title, condition, action, details, tags })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to create card');
+                location.reload();
+            } catch (err) { alert(err.message); }
+        });
+    }
+
+    function editCard(sopId) {
+        const card = document.querySelector(`.sop-card[data-id="${sopId}"]`);
+        const title = card.querySelector('.card-header')?.innerText || '';
+        const cond = card.querySelector('.card-cond')?.innerText || '';
+        const action = card.querySelector('.action-tag')?.innerText || '';
+        const details = card.querySelector('.card-detail-data')?.innerText || '';
+        const tags = card.dataset.tags || '';
+        
+        const backdrop = buildBackdrop('cardModalBackdrop');
+        backdrop.innerHTML = `
+            <div style="background:#fff;border-radius:14px;padding:28px 32px;width:600px;max-width:97%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;box-sizing:border-box;font-family:inherit;">
+                <button onclick="document.getElementById('cardModalBackdrop').remove()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+                <h3 style="margin:0 0 16px;font-size:1.1rem;color:var(--z-red);">✏️ Edit SOP Card</h3>
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CARD TITLE *</label>
+                <input id="card-title" type="text" value="${escapeHtmlAttr(title)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;box-sizing:border-box;">
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CONDITION *</label>
+                <input id="card-cond" type="text" value="${escapeHtmlAttr(cond)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;box-sizing:border-box;">
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">ACTION TAG TEXT *</label>
+                <input id="card-action" type="text" value="${escapeHtmlAttr(action)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;box-sizing:border-box;">
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">SEARCH TAGS (comma-separated)</label>
+                <input id="card-tags" type="text" value="${escapeHtmlAttr(tags.split(' ').join(', '))}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;box-sizing:border-box;">
+                
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">DETAILED INSTRUCTIONS (Markdown/HTML/Text) *</label>
+                <textarea id="card-details" rows="8" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.88rem;resize:vertical;margin-bottom:18px;box-sizing:border-box;">${escapeHtmlAttr(details)}</textarea>
+                
+                <button id="saveCardBtn" class="mode-btn" style="width:100%;padding:12px;background:var(--z-red);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem;justify-content:center;box-sizing:border-box;font-family:inherit;">Save Changes</button>
+            </div>
+        `;
+        document.body.appendChild(backdrop);
+        document.getElementById('saveCardBtn').addEventListener('click', async () => {
+            const title = document.getElementById('card-title').value.trim();
+            const condition = document.getElementById('card-cond').value.trim();
+            const action = document.getElementById('card-action').value.trim();
+            const details = document.getElementById('card-details').value;
+            const tags = document.getElementById('card-tags').value;
+            
+            if (!title || !condition || !action || !details) {
+                alert('Please fill out all required fields.');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/sop/card/${sopId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, condition, action, details, tags })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to update card');
+                location.reload();
+            } catch (err) { alert(err.message); }
+        });
+    }
+
+    async function deleteCard(sopId) {
+        if (!confirm('Are you sure you want to delete this SOP card permanently? This action cannot be undone.')) return;
+        try {
+            const res = await fetch(`/api/sop/card/${sopId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to delete card');
+            location.reload();
+        } catch (err) { alert(err.message); }
+    }
+
+    async function moveCard(cardId, direction) {
+        try {
+            const res = await fetch('/api/sop/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cardId, direction })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to reorder');
+            location.reload();
+        } catch (err) { alert(err.message); }
+    }
+</script>
+
+<script>
+    // Overriding the openModal to handle dynamic elements and fallback compile markdown/html rendering
+    function openSopModal(card) {
+        const title      = card.querySelector('.card-header').innerText;
+        const cond       = card.querySelector('.card-cond').innerText;
+        const actionTag  = card.querySelector('.action-tag');
+        const detailText = card.querySelector('.card-detail-data').innerText;
+        const tagClass   = actionTag.className.replace('action-tag ', '');
+
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalCond').innerText  = cond;
+
+        const tagEl      = document.getElementById('modalTag');
+        tagEl.innerText  = actionTag.innerText;
+        tagEl.className  = 'modal-tag action-tag ' + tagClass;
+
+        // Try compiling using marked.js if loaded, otherwise format bullets
+        let bodyHtml = '';
+        if (typeof marked !== 'undefined') {
+            try {
+                // Decode HTML entities before parsing Markdown
+                const txt = document.createElement('textarea');
+                txt.innerHTML = detailText;
+                bodyHtml = marked.parse(txt.value);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        if (!bodyHtml) {
+            bodyHtml = detailText
+                .split('\n').map(line => {
+                    line = line.trim();
+                    if (!line) return '<br>';
+                    if (line.startsWith('•')) return '<span style="display:block;margin:4px 0;">• ' + line.slice(1).trim() + '</span>';
+                    if (/^(Case|Note|⚠️|Special|Example|Prompt|Important|Minor|Major)/i.test(line))
+                        return '<strong style="display:block;margin-top:10px;">' + line + '</strong>';
+                    return '<span style="display:block;">' + line + '</span>';
+                }).join('');
+        }
+
+        document.getElementById('modalBody').innerHTML = bodyHtml;
+        document.getElementById('modalOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
 </script>
 
 </body>

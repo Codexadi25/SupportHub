@@ -2,9 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
-const isAdmin = require('../middleware/isAdmin');
-const { isAuthenticated } = require('../middleware/authMiddleware');
+const { isAuthenticated, isVendorOrAdmin } = require('../middleware/authMiddleware');
 const User = require('../models/User');
+
 
 // GET /api/users/profile -> Get current user settings & IP
 router.get('/users/profile', isAuthenticated, async (req, res) => {
@@ -28,6 +28,9 @@ router.get('/users/profile', isAuthenticated, async (req, res) => {
                 displayName: user.displayName || '',
                 bgColor: user.bgColor || '',
                 usernameLastChanged: user.usernameLastChanged || null,
+                role: user.role || 'user',
+                department: user.department || 'general',
+                sessionId: req.sessionID || 'unknown',
                 ip: req.ip || req.connection.remoteAddress || 'unknown'
             }
         });
@@ -104,6 +107,8 @@ router.put('/users/profile', isAuthenticated, async (req, res) => {
 
         await user.save();
 
+
+
         // Sync to session
         req.session.user.username = user.username;
         req.session.user.email = user.email;
@@ -170,6 +175,6 @@ router.put('/users/profile', isAuthenticated, async (req, res) => {
 
 // mount this router under /api in app.js to keep legacy client endpoints working:
 // app.use('/api', require('./routes/users'));
-router.post('/users/bulk', isAdmin, adminController.bulkCreateUsers);
+router.post('/users/bulk', isVendorOrAdmin, adminController.bulkCreateUsers);
 
 module.exports = router;

@@ -103,23 +103,13 @@
           <% if (typeof step !== 'undefined' && step === 'warn_duplicate') { %>
             <div class="flash warn" style="background:#fff7ed; border:1px solid #ffedd5; color:#c2410c; padding:12px; border-radius:6px; margin-bottom:16px; font-size: 0.85rem; line-height: 1.4;">
               ⚠️ <strong>Active session detected on another device.</strong><br>
-              You might already be logged in from another device. If this is unauthorized, kindly report the issue immediately. If you proceed, you will verify the next step.
+              You might already be logged in from another device. If this is unauthorized, kindly report the issue immediately. If you proceed, the other session will be automatically terminated.
             </div>
             <input type="hidden" name="step" value="confirm_logout">
             
             <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; width:100%;">
-              <button type="submit" id="login-btn" class="btn-login" style="margin:0; width:100%;">Continue to Log In →</button>
+              <button type="submit" id="login-btn" class="btn-login" style="margin:0; width:100%;">Log In &amp; Terminate Other Session →</button>
               <button type="button" onclick="reportUnauthorized()" class="btn" style="background:#ef4444; color:white; padding: 10.5px; border-radius: 6px; font-weight: 600; text-align: center; border: none; cursor: pointer; transition: all 0.2s; font-size: 0.85rem;">Report Unauthorized Access 🚨</button>
-            </div>
-          <% } else if (typeof step !== 'undefined' && step === 'confirm_logout') { %>
-            <div class="flash warn" style="background:#fff7ed; border:1px solid #ffedd5; color:#c2410c; padding:12px; border-radius:6px; margin-bottom:16px; font-size: 0.85rem; line-height: 1.4;">
-              ⚠️ <strong>Warning: Terminate other session?</strong><br>
-              If you still try to login, the other active device session will be automatically logged out.
-            </div>
-            <input type="hidden" name="step" value="proceed">
-            
-            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; width:100%;">
-              <button type="submit" id="login-btn" class="btn-login" style="margin:0; width:100%;">Force Log In &amp; Terminate Other Device →</button>
               <a href="/login" class="btn" style="background:#6b7280; color:white; padding: 10.5px; border-radius: 6px; font-weight: 600; text-align: center; text-decoration: none; font-size: 0.85rem; transition: all 0.2s;">Cancel</a>
             </div>
           <% } %>

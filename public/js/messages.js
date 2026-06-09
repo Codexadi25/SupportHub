@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="message-title">${escapeHtml(message.title)}</div>
-                    <div class="message-content">${linkifyText(escapeHtml(message.content))}</div>
+                    <div class="message-content">${compileContent(message.content, message.contentType)}</div>
                     <div class="message-target-info">
                         Target: ${getTargetDescription(message)}
                     </div>
@@ -250,7 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
             priority: formData.get('priority'),
             endDate: formData.get('endDate'),
             targetRoles,
-            targetUsers
+            targetUsers,
+            contentType: formData.get('contentType') || 'plain'
         };
         
         try {
@@ -363,6 +364,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
     
+    function compileContent(content, contentType) {
+        if (!content) return '';
+        if (contentType === 'html') {
+            return content;
+        } else if (contentType === 'markdown' && typeof marked !== 'undefined') {
+            try {
+                return marked.parse(content);
+            } catch (e) {
+                console.error('Markdown parse error:', e);
+                return linkifyText(escapeHtml(content)).replace(/\n/g, '<br>');
+            }
+        } else {
+            return linkifyText(escapeHtml(content)).replace(/\n/g, '<br>');
+        }
+    }
+
     // Function to detect and convert URLs to clickable links
     function linkifyText(text) {
         if (!text) return '';

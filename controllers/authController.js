@@ -14,9 +14,20 @@ exports.getLoginPage = (req, res) => {
     }
     const reason = req.query.reason;
     let error = null;
-    if (reason === 'single_device') {
-        error = 'You have been logged out because your account was logged in from another device.';
+    
+    const reasonMessages = {
+        single_device: 'You have been logged out because your account was logged in from another device.',
+        account_deactivated: 'Your account has been deactivated by an administrator.',
+        role_changed: 'Your role or access privileges have been modified. Please login again to apply changes.',
+        inactivity: 'You have been logged out due to inactivity.',
+        session_expired: 'Your session has expired. Please login again.',
+        forced: 'An administrator has terminated your session.'
+    };
+
+    if (reason && reasonMessages[reason]) {
+        error = reasonMessages[reason];
     }
+    
     res.render('login', { error: error, success: null, showRegister: true });
 };
 
@@ -109,31 +120,31 @@ exports.loginUser = async (req, res) => {
         if (user && (await user.matchPassword(password))) {
             // Check if account is already logged in on another device
             if (user.currentSessionId && user.currentSessionId !== req.sessionID) {
-                const { step } = req.body;
-                if (!step) {
-                    // Step 1: Prompt about active session on another device and report option
-                    return res.render('login', {
-                        error: null,
-                        success: null,
-                        isDuplicateSession: true,
-                        step: 'warn_duplicate',
-                        formData: { username, password }
-                    });
-                } else if (step === 'confirm_logout') {
-                    // Step 2: Prompt that the other session will be automatically logged out
-                    return res.render('login', {
-                        error: null,
-                        success: null,
-                        isDuplicateSession: true,
-                        step: 'confirm_logout',
-                        formData: { username, password }
-                    });
+                const lastActive = user.lastActiveAt || user.updatedAt || user.createdAt;
+                const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+                if (lastActive && lastActive < twoHoursAgo) {
+                    user.currentSessionId = '';
+                    user.lastActiveIp = '';
+                    await user.save();
+                } else {
+                    const { step } = req.body;
+                    if (step !== 'confirm_logout') {
+                        // Prompt about active session on another device and allow termination or report
+                        return res.render('login', {
+                            error: null,
+                            success: null,
+                            isDuplicateSession: true,
+                            step: 'warn_duplicate',
+                            formData: { username, password }
+                        });
+                    }
                 }
             }
 
             // Update session tracking and IP in database
             user.currentSessionId = req.sessionID;
             user.lastActiveIp = req.ip || req.connection.remoteAddress;
+            user.lastActiveAt = new Date();
             await user.save();
 
             // Create session — include all user attributes

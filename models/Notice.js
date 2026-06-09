@@ -9,7 +9,12 @@ const noticeSchema = new mongoose.Schema({
     content: {
         type: String,
         required: true,
-        maxlength: 300
+        maxlength: 2000
+    },
+    contentType: {
+        type: String,
+        enum: ['plain', 'html', 'markdown'],
+        default: 'plain'
     },
     authorId: {
         type: mongoose.Schema.Types.ObjectId,

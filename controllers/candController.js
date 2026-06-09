@@ -166,3 +166,98 @@ exports.deleteTemplate = asyncHandler(async (req, res) => {
         throw new Error('Category not found');
     }
 });
+
+// AI GENERATION CONTROLLER //
+exports.generateAiTemplate = asyncHandler(async (req, res) => {
+    const { tags, categoryId } = req.body;
+    
+    if (!tags || !Array.isArray(tags) || tags.length === 0) {
+        res.status(400);
+        throw new Error('Tags are required to generate AI canned response');
+    }
+
+    const lob = req.params.lob || 'zomato';
+    const scenario = tags.join(', ');
+
+    // 1. Generate response text using OpenAI or Gemini
+    const { generateAiCannedResponse } = require('../services/aiService');
+    let text;
+    try {
+        text = await generateAiCannedResponse(scenario);
+    } catch (err) {
+        res.status(400);
+        throw err;
+    }
+
+    // 2. Find or create Category
+    let category;
+    if (categoryId && categoryId !== 'all') {
+        category = await Category.findOne({ _id: categoryId, lob });
+    }
+    
+    if (!category) {
+        // Fallback to "AI Generated" category
+        category = await Category.findOne({ title: 'AI Generated', lob });
+        if (!category) {
+            category = await Category.create({ title: 'AI Generated', lob });
+        }
+    }
+
+    // 3. Save new template
+    const now = new Date();
+    // Ensure tags contains "AI"
+    const finalTags = [...new Set([...tags, 'AI'])];
+    category.templates.push({
+        text,
+        tags: finalTags,
+        isAi: true,
+        meta: {
+            createdAt: now,
+            updatedAt: now
+        }
+    });
+
+    await category.save();
+
+    // Log database change
+    const newTemplate = category.templates[category.templates.length - 1];
+    await Logger.logDatabaseChange('CREATE', 'Template', newTemplate._id.toString(), null, { text, tags: finalTags }, req.session.user.id, req.session.user.username, {
+        ip: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent'),
+        resourceId: category._id.toString()
+    });
+
+    broadcastUpdate({ message: 'A new template was generated using AI.' });
+
+    res.status(201).json({
+        success: true,
+        template: newTemplate,
+        categoryTitle: category.title,
+        categoryId: category._id
+    });
+});
+
+// AI REPHRASE CONTROLLER //
+exports.rephraseAiTemplate = asyncHandler(async (req, res) => {
+    const { text } = req.body;
+    
+    if (!text) {
+        res.status(400);
+        throw new Error('Text is required to rephrase');
+    }
+
+    const { rephraseAiCannedResponse } = require('../services/aiService');
+    let rephrasedText;
+    try {
+        rephrasedText = await rephraseAiCannedResponse(text);
+    } catch (err) {
+        res.status(400);
+        throw err;
+    }
+
+    res.json({
+        success: true,
+        text: rephrasedText
+    });
+});
+

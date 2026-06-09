@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const multer = require('multer');
 const { Sop, Audit, Theme } = require('../models/Sop');
+const Notification = require('../models/Notification');
 const sopController = require('../controllers/sopController');
 const { generateSopDraft } = require('../services/aiService');
 const { isAuthenticated, isNotNew } = require('../middleware/authMiddleware');
@@ -199,6 +200,8 @@ router.put('/update/:id', checkRole(['Admin', 'quality_analyst']), async (req, r
     const sop = await Sop.findById(req.params.id);
     if (!sop) return res.status(404).json({ error: 'SOP not found' });
 
+    const wasPublished = sop.status === 'Published';
+
     if (category  !== undefined) sop.category  = category;
     if (title     !== undefined) sop.title     = title;
     if (condition !== undefined) sop.condition = condition;
@@ -208,6 +211,20 @@ router.put('/update/:id', checkRole(['Admin', 'quality_analyst']), async (req, r
 
     sop.lastUpdated = { at: new Date(), by: user?.username || 'unknown', role: user?.role || 'unknown' };
     await sop.save();
+
+    if (sop.status === 'Published' && (!wasPublished || category !== undefined || title !== undefined)) {
+      try {
+        await Notification.create({
+          title: `SOP Updated: ${sop.title}`,
+          content: `SOP under category "${sop.category}" was updated/published by ${user?.username || 'unknown'}.`,
+          type: 'sop_update',
+          recipientDepartment: sop.lob,
+          lob: sop.lob
+        });
+      } catch (notifErr) {
+        console.error('[Notification Trigger] Failed to create SOP update notification:', notifErr);
+      }
+    }
 
     await Audit.create({
       sopId: sop._id,
@@ -292,9 +309,17 @@ router.get('/admin-settings', checkRole(['Admin']), async (req, res) => {
 // Accessible via /:lob/sop/edit  (e.g. /zomato/wimo-AI-Handover/sop/edit)
 // The /:lob segment is captured by the app.use('/:lob/sop', sopRoutes) mount.
 
-router.get('/edit', isAuthenticated, checkRole(['Admin', 'quality_analyst']), async (req, res) => {
+router.get('/edit', isAuthenticated, async (req, res) => {
   try {
+    const user = req.session?.user || req.user;
+    const rawRole = user?.role || '';
+    const normalizedRole = ROLE_ALIASES[rawRole] || rawRole.toLowerCase();
     const lob = req?.params?.lob || req?.session?.user?.lob || 'zomato';
+
+    if (normalizedRole !== 'admin' && normalizedRole !== 'quality_analyst') {
+      return res.redirect(`/${lob}/sop/view`);
+    }
+
     const theme = await Theme.findOne({ lob }) || {};
 
     // Fetch ALL SOPs for this lob (all statuses) so editor sees everything
@@ -373,6 +398,20 @@ router.post('/block', isAuthenticated, checkRole(['Admin', 'quality_analyst']), 
     });
 
     res.json({ success: true, data: sop });
+
+    if (sop.status === 'Published') {
+      try {
+        await Notification.create({
+          title: `New SOP Published: ${sop.title}`,
+          content: `A new SOP under category "${sop.category}" was published by ${req.session?.user?.username || 'unknown'}.`,
+          type: 'sop_update',
+          recipientDepartment: sop.lob,
+          lob: sop.lob
+        });
+      } catch (notifErr) {
+        console.error('[Notification Trigger] Failed to create SOP publication notification:', notifErr);
+      }
+    }
   } catch (err) {
     console.error('Block create error:', err);
     res.status(500).json({ error: err.message });

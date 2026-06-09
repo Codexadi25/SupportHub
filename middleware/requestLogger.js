@@ -35,7 +35,7 @@ const requestLogger = (req, res, next) => {
                 SILENT_READONLY_PATTERNS.some(p => req.originalUrl.includes(p));
 
             const isSuccess = res.statusCode >= 200 && res.statusCode < 400;
-            const isError   = res.statusCode >= 400;
+            const isError   = res.statusCode >= 500;
             const isSlow    = responseTime > 5000;
 
             // ── Slow-response warning (always log, even for silenced routes) ──
@@ -51,20 +51,29 @@ const requestLogger = (req, res, next) => {
 
             // ── Error logging (always log, even for silenced routes) ─────────
             if (isError) {
-                Logger.logError(
-                    `HTTP ${res.statusCode}: ${req.method} ${req.originalUrl}`,
-                    new Error(`HTTP ${res.statusCode}`),
-                    {
-                        user:         user?.id,
-                        username:     user?.username,
-                        ip:           req.ip || req.connection?.remoteAddress,
-                        userAgent:    req.get('User-Agent'),
-                        responseTime,
-                        statusCode:   res.statusCode,
-                        action:       req.method,
-                        resource:     req.originalUrl.split('/')[2] || 'unknown',
-                    }
-                ).catch(err => console.error('[Logger] error log failed:', err));
+                const logOptions = {
+                    user:         user?.id,
+                    username:     user?.username,
+                    ip:           req.ip || req.connection?.remoteAddress,
+                    userAgent:    req.get('User-Agent'),
+                    responseTime,
+                    statusCode:   res.statusCode,
+                    action:       req.method,
+                    resource:     req.originalUrl.split('/')[2] || 'unknown',
+                };
+                
+                if (res.statusCode >= 500) {
+                    Logger.logError(
+                        `HTTP ${res.statusCode}: ${req.method} ${req.originalUrl}`,
+                        new Error(`HTTP ${res.statusCode}`),
+                        logOptions
+                    ).catch(err => console.error('[Logger] error log failed:', err));
+                } else {
+                    Logger.logWarning(
+                        `HTTP ${res.statusCode}: ${req.method} ${req.originalUrl}`,
+                        logOptions
+                    ).catch(err => console.error('[Logger] warning log failed:', err));
+                }
             }
 
             // ── Info logging — skip silenced routes on success ────────────────

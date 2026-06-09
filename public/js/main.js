@@ -7,7 +7,7 @@
     window.fetch = function(input, init) {
         if (typeof input === 'string') {
             const lob = (window.currentUserDept || 'zomato').toLowerCase().trim();
-            const prefixes = ['/api/cands', '/api/pns', '/api/feedback', '/api/messages', '/api/notices'];
+            const prefixes = ['/api/cands', '/api/pns', '/api/feedback', '/api/messages', '/api/notices', '/api/notifications', '/api/briefings'];
             for (const prefix of prefixes) {
                 if (input === prefix || input.startsWith(prefix + '/') || input.startsWith(prefix + '?')) {
                     input = input.replace('/api/', `/api/${lob}/`);
@@ -217,12 +217,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabLinks = document.querySelectorAll('.tab-link');
     const tabContents = document.querySelectorAll('.tab-content');
     tabLinks.forEach(link => {
-        link.addEventListener('click', () => {
+        link.addEventListener('click', (e) => {
+            if (link.tagName === 'A' && link.getAttribute('target') === '_blank') {
+                return; // Skip click action, let default anchor behavior handle it
+            }
             const tabId = link.dataset.tab;
             tabLinks.forEach(l => l.classList.remove('active'));
             tabContents.forEach(c => c.classList.remove('active'));
             link.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
+            if (tabId) {
+                const el = document.getElementById(tabId);
+                if (el) el.classList.add('active');
+            }
         });
     });
 
@@ -275,6 +281,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     searchIndicator.classList.remove('active');
                 }
+            }
+
+            // Check if no cands match, and multiple tags are active
+            const aiBoxId = 'ai-generation-box';
+            let aiBox = document.getElementById(aiBoxId);
+            if (aiBox) aiBox.remove();
+
+            if (visibleItems.length === 0 && activeTags.size > 1) {
+                aiBox = document.createElement('div');
+                aiBox.id = aiBoxId;
+                aiBox.className = 'ai-generation-box';
+                aiBox.style.cssText = `
+                    text-align: center;
+                    padding: 30px;
+                    border: 2px dashed var(--clr-primary, #2563eb);
+                    border-radius: 12px;
+                    background: rgba(37, 99, 235, 0.05);
+                    margin: 20px auto;
+                    max-width: 500px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                `;
+                aiBox.innerHTML = `
+                    <div style="font-size: 2.2rem; margin-bottom: 12px;">✨</div>
+                    <h4 style="margin: 0 0 8px; color: var(--clr-text-main, #1e293b); font-weight: 700; font-size: 1.05rem;">No matching canned responses found</h4>
+                    <p style="margin: 0 0 16px; color: var(--clr-text-muted, #64748b); font-size: 0.85rem; line-height: 1.5;">
+                        Create a new AI-generated response for these tags:<br>
+                        <strong>\${[...activeTags].map(t => '#' + t).join(' ')}</strong>
+                    </p>
+                    <button id="btn-generate-ai-cand" class="btn btn-primary" style="background: var(--clr-primary, #2563eb); color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(37,99,235,0.2);">
+                        Generate with AI
+                    </button>
+                `;
+                candsContainer.appendChild(aiBox);
             }
         } else if (currentTab.id === 'PNs') {
             const pnCards = document.querySelectorAll('#pns-list-container .pn-card');
@@ -356,10 +395,42 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener('click', async (e) => {
         const target = e.target;
         const closest = (sel) => target.closest(sel);
+
+        // --- AI Canned Response Generation ---
+        if (e.target.closest('#btn-generate-ai-cand')) {
+            const btn = e.target.closest('#btn-generate-ai-cand');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa fa-spinner fa-spin"></i> Generating...`;
+
+            const activeCatBtn = document.querySelector('.category-nav-btn.active');
+            const categoryId = activeCatBtn ? activeCatBtn.dataset.categoryId : 'all';
+
+            try {
+                const data = await apiRequest('/api/cands/generate-ai', 'POST', {
+                    tags: [...activeTags],
+                    categoryId
+                });
+                
+                showToast('AI Canned Response Generated successfully!', 'success');
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1200);
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                showToast(err.message || 'AI Generation failed', 'error');
+            }
+            return;
+        }
         
         // --- Tab Switching (use closest so clicking on children still works) ---
         const tabLink = target.closest('.tab-link');
         if (tabLink) {
+            if (tabLink.tagName === 'A' && tabLink.getAttribute('target') === '_blank') {
+                return;
+            }
             document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             tabLink.classList.add('active');
@@ -508,11 +579,41 @@ document.addEventListener('DOMContentLoaded', () => {
         modalForm.innerHTML = `
             <label for="candText">Response Text</label>
             <textarea id="candText" name="text" required>${text}</textarea>
+            <div style="display:flex; justify-content:flex-end; margin-top:4px; margin-bottom:12px;">
+                <button type="button" id="btn-rephrase-ai" class="btn btn-sm" style="background: #a855f7; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(168,85,247,0.2);">
+                    ✨ Rephrase with AI
+                </button>
+            </div>
             <label for="candTags">Tags (comma-separated)</label>
             <input type="text" id="candTags" name="tags" value="${tags}" placeholder="e.g., delay, dp_issue">
             <button type="submit" class="action-btn">${isEditing ? 'Save Changes' : 'Create Cand'}</button>
         `;
         openModal();
+
+        const rephraseBtn = document.getElementById('btn-rephrase-ai');
+        if (rephraseBtn) {
+            rephraseBtn.addEventListener('click', async () => {
+                const candTextEl = document.getElementById('candText');
+                const textVal = candTextEl.value.trim();
+                if (!textVal) {
+                    showToast('Please enter some text to rephrase first.', 'warning');
+                    return;
+                }
+                const originalHtml = rephraseBtn.innerHTML;
+                rephraseBtn.disabled = true;
+                rephraseBtn.innerHTML = `<i class="fa fa-spinner fa-spin"></i> Rephrasing...`;
+                try {
+                    const data = await apiRequest('/api/cands/rephrase-ai', 'POST', { text: textVal });
+                    candTextEl.value = data.text;
+                    showToast('Rephrased professionally! ✨', 'success');
+                } catch (err) {
+                    showToast(err.message || 'Failed to rephrase', 'error');
+                } finally {
+                    rephraseBtn.disabled = false;
+                    rephraseBtn.innerHTML = originalHtml;
+                }
+            });
+        }
 
         modalForm.onsubmit = async (e) => {
             e.preventDefault();

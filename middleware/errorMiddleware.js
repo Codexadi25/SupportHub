@@ -19,20 +19,22 @@ const errorHandler = async (err, req, res, next) => {
     }
     // --- End of New Error Parsing Logic ---
 
-    // Log the error to the database
-    try {
-        const user = req?.session?.user;
-        await Log.create({
-            level: 'error',
-            message: message, // <-- Use the new, clean message
-            stack: err.stack,
-            user: user?._id || user?.id || null,
-            username: user?.username || '',
-            ip: req.ip || req.connection?.remoteAddress || '',
-            userAgent: req.get ? req.get('User-Agent') : ''
-        });
-    } catch (dbError) {
-        console.error('Failed to write to log database:', dbError);
+    // Log the error to the database only if it is a server error (5xx)
+    if (statusCode >= 500) {
+        try {
+            const user = req?.session?.user;
+            await Log.create({
+                level: 'error',
+                message: message, // <-- Use the new, clean message
+                stack: err.stack,
+                user: user?._id || user?.id || null,
+                username: user?.username || '',
+                ip: req.ip || req.connection?.remoteAddress || '',
+                userAgent: req.get ? req.get('User-Agent') : ''
+            });
+        } catch (dbError) {
+            console.error('Failed to write to log database:', dbError);
+        }
     }
     
     // Also log to console in development

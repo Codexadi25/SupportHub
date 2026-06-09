@@ -22,13 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${canDelete ? `<button class="icon-btn btn-delete-notice" data-id="${n._id}" title="Delete">&#128465;</button>` : ''}
                         </div>` : '';
                     return `
-                        <div class="cand-item" data-notice-id="${n._id}">
+                        <div class="cand-item" data-notice-id="${n._id}" data-content-type="${n.contentType || 'plain'}">
                             <div class="cand-header">
                                 <span class="cand-category-label">${(n.type || 'info').toUpperCase()} • ${(n.priority || 'medium').toUpperCase()}</span>
                                 ${controls}
                             </div>
                             <h4 class="pn-title">${n.title || 'Notice'}</h4>
-                            <pre class="cand-text" style="white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere;">${n.content}</pre>
+                            <div class="cand-text" style="word-wrap:break-word;overflow-wrap:anywhere;margin-bottom:8px;">${compileContent(n.content, n.contentType)}</div>
+                            <textarea style="display:none;" class="raw-content">${escapeHTML(n.content)}</textarea>
                             ${endStr ? `<p class="small" style="opacity:.7;">Valid until: ${endStr}</p>` : ''}
                         </div>`;
                 })
@@ -49,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <label for="noticeTitle">Title *</label>
             <input id="noticeTitle" name="title" type="text" required maxlength="100" placeholder="Short notice title" value="${existing?.title || ''}">
             <label for="noticeContent">Content *</label>
-            <textarea id="noticeContent" name="content" rows="4" required maxlength="300" placeholder="Your notice text (max 300 chars)...">${existing?.content || ''}</textarea>
+            <textarea id="noticeContent" name="content" rows="4" required maxlength="2000" placeholder="Your notice text (max 2000 chars)...">${existing?.content || ''}</textarea>
             <div class="form-row">
                 <div class="form-group">
                     <label for="noticeType">Type</label>
@@ -70,6 +71,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <option value="urgent" ${existing?.priority==='urgent'?'selected':''}>Urgent</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label for="noticeContentType">Format</label>
+                    <select id="noticeContentType" name="contentType">
+                        <option value="plain" ${(!existing || existing?.contentType==='plain')?'selected':''}>Plain Text</option>
+                        <option value="html" ${existing?.contentType==='html'?'selected':''}>HTML</option>
+                        <option value="markdown" ${existing?.contentType==='markdown'?'selected':''}>Markdown</option>
+                    </select>
+                </div>
             </div>
             <label for="noticeEnd">Visible Until</label>
             <input id="noticeEnd" name="endDate" type="datetime-local" value="${existing?.endDate ? new Date(existing.endDate).toISOString().slice(0,16) : defaultEnd}">
@@ -83,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 content: document.getElementById('noticeContent').value.trim(),
                 type: document.getElementById('noticeType').value,
                 priority: document.getElementById('noticePriority').value,
+                contentType: document.getElementById('noticeContentType').value,
                 endDate: document.getElementById('noticeEnd').value
             };
             try {
@@ -120,12 +130,44 @@ document.addEventListener('DOMContentLoaded', () => {
             const existing = {
                 _id: id,
                 title: card.querySelector('.pn-title')?.textContent || '',
-                content: card.querySelector('.cand-text')?.textContent || '',
-                // type/priority are in header label; not essential to parse
+                content: card.querySelector('.raw-content')?.value || '',
+                contentType: card.dataset.contentType || 'plain'
             };
             openNoticeForm(existing);
         }
     });
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function compileContent(content, contentType) {
+        if (!content) return '';
+        if (contentType === 'html') {
+            return content;
+        } else if (contentType === 'markdown' && typeof marked !== 'undefined') {
+            try {
+                return marked.parse(content);
+            } catch (e) {
+                console.error('Markdown parse error:', e);
+                return linkifyText(escapeHTML(content)).replace(/\n/g, '<br>');
+            }
+        } else {
+            return linkifyText(escapeHTML(content)).replace(/\n/g, '<br>');
+        }
+    }
+
+    function linkifyText(text) {
+        if (!text) return '';
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    }
 
     loadNotices();
 });

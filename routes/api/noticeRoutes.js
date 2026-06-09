@@ -28,12 +28,12 @@ router.get('/', isAuthenticated, async (req, res) => {
 // Publish Notices: Admin only per CSV
 router.post('/', isAuthenticated, isAdmin, async (req, res) => {
     try {
-        const { title, content, type = 'info', priority = 'medium', endDate } = req.body;
+        const { title, content, type = 'info', priority = 'medium', endDate, contentType = 'plain' } = req.body;
         if (!title || !content) {
             return res.status(400).json({ message: 'Title and content are required' });
         }
-        if (String(content).length > 300) {
-            return res.status(400).json({ message: 'Content exceeds 300 characters' });
+        if (String(content).length > 2000) {
+            return res.status(400).json({ message: 'Content exceeds 2000 characters' });
         }
 
         const sessionUser = req.session.user || {};
@@ -47,7 +47,8 @@ router.post('/', isAuthenticated, isAdmin, async (req, res) => {
             authorId,
             authorName: sessionUser.username,
             endDate: endDate ? new Date(endDate) : null,
-            lob: req.params.lob
+            lob: req.params.lob,
+            contentType
         });
 
         await notice.save();
@@ -63,9 +64,9 @@ router.post('/', isAuthenticated, isAdmin, async (req, res) => {
 // Update Notices: Admin only per CSV
 router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {
-        const { title, content, type, priority, endDate, isActive } = req.body;
-        if (content && String(content).length > 300) {
-            return res.status(400).json({ message: 'Content exceeds 300 characters' });
+        const { title, content, type, priority, endDate, isActive, contentType } = req.body;
+        if (content && String(content).length > 2000) {
+            return res.status(400).json({ message: 'Content exceeds 2000 characters' });
         }
         const notice = await Notice.findOne({ _id: req.params.id, lob: req.params.lob });
         if (!notice) return res.status(404).json({ message: 'Notice not found' });
@@ -75,6 +76,7 @@ router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
         if (priority !== undefined) notice.priority = priority;
         if (endDate !== undefined) notice.endDate = endDate ? new Date(endDate) : null;
         if (isActive !== undefined) notice.isActive = !!isActive;
+        if (contentType !== undefined) notice.contentType = contentType;
         await notice.save();
         await Logger.logDatabaseChange('UPDATE', 'Notice', notice._id.toString(), null, { title, content, type, priority }, req.session.user?._id, req.session.user?.username, { ip: req.ip, userAgent: req.get('User-Agent') });
         res.json({ message: 'Notice updated successfully', data: notice });

@@ -85,7 +85,8 @@ router.post('/', isAuthenticated, isBroadcaster, async (req, res) => {
             targetRoles = ['all'],
             priority = 'medium',
             type = 'info',
-            endDate
+            endDate,
+            contentType = 'plain'
         } = req.body;
         
         if (!endDate) {
@@ -104,7 +105,8 @@ router.post('/', isAuthenticated, isBroadcaster, async (req, res) => {
             priority,
             type,
             endDate: new Date(endDate),
-            lob: req.params.lob
+            lob: req.params.lob,
+            contentType
         });
         
         await message.save();
@@ -125,7 +127,8 @@ router.put('/:id', isAuthenticated, isBroadcaster, async (req, res) => {
             priority,
             type,
             endDate,
-            isActive
+            isActive,
+            contentType
         } = req.body;
         
         const message = await Message.findOne({ _id: req.params.id, lob: req.params.lob });
@@ -141,6 +144,7 @@ router.put('/:id', isAuthenticated, isBroadcaster, async (req, res) => {
         if (type) message.type = type;
         if (endDate) message.endDate = new Date(endDate);
         if (isActive !== undefined) message.isActive = isActive;
+        if (contentType) message.contentType = contentType;
         
         await message.save();
         res.json({ message: 'Message updated successfully', data: message });

@@ -4,11 +4,14 @@ const mongoose = require('mongoose');
 const sopEntrySchema = new mongoose.Schema({
   lob: { type: String, required: true, default: 'Zomato' }, // Customisable LOB
   category: { type: String, required: true }, // e.g., "01. PRE-PICKUP"
+  phase: String, // Phase info e.g. "(Phase: Restaurant / Assigning)"
   title: String,
   condition: String,
-  action: { type: String, enum: ['Cancel', 'Escalate', 'Wait'] },
+  action: String, // custom action text (enum removed)
+  details: String, // Detailed instructions / bullet points
   tags: [String],
-  status: { type: String, enum: ['Published', 'Draft', 'Archived'], default: 'Draft' },
+  status: { type: String, enum: ['Published', 'Draft', 'Archived'], default: 'Published' },
+  order: { type: Number, default: 0 }, // Sort order index
   lastUpdated: {
     at: { type: Date, default: Date.now },
     by: String, // Username
