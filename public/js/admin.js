@@ -14,12 +14,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
   let departments = [];
+  let teams = [];
   async function loadDepartments() {
     try {
       departments = await api('/api/admin/departments');
       window.__departmentsList = departments;
     } catch (e) {
       console.error('Failed to load departments:', e);
+    }
+  }
+  async function loadTeams() {
+    try {
+      teams = await api('/api/admin/teams');
+      window.__teamsList = teams;
+    } catch (e) {
+      console.error('Failed to load teams:', e);
     }
   }
 
@@ -307,11 +316,16 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `<span class="user-avatar-small" style="vertical-align: middle; margin-right: 6px;">${picToUse}</span>`
           : `<span class="user-avatar-small" style="vertical-align: middle; margin-right: 6px; background:#e2e8f0; color:#475569;">${((liveProfileName || u.profileName || u.username || '?').charAt(0) || '?').toUpperCase()}</span>`;
 
+        const canEditRole = ['admin', 'vendor', 'team_lead'].includes(window.currentUserRole);
+        const canEditPassword = ['admin', 'vendor'].includes(window.currentUserRole);
+        const canAlignTeam = ['admin', 'vendor', 'team_lead'].includes(window.currentUserRole);
+
         let selectHtml = '';
         let roleHtml = '';
+        let teamHtml = '';
         let actionsHtml = '';
 
-        if (isAdminUser) {
+        if (canEditRole) {
           const deptOptions = (window.__departmentsList || []).map(d => 
               `<option value="${d.slug}"${u.department === d.slug ? ' selected' : ''}>${d.name}</option>`
           ).join('');
@@ -330,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
 
           roleHtml = `
-            <select class="user-role-select" data-user-id="${u._id}">
+            <select class="user-role-select" data-user-id="${u._id}" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
               <option value="new"${u.role==='new'?' selected':''}>new</option>
               <option value="user"${u.role==='user'?' selected':''}>user</option>
               <option value="editor"${u.role==='editor'?' selected':''}>editor</option>
@@ -340,31 +354,41 @@ document.addEventListener('DOMContentLoaded', () => {
               <option value="admin"${u.role==='admin'?' selected':''}>admin</option>
             </select>
           `;
-
-          actionsHtml = `
-            <div style="display:flex;gap:6px">
-              <button class="btn btn-set-password" data-user-id="${u._id}">Reset Password</button>
-              <button class="btn btn-reset-password" data-user-id="${u._id}" title="Reset password to username">Set Default Password</button>
-              <button class="btn btn-delete-user" data-user-id="${u._id}" data-username="${u.username}">Delete</button>
-            </div>
-          `;
         } else {
           selectHtml = `<span style="font-weight:600;color:var(--text-muted);font-size:13px;">${u.department || 'None'}</span>`;
           roleHtml = `<span class="badge" style="background:var(--primary-light);color:var(--primary);padding:3px 8px;border-radius:12px;font-weight:700;font-size:11px;">${(u.role || '').toUpperCase()}</span>`;
-          actionsHtml = `<span style="color:#94a3b8;font-size:12px;font-style:italic;">Admin Only</span>`;
         }
 
-        // Calculate aligned Team Leads for the user's department
-        const uDept = (u.department || '').toLowerCase().trim();
-        const deptTLs = teamLeads.filter(tl => 
-          tl && (tl.department || '').toLowerCase().trim() === uDept && 
-          uDept !== 'none' && 
-          uDept !== 'general' &&
-          String(tl._id) !== String(u._id) // don't list a TL as aligned to themselves
-        );
-        const tlText = deptTLs.length 
-          ? deptTLs.map(tl => `<strong style="color:var(--primary);">${tl.username || ''}</strong>`).join(', ') 
-          : '<span style="color:#94a3b8">None</span>';
+        if (canAlignTeam) {
+          const teamOptions = (window.__teamsList || []).map(t => {
+            const tlName = t.teamLeadId ? (t.teamLeadId.displayName || t.teamLeadId.username) : 'No TL';
+            return `<option value="${t._id}"${String(u.teamId) === String(t._id) ? ' selected' : ''}>${t.name} (TL: ${tlName})</option>`;
+          }).join('');
+
+          teamHtml = `
+            <select class="user-team-select" data-user-id="${u._id}" style="width:180px;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+              <option value="none"${!u.teamId ? ' selected' : ''}>None</option>
+              ${teamOptions}
+            </select>
+          `;
+        } else {
+          const matchedTeam = (window.__teamsList || []).find(t => String(t._id) === String(u.teamId));
+          const tlName = matchedTeam && matchedTeam.teamLeadId ? (matchedTeam.teamLeadId.displayName || matchedTeam.teamLeadId.username) : '';
+          teamHtml = matchedTeam ? `<span style="font-weight:600;">${matchedTeam.name}</span> ${tlName ? `<span style="font-size:11px;color:var(--text-muted);"> (TL: ${tlName})</span>` : ''}` : '<span style="color:#94a3b8">None</span>';
+        }
+
+        let actionButtons = [];
+        if (canEditPassword) {
+          actionButtons.push(`<button class="btn btn-set-password" data-user-id="${u._id}" style="padding:4px 8px;font-size:11px;">Reset Password</button>`);
+          actionButtons.push(`<button class="btn btn-reset-password" data-user-id="${u._id}" title="Reset password to username" style="padding:4px 8px;font-size:11px;">Set Default Password</button>`);
+        }
+        if (window.currentUserRole === 'admin' && u.role !== 'admin') {
+          actionButtons.push(`<button class="btn btn-delete-user" data-user-id="${u._id}" data-username="${u.username}" style="padding:4px 8px;font-size:11px;background:#ef4444;color:#fff;">Delete</button>`);
+        }
+
+        actionsHtml = actionButtons.length 
+          ? `<div style="display:flex;gap:6px">${actionButtons.join('')}</div>`
+          : `<span style="color:#94a3b8;font-size:12px;font-style:italic;">No Actions</span>`;
 
         const displayName = liveProfileName || u.profileName || '';
         return `<tr data-user-id="${u._id}">
@@ -388,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${selectHtml}
           </td>
           <td style="padding:10px 8px;font-size:12px;">
-            ${tlText}
+            ${teamHtml}
           </td>
           <td style="padding:10px 8px">${modified}</td>
           <td style="padding:10px 8px">
@@ -402,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // initial render and refresh button
-  loadDepartments().then(() => {
+  Promise.all([loadDepartments(), loadTeams()]).then(() => {
     renderUsersTable();
     initFirebasePresence();
   });
@@ -518,6 +542,140 @@ document.addEventListener('DOMContentLoaded', () => {
         renderUsersTable();
       } catch (err) { showToast(err.message,'error'); }
     }
+    if (target.matches('.user-team-select')) {
+      const id = target.dataset.userId;
+      const teamId = target.value;
+      try {
+        await api(`/api/admin/users/${id}/role`, 'PUT', { teamId });
+        showToast('Team alignment updated successfully', 'success');
+        renderUsersTable();
+      } catch (err) { showToast(err.message,'error'); }
+    }
   });
+
+  // --- AI Permitted Words Library Management ---
+  const permittedWordsTbody = document.getElementById('permitted-words-table-body');
+  const permittedWordsCount = document.getElementById('permitted-words-count');
+  const permittedSearchInput = document.getElementById('permitted-words-search');
+  const btnAddWord = document.getElementById('btn-add-permitted-word');
+  const btnSyncWords = document.getElementById('btn-sync-permitted-words');
+
+  async function fetchAndRenderPermittedWords(searchQuery = '') {
+    if (!permittedWordsTbody) return;
+    try {
+      const url = `/api/admin/permitted-words?search=${encodeURIComponent(searchQuery)}`;
+      const words = await api(url);
+      
+      if (permittedWordsCount) {
+        permittedWordsCount.textContent = `Total Permitted Words: ${words.length}`;
+      }
+
+      if (!words.length) {
+        permittedWordsTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted, #64748b);">No permitted words found.</td></tr>`;
+        return;
+      }
+
+      const isAdminOrVendor = ['admin', 'vendor'].includes(window.currentUserRole);
+
+      permittedWordsTbody.innerHTML = words.map(w => {
+        const similarPills = (w.similarWords || []).map(sw => 
+          `<span class="cand-tag-chip tag" style="background:var(--primary-light, rgba(37,99,235,0.1));color:var(--primary, #2563eb);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block;font-size:11px;">${sw}</span>`
+        ).join(' ');
+        
+        const sourceLabel = w.source === 'cands_db' ? 'Cands DB' : 'Manual';
+        const sourceClass = w.source === 'cands_db' ? 'status-new' : 'status-updated';
+
+        let deleteBtnHtml = '';
+        if (isAdminOrVendor) {
+          deleteBtnHtml = `<button class="btn btn-delete-permitted-word" data-word-id="${w._id}" data-word="${w.word}" style="padding:4px 8px;font-size:11px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;">Delete</button>`;
+        }
+
+        return `<tr data-word-id="${w._id}">
+          <td style="padding:10px 12px;font-weight:600;">${w.word}</td>
+          <td style="padding:10px 12px;">${similarPills || '<span style="color:#cbd5e1;font-size:11px;">None</span>'}</td>
+          <td style="padding:10px 12px;">
+            <span class="cand-status-tag ${sourceClass}" style="font-size:11px;">${sourceLabel}</span>
+          </td>
+          ${isAdminOrVendor ? `<td style="padding:10px 12px;text-align:center;">${deleteBtnHtml}</td>` : ''}
+        </tr>`;
+      }).join('');
+
+    } catch (err) {
+      console.error('[Admin permitted words] Render error:', err);
+      showToast('Failed to load permitted words list', 'error');
+    }
+  }
+
+  // Bind Listeners
+  if (permittedSearchInput) {
+    permittedSearchInput.addEventListener('input', (e) => {
+      fetchAndRenderPermittedWords(e.target.value);
+    });
+  }
+
+  if (btnSyncWords) {
+    btnSyncWords.addEventListener('click', async () => {
+      const originalHtml = btnSyncWords.innerHTML;
+      btnSyncWords.disabled = true;
+      btnSyncWords.innerHTML = `<i class="bi bi-arrow-repeat"></i> Syncing...`;
+      try {
+        const res = await api('/api/admin/sync-permitted-words', 'POST');
+        showToast(res.message || 'Synchronization completed successfully!', 'success');
+        fetchAndRenderPermittedWords(permittedSearchInput?.value || '');
+      } catch (err) {
+        showToast(err.message || 'Sync failed', 'error');
+      } finally {
+        btnSyncWords.disabled = false;
+        btnSyncWords.innerHTML = originalHtml;
+      }
+    });
+  }
+
+  if (btnAddWord) {
+    btnAddWord.addEventListener('click', async () => {
+      const wordInput = document.getElementById('new-permitted-word');
+      const val = wordInput?.value?.trim();
+      if (!val) return showToast('Please enter a word', 'error');
+
+      const originalHtml = btnAddWord.innerHTML;
+      btnAddWord.disabled = true;
+      btnAddWord.innerHTML = `<i class="bi bi-plus-circle"></i> Adding...`;
+
+      try {
+        await api('/api/admin/permitted-words', 'POST', { word: val });
+        showToast(`Word "${val}" added successfully!`, 'success');
+        if (wordInput) wordInput.value = '';
+        fetchAndRenderPermittedWords(permittedSearchInput?.value || '');
+      } catch (err) {
+        showToast(err.message || 'Add failed', 'error');
+      } finally {
+        btnAddWord.disabled = false;
+        btnAddWord.innerHTML = originalHtml;
+      }
+    });
+  }
+
+  // Delegated Delete
+  document.body.addEventListener('click', async (e) => {
+    const target = e.target;
+    if (target.matches('.btn-delete-permitted-word')) {
+      const wordId = target.dataset.wordId;
+      const wordText = target.dataset.word;
+      if (!confirm(`Are you sure you want to delete "${wordText}" from permitted vocabulary?`)) return;
+
+      try {
+        await api(`/api/admin/permitted-words/${wordId}`, 'DELETE');
+        showToast(`Word "${wordText}" deleted.`, 'success');
+        fetchAndRenderPermittedWords(permittedSearchInput?.value || '');
+      } catch (err) {
+        showToast(err.message || 'Delete failed', 'error');
+      }
+    }
+  });
+
+  // Initial call
+  if (permittedWordsTbody) {
+    fetchAndRenderPermittedWords();
+  }
 
 });

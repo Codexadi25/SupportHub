@@ -1,0 +1,101 @@
+/* ═══════════════════════════════════════════════════════
+   variables.css — Design Tokens
+   ═══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+    /* ── Brand ──────────────────────────────────────────── */
+    --clr-bg:           #0a0c16;  /* Deep midnight space blue */
+    --clr-surface:      #121527;  /* Rich navy-violet slate */
+    --clr-surface-2:    #1a1e35;  /* Lighter navy-violet */
+    --clr-surface-3:    #24294a;  /* Elevated state color */
+    --clr-border:       rgba(255,255,255,0.06);
+    --clr-border-hover: rgba(255,255,255,0.12);
+
+    /* ── Accent Palette ─────────────────────────────────── */
+    --clr-blue:         #4f46e5;  /* Vibrant indigo */
+    --clr-blue-dim:     rgba(79, 70, 229, 0.12);
+    --clr-cyan:         #06b6d4;  /* Electric cyan */
+    --clr-green:        #10b981;  /* Emerald green */
+    --clr-green-dim:    rgba(16, 185, 129, 0.12);
+    --clr-amber:        #f59e0b;  /* Warm positive amber */
+    --clr-amber-dim:    rgba(245, 158, 11, 0.12);
+    --clr-red:          #f43f5e;  /* Vibrant rose-red */
+    --clr-red-dim:      rgba(244, 63, 94, 0.12);
+    --clr-purple:       #8b5cf6;  /* Electric purple */
+    --clr-purple-dim:   rgba(139, 92, 246, 0.12);
+    --clr-teal:         #14b8a6;  /* Teal */
+
+    /* ── Text ────────────────────────────────────────────── */
+    --clr-text-primary:   #f8fafc;  /* Clean slate text */
+    --clr-text-secondary: #94a3b8;  /* Slate text secondary */
+    --clr-text-muted:     #64748b;  /* Slate text muted */
+
+    /* ── Typography ─────────────────────────────────────── */
+    --font-body:    'Plus Jakarta Sans', sans-serif;
+    --font-display: 'Plus Jakarta Sans', sans-serif;
+    --font-mono:    'JetBrains Mono', monospace;
+
+    /* ── Sizing ──────────────────────────────────────────── */
+    --sidebar-w:    240px;
+    --header-h:     60px;
+    --radius-sm:    6px;
+    --radius-md:    10px;
+    --radius-lg:    16px;
+    --radius-xl:    24px;
+
+    /* ── Shadows ─────────────────────────────────────────── */
+    --shadow-card:  0 4px 24px rgba(0,0,0,0.4);
+    --shadow-glow-blue:  0 0 20px rgba(59,126,255,0.2);
+    --shadow-glow-green: 0 0 20px rgba(0,229,160,0.2);
+    --shadow-glow-red:   0 0 20px rgba(255,77,106,0.2);
+
+    /* ── Transitions ─────────────────────────────────────── */
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Reset ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: var(--font-body);
+    background: var(--clr-bg);
+    color: var(--clr-text-primary);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+img { max-width: 100%; display: block; }
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--clr-surface); }
+::-webkit-scrollbar-thumb { background: var(--clr-surface-3); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--clr-border-hover); }
+
+/* ── Utility ─────────────────────────────────────────────── */
+.text-muted    { color: var(--clr-text-muted); }
+.text-secondary{ color: var(--clr-text-secondary); }
+.text-green    { color: var(--clr-green); }
+.text-red      { color: var(--clr-red); }
+.text-amber    { color: var(--clr-amber); }
+.text-blue     { color: var(--clr-blue); }
+.font-mono     { font-family: var(--font-mono); }
+.font-display  { font-family: var(--font-display); }
+.d-flex        { display: flex; }
+.align-center  { align-items: center; }
+.gap-1         { gap: 4px; }
+.gap-2         { gap: 8px; }
+.gap-3         { gap: 12px; }
+.gap-4         { gap: 16px; }
+.flex-1        { flex: 1; }
+.truncate      { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

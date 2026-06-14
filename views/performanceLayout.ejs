@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title || 'PulseTrack — Performance Dashboard' %></title>
+
+    <!-- CSS Modules (loaded in dependency order) -->
+    <link rel="stylesheet" href="/css/pulse-variables.css" />
+    <link rel="stylesheet" href="/css/pulse-layout.css" />
+    <link rel="stylesheet" href="/css/pulse-cards.css" />
+    <link rel="stylesheet" href="/css/pulse-tables.css" />
+    <link rel="stylesheet" href="/css/pulse-modals.css" />
+    <link rel="stylesheet" href="/css/pulse-charts.css" />
+
+    <!-- Chart.js + XLSX + html2canvas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- ── Sidebar ────────────────────────────────────────── -->
+    <%- include('partials/performanceSidebar', { user, currentPage }) %>
+
+    <!-- ── Header ─────────────────────────────────────────── -->
+    <%- include('partials/performanceHeader', { user, filters }) %>
+
+    <!-- ── Main ───────────────────────────────────────────── -->
+    <main class="main-content">
+        <%- body %>
+    </main>
+
+</div><!-- /.app-shell -->
+
+<!-- ── Modals ─────────────────────────────────────────────── -->
+<%- include('partials/performanceModals') %>
+
+<!-- ── Toast Container ────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ── JS Modules ─────────────────────────────────────────── -->
+<script src="/js/pulse-utils.js"></script>
+<script src="/js/pulse-charts.js"></script>
+<script src="/js/pulse-upload.js"></script>
+<script src="/js/pulse-tables.js"></script>
+<script src="/js/pulse-dashboard.js"></script>
+<script src="/js/pulse-share.js"></script>
+<script src="/js/pulse-tracking.js"></script>
+<script>
+    // Bootstrap: pass server data to client
+    window.APP = {
+        user: <%- JSON.stringify(user) %>,
+        org:  <%- JSON.stringify(org || 'default') %>,
+        filters: <%- JSON.stringify(filters || {}) %>,
+        apiBase: '/performance/api/performance'
+    };
+</script>
+
+</body>
+</html>

@@ -1,0 +1,91 @@
+<%
+    const AUTHORIZED_ROLES = ['admin', 'vendor', 'team_lead', 'quality_analyst'];
+    const canShare = AUTHORIZED_ROLES.includes(user.role);
+%>
+
+<!-- Briefings Panel Header -->
+<div class="briefings-panel-header">
+    <div class="briefings-header-left">
+        <h2 class="briefings-heading">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi- megaphone" viewBox="0 0 16 16">
+                <path d="M13 2.5a1.5 1.5 0 0 1 3 0v11a1.5 1.5 0 0 1-3 0v-11zm-1 .724c-2.067.95-4.539 1.481-7 1.656v6.237a25.222 25.222 0 0 1 7 1.656V3.224zm-8 2.228c-.375.012-.746.03-1.112.052A1.01 1.01 0 0 0 2 6.505v3.493c0 .565.456 1.01 1.01 1.01.366 0 .737-.02 1.112-.051V5.452zm-1.392 7.3a1.002 1.002 0 0 0 .973-.78c.036-.18.06-.359.073-.54l-.001-.005a13.9 13.9 0 0 1-.392-.047 14.374 14.374 0 0 0-.25.32 1.002 1.002 0 0 0-.154.912c.07.245.244.444.473.541z"/>
+            </svg>
+            Briefings & SOP Updates
+        </h2>
+        <span class="briefings-count-pill" id="briefings-count-badge">0</span>
+    </div>
+    <% if (canShare) { %>
+    <button id="btn-toggle-briefing-form" class="briefing-add-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Share Update
+    </button>
+    <% } %>
+</div>
+
+<!-- Collapsible Form for Sharing Briefings (Authorized Roles only) -->
+<% if (canShare) { %>
+<div id="briefing-form-card" class="briefing-form-card">
+    <h3 class="briefing-form-title">Share Daily Briefing / SOP Update</h3>
+    <form id="briefing-form">
+        <div class="briefing-form-row">
+            <div class="briefing-form-group" style="flex: 2; min-width: 250px;">
+                <label for="briefing-title">Title *</label>
+                <input type="text" id="briefing-title" name="title" required maxlength="200" placeholder="e.g., Update on Refund SOP / Morning Briefing 3-June">
+            </div>
+            <div class="briefing-form-group half" style="flex: 1; min-width: 150px;">
+                <label for="briefing-type">Type *</label>
+                <select id="briefing-type" name="type" required>
+                    <option value="daily_briefing">Daily Briefing</option>
+                    <option value="sop_update">SOP Update</option>
+                </select>
+            </div>
+            <div class="briefing-form-group half" style="flex: 1; min-width: 150px;">
+                <label for="briefing-content-type">Format *</label>
+                <select id="briefing-content-type" name="contentType" required>
+                    <option value="plain" selected>Plain Text</option>
+                    <option value="html">HTML</option>
+                    <option value="markdown">Markdown</option>
+                </select>
+            </div>
+        </div>
+        <div class="briefing-form-group">
+            <label for="briefing-content">Update Content / Details *</label>
+            <textarea id="briefing-content" name="content" rows="5" required placeholder="Write the update details here. Keep it descriptive for the team..."></textarea>
+        </div>
+        <div class="briefing-form-actions">
+            <button type="button" id="btn-cancel-briefing" class="briefing-cancel-btn">Cancel</button>
+            <button type="submit" class="briefing-submit-btn">Publish Update</button>
+        </div>
+    </form>
+</div>
+<% } %>
+
+<!-- Briefings Main Grid Layout -->
+<div class="briefings-grid">
+    <!-- Filter Sidebar -->
+    <nav class="briefings-sidebar">
+        <button class="briefing-filter-btn active" data-briefing-type="all">
+            <span class="briefing-filter-icon">📢</span> All Updates
+            <span class="briefing-filter-count" id="count-all-briefings">0</span>
+        </button>
+        <button class="briefing-filter-btn" data-briefing-type="daily_briefing">
+            <span class="briefing-filter-icon">🗓️</span> Daily Briefings
+            <span class="briefing-filter-count" id="count-daily-briefings">0</span>
+        </button>
+        <button class="briefing-filter-btn" data-briefing-type="sop_update">
+            <span class="briefing-filter-icon">📘</span> SOP Updates
+            <span class="briefing-filter-count" id="count-sop-updates">0</span>
+        </button>
+    </nav>
+
+    <!-- Briefings Feed -->
+    <div class="briefings-content">
+        <input type="search" id="briefing-search" class="briefing-search-bar" placeholder="Search briefings or updates by title/content…">
+        
+        <div id="briefings-list-container" class="briefings-list">
+            <div class="loading-indicator">Loading updates...</div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/briefings.js"></script>

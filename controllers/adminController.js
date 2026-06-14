@@ -1,8 +1,10 @@
 const Category = require('../models/Category');
 const Log = require('../models/Log');
 const User = require('../models/User');
+const Team = require('../models/Team');
 const Feedback = require('../models/Feedback');
 const Department = require('../models/Department');
+const Notification = require('../models/Notification');
 const Logger = require('../utils/logger');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
@@ -105,20 +107,103 @@ async function getUsers(req, res) {
 async function updateUserRole(req, res) {
     try {
         const reqRole = req.session?.user?.role || req.user?.role;
+        const reqDept = (req.session?.user?.department || '').toLowerCase().trim();
         if (!['admin', 'vendor', 'team_lead'].includes(reqRole)) {
             return res.status(403).json({ error: 'Forbidden: Only Team Leaders, Admins, and Vendors can update departments or roles.' });
         }
 
-        const { role, department } = req.body;
+        const { role, department, teamId } = req.body;
         const user = await User.findById(req.params.id);
         
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
+
+        // Handle team alignment
+        if (teamId !== undefined) {
+            const targetTeam = teamId && teamId !== 'none' && teamId !== 'null' ? await Team.findById(teamId) : null;
+            
+            if (teamId && teamId !== 'none' && teamId !== 'null' && !targetTeam) {
+                return res.status(404).json({ error: 'Target team not found' });
+            }
+
+            if (reqRole === 'team_lead') {
+                if (targetTeam) {
+                    const targetTeamDept = (targetTeam.department || '').toLowerCase().trim();
+                    if (targetTeamDept !== reqDept) {
+                        // Different department: check if target team has a team lead assigned
+                        if (!targetTeam.teamLeadId) {
+                            return res.status(400).json({ error: 'Forbidden: Moving a user under a different department is only allowed if the target team has an assigned Team Lead.' });
+                        }
+                    }
+                } else {
+                    // Clearing alignment
+                    const userDept = (user.department || '').toLowerCase().trim();
+                    if (userDept && userDept !== 'none' && userDept !== reqDept) {
+                        return res.status(400).json({ error: 'Forbidden: Cannot clear team alignment for users in different departments.' });
+                    }
+                }
+            }
+
+            // If alignment changed
+            const oldTeamId = user.teamId;
+            if (String(oldTeamId) !== String(targetTeam ? targetTeam._id : null)) {
+                if (oldTeamId) {
+                    await Team.updateOne({ _id: oldTeamId }, { $pull: { members: user._id } });
+                }
+                if (targetTeam) {
+                    await Team.updateOne({ _id: targetTeam._id }, { $addToSet: { members: user._id } });
+                    user.teamId = targetTeam._id;
+                    user.department = targetTeam.department;
+                } else {
+                    user.teamId = null;
+                }
+            }
+        }
         
-        if (role) user.role = role;
-        if (department !== undefined) user.department = department.trim().toLowerCase() || 'general';
+        if (role) {
+            user.role = role;
+            if (role === 'team_lead') {
+                let teamObj = await Team.findOne({ teamLeadId: user._id, organization: user.organization });
+                if (!teamObj) {
+                    teamObj = new Team({
+                        name: (user.displayName || user.username) + ' Team',
+                        teamLeadId: user._id,
+                        organization: user.organization,
+                        department: user.department || 'general',
+                        isActive: true
+                    });
+                    await teamObj.save();
+                } else if (!teamObj.isActive) {
+                    teamObj.isActive = true;
+                    await teamObj.save();
+                }
+            } else {
+                await Team.updateMany({ teamLeadId: user._id }, { isActive: false });
+            }
+        }
+        if (department !== undefined && teamId === undefined) {
+            user.department = department.trim().toLowerCase() || 'general';
+        }
+        
         await user.save();
+
+        if (user.role === 'team_lead') {
+            await Team.updateMany({ teamLeadId: user._id }, { department: user.department });
+        }
+
+        // Create notification alert for role/department update
+        try {
+            await Notification.create({
+                title: 'Access or Role Modified',
+                content: `Your profile settings were modified by an administrator. Role: "${user.role}", Department: "${user.department}".`,
+                type: 'role_change',
+                recipientId: user._id,
+                lob: (user.department || 'zomato').toLowerCase().trim()
+            });
+        } catch (notifErr) {
+            console.error('[Notification Trigger] Failed to create role change notification:', notifErr);
+        }
         
         res.json({ message: 'User updated successfully' });
     } catch (error) {
@@ -149,6 +234,19 @@ async function updateUserPassword(req, res, next) {
         user.password = newPassword;
         // user.password = password; // Pre-save hook will hash it
         await user.save();
+
+        // Create notification alert for password change
+        try {
+            await Notification.create({
+                title: 'Password Updated',
+                content: 'Your account password has been updated/changed by an administrator.',
+                type: 'password_change',
+                recipientId: user._id,
+                lob: (user.department || 'zomato').toLowerCase().trim()
+            });
+        } catch (notifErr) {
+            console.error('[Notification Trigger] Failed to create password update notification:', notifErr);
+        }
         
         res.json({ message: 'User password updated successfully' });
     } catch (error) {
@@ -170,6 +268,19 @@ async function resetUserPassword(req, res) {
         
         user.password = user.username; // Reset to username
         await user.save();
+
+        // Create notification alert for password reset
+        try {
+            await Notification.create({
+                title: 'Password Reset',
+                content: `Your password has been reset to your username by an administrator. Please log in and change it.`,
+                type: 'password_change',
+                recipientId: user._id,
+                lob: (user.department || 'zomato').toLowerCase().trim()
+            });
+        } catch (notifErr) {
+            console.error('[Notification Trigger] Failed to create password reset notification:', notifErr);
+        }
         
         res.json({ 
             message: 'User password reset successfully',
@@ -450,10 +561,119 @@ async function createDepartment(req, res) {
     }
 }
 
+// @desc    Get all teams with populated TL names
+// @route   GET /api/admin/teams
+// @access  UserManager roles
+async function getTeams(req, res) {
+    try {
+        const teams = await Team.find({ isActive: true })
+            .populate('teamLeadId', 'username profileName displayName')
+            .sort({ name: 1 })
+            .lean();
+        teams.forEach(t => {
+            if (t.teamLeadId) {
+                t.name = (t.teamLeadId.displayName || t.teamLeadId.username) + ' Team';
+            }
+        });
+        res.json(teams);
+    } catch (error) {
+        console.error('Get teams error:', error);
+        res.status(500).json({ error: 'Failed to retrieve teams' });
+    }
+}
+
+// @desc    Sync permitted words from existing DB canned responses
+// @route   POST /api/admin/sync-permitted-words
+// @access  Admin/Vendor
+async function syncPermittedWords(req, res) {
+    try {
+        const wordManager = require('../utils/permittedWordManager');
+        const stats = await wordManager.syncWordsFromDatabase();
+        res.json({
+            success: true,
+            message: `Successfully synchronized permitted words. Created: ${stats.created}, Updated: ${stats.updated}`,
+            stats
+        });
+    } catch (error) {
+        console.error('Sync permitted words error:', error);
+        res.status(500).json({ error: 'Failed to sync permitted words' });
+    }
+}
+
+// @desc    Get all permitted words
+// @route   GET /api/admin/permitted-words
+// @access  Admin/Vendor/TeamLead/QualityAnalyst/Editor
+async function getPermittedWords(req, res) {
+    try {
+        const PermittedWord = require('../models/PermittedWord');
+        const query = {};
+        if (req.query.search) {
+            query.word = { $regex: req.query.search.trim().toLowerCase(), $options: 'i' };
+        }
+        const words = await PermittedWord.find(query).sort({ word: 1 });
+        res.json(words);
+    } catch (error) {
+        console.error('Get permitted words error:', error);
+        res.status(500).json({ error: 'Failed to retrieve permitted words' });
+    }
+}
+
+// @desc    Add manual permitted word
+// @route   POST /api/admin/permitted-words
+// @access  Admin/Vendor
+async function addPermittedWord(req, res) {
+    try {
+        const PermittedWord = require('../models/PermittedWord');
+        const wordManager = require('../utils/permittedWordManager');
+        const { word } = req.body;
+        if (!word || !word.trim()) {
+            return res.status(400).json({ error: 'Word is required' });
+        }
+        const cleanWord = word.trim().toLowerCase();
+        
+        // Check if already exists
+        const existing = await PermittedWord.findOne({ word: cleanWord });
+        if (existing) {
+            return res.status(400).json({ error: `Word "${cleanWord}" is already in the permitted list.` });
+        }
+        
+        const similarWords = wordManager.getWordVariations(cleanWord);
+        const newWord = await PermittedWord.create({
+            word: cleanWord,
+            similarWords,
+            source: 'user_added',
+            isActive: true
+        });
+        
+        res.status(201).json({ success: true, data: newWord });
+    } catch (error) {
+        console.error('Add permitted word error:', error);
+        res.status(500).json({ error: 'Failed to add permitted word' });
+    }
+}
+
+// @desc    Delete permitted word
+// @route   DELETE /api/admin/permitted-words/:id
+// @access  Admin/Vendor
+async function deletePermittedWord(req, res) {
+    try {
+        const PermittedWord = require('../models/PermittedWord');
+        const deleted = await PermittedWord.findByIdAndDelete(req.params.id);
+        if (!deleted) {
+            return res.status(404).json({ error: 'Word not found' });
+        }
+        res.json({ success: true, message: `Deleted word "${deleted.word}" successfully.` });
+    } catch (error) {
+        console.error('Delete permitted word error:', error);
+        res.status(500).json({ error: 'Failed to delete permitted word' });
+    }
+}
+
 module.exports = {
     bulkUploadCands,
     getLogs,
     getUsers,
+    getTeams,
     updateUserRole,
     deleteUser,
     cleanupLogs,
@@ -466,4 +686,8 @@ module.exports = {
     getUserActivityLogs,
     getDepartments,
     createDepartment,
+    syncPermittedWords,
+    getPermittedWords,
+    addPermittedWord,
+    deletePermittedWord,
 };

@@ -1,0 +1,63 @@
+<!-- partials/header.ejs -->
+<header class="app-header">
+
+    <button class="btn btn-ghost btn-icon" id="sidebarToggle" style="display:none">☰</button>
+
+    <div class="header-breadcrumb">
+        <span>PulseTrack</span>
+        <span>›</span>
+        <span class="current" id="breadcrumbCurrent">Dashboard</span>
+    </div>
+
+    <div class="header-filters">
+
+        <!-- Date Range -->
+        <select class="form-select" id="rangePreset" onchange="applyRangePreset(this.value)" style="padding:6px 10px;font-size:12px;">
+            <option value="today">Today</option>
+            <option value="week" selected>This Week</option>
+            <option value="month">This Month</option>
+            <option value="quarter">This Quarter</option>
+            <option value="custom">Custom</option>
+        </select>
+
+        <input type="date" id="filterFrom"
+               value="<%= filters.from || '' %>"
+               onchange="applyFilters()"
+               style="padding:6px 10px;font-size:12px;" />
+        <span style="color:var(--clr-text-muted);font-size:12px;">→</span>
+        <input type="date" id="filterTo"
+               value="<%= filters.to || '' %>"
+               onchange="applyFilters()"
+               style="padding:6px 10px;font-size:12px;" />
+
+        <!-- Department -->
+        <select class="form-select" id="filterDept" onchange="applyFilters()" style="padding:6px 10px;font-size:12px;">
+            <option value="">All Departments</option>
+            <% (departments || []).forEach(d => { %>
+            <option value="<%= d %>" <%= d === filters.department ? 'selected' : '' %>><%= d %></option>
+            <% }) %>
+        </select>
+
+        <!-- Team (team_leads see their team; admin sees all) -->
+        <% if (user.role === 'admin' || user.role === 'vendor') { %>
+        <select class="form-select" id="filterTeam" onchange="applyFilters()" style="padding:6px 10px;font-size:12px;">
+            <option value="">All Teams</option>
+            <% (teams || []).forEach(t => { %>
+            <option value="<%= t._id %>" <%= String(t._id) === String(filters.teamId) ? 'selected' : '' %>><%= t.name %></option>
+            <% }) %>
+        </select>
+        <% } %>
+
+        <!-- Upload shortcut -->
+        <button class="btn btn-primary btn-sm" onclick="openModal('uploadModal')">
+            ⬆ Upload
+        </button>
+
+        <button class="btn btn-ghost btn-sm" onclick="openModal('shareModal')">
+            ↗ Share
+        </button>
+
+        <button class="btn btn-ghost btn-icon" title="Refresh" onclick="refreshDashboard()">↺</button>
+
+    </div>
+</header>

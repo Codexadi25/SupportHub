@@ -128,6 +128,9 @@ app.use('/api', apiUsersRouter);
 app.use('/api', require('./routes/api/userActivity'));
 app.use('/', require('./routes/viewRoutes'));
 
+// Performance Dashboard Routes
+app.use('/performance', require('./routes/performance'));
+
 // SOP Routes
 const sopRoutes = require('./routes/sopRoutes');
 app.use('/:lob/sop', sopRoutes);
@@ -147,10 +150,13 @@ app.post('/api/sop/reorder', isAuthenticated, zomatoSopController.reorderCard);
 
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/api/:lob/cands', require('./routes/api/candRoutes'));
+app.use('/api/:lob/ai-cand', require('./routes/api/aiCandRoutes'));
 app.use('/api/:lob/pns', require('./routes/api/pnRoutes'));
 app.use('/api/:lob/feedback', require('./routes/api/feedbackRoutes'));
 app.use('/api/:lob/messages', require('./routes/api/messageRoutes'));
 app.use('/api/:lob/notices', require('./routes/api/noticeRoutes'));
+app.use('/api/:lob/notifications', require('./routes/api/notificationRoutes'));
+app.use('/api/:lob/briefings', require('./routes/api/briefingRoutes'));
 // ... other API routes
 
 // Error Handler

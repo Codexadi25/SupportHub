@@ -4,6 +4,7 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { isAuthenticated, isVendorOrAdmin } = require('../middleware/authMiddleware');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 
 // GET /api/users/profile -> Get current user settings & IP
@@ -30,6 +31,7 @@ router.get('/users/profile', isAuthenticated, async (req, res) => {
                 usernameLastChanged: user.usernameLastChanged || null,
                 role: user.role || 'user',
                 department: user.department || 'general',
+                organization: user.organization || 'zomato',
                 sessionId: req.sessionID || 'unknown',
                 ip: req.ip || req.connection.remoteAddress || 'unknown'
             }
@@ -107,7 +109,18 @@ router.put('/users/profile', isAuthenticated, async (req, res) => {
 
         await user.save();
 
-
+        // Create notification alert for username change
+        try {
+            await Notification.create({
+                title: 'Username Updated',
+                content: `Your username was successfully changed from "${oldUsername}" to "${user.username}".`,
+                type: 'username_change',
+                recipientId: user._id,
+                lob: (user.department || 'zomato').toLowerCase().trim()
+            });
+        } catch (notifErr) {
+            console.error('[Notification Trigger] Failed to create username update notification:', notifErr);
+        }
 
         // Sync to session
         req.session.user.username = user.username;

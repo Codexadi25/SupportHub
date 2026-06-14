@@ -1,0 +1,221 @@
+<!-- views/dashboard.ejs -->
+
+<!-- ── KPI Row ─────────────────────────────────────────────── -->
+<div class="kpi-grid">
+    <div class="kpi-card kpi-green">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-value" id="kpi-present">--</div>
+        <div class="kpi-label">Present Today</div>
+        <span class="kpi-change up" id="kpi-present-chg">↑ --</span>
+        <div class="kpi-target" id="kpi-present-target">Target: >=80% (Max 20% Shrinkage)</div>
+    </div>
+    <div class="kpi-card kpi-red">
+        <div class="kpi-icon">❌</div>
+        <div class="kpi-value" id="kpi-absent">--</div>
+        <div class="kpi-label">Absent</div>
+        <span class="kpi-change down" id="kpi-absent-chg">↑ --</span>
+        <div class="kpi-target" id="kpi-absent-target">Target: 0</div>
+    </div>
+    <div class="kpi-card kpi-amber">
+        <div class="kpi-icon">🕐</div>
+        <div class="kpi-value" id="kpi-late">--</div>
+        <div class="kpi-label">Late Logins</div>
+        <span class="kpi-change flat" id="kpi-late-chg">-- --</span>
+        <div class="kpi-target" id="kpi-late-target">Target: 0</div>
+    </div>
+    <div class="kpi-card kpi-purple">
+        <div class="kpi-icon">🌿</div>
+        <div class="kpi-value" id="kpi-leave">--</div>
+        <div class="kpi-label">On Leave</div>
+        <span class="kpi-change flat" id="kpi-leave-chg">-- --</span>
+        <div class="kpi-target" id="kpi-leave-target">Target: <=10%</div>
+    </div>
+    <div class="kpi-card kpi-blue">
+        <div class="kpi-icon">⏱️</div>
+        <div class="kpi-value" id="kpi-aht">--</div>
+        <div class="kpi-label">Avg AHT (min)</div>
+        <span class="kpi-change up" id="kpi-aht-chg">↑ --</span>
+        <div class="kpi-target" id="kpi-aht-target">Target: <=6.0 min</div>
+    </div>
+    <div class="kpi-card kpi-teal">
+        <div class="kpi-icon">⭐</div>
+        <div class="kpi-value" id="kpi-quality">--</div>
+        <div class="kpi-label">Quality Score</div>
+        <span class="kpi-change up" id="kpi-quality-chg">↑ --</span>
+        <div class="kpi-target" id="kpi-quality-target">Target: >=95%</div>
+    </div>
+    <div class="kpi-card kpi-green">
+        <div class="kpi-icon">🎫</div>
+        <div class="kpi-value" id="kpi-tickets">--</div>
+        <div class="kpi-label">Tickets Today</div>
+        <span class="kpi-change up" id="kpi-tickets-chg">↑ --</span>
+        <div class="kpi-target" id="kpi-tickets-target">Target: >=300</div>
+    </div>
+    <div class="kpi-card kpi-amber">
+        <div class="kpi-icon">⚠️</div>
+        <div class="kpi-value" id="kpi-behavior">--</div>
+        <div class="kpi-label">Behavior Issues</div>
+        <span class="kpi-change down" id="kpi-behavior-chg">-- --</span>
+        <div class="kpi-target" id="kpi-behavior-target">Target: 0</div>
+    </div>
+</div>
+
+<!-- ── Row 1: Attendance Trend + Donut ───────────────────── -->
+<div class="chart-grid chart-grid-2-1" style="margin-bottom:16px;">
+
+    <div class="chart-card">
+        <div class="chart-title">Attendance Trend</div>
+        <div class="chart-subtitle">Daily present / absent / leave over selected period</div>
+        <div class="chart-container" style="height:220px;">
+            <canvas id="attendanceTrendChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="chart-title">Today's Breakdown</div>
+        <div class="chart-subtitle">Status distribution</div>
+        <div class="donut-wrap" style="height:220px;align-items:center;">
+            <canvas id="attendanceDonutChart" class="donut-canvas" style="width:140px;height:140px;"></canvas>
+            <div class="donut-stats" id="donutStats"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Row 2: Performance + Tickets ──────────────────────── -->
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px;">
+
+    <div class="chart-card">
+        <div class="chart-title">Performance Scores — Weekly Trend</div>
+        <div class="chart-subtitle">Quality · AHT · CSAT · FCR averaged daily</div>
+        <div class="chart-container" style="height:200px;">
+            <canvas id="performanceTrendChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="chart-title">Daily Ticket Volume</div>
+        <div class="chart-subtitle">Total tickets processed per day</div>
+        <div class="chart-container" style="height:200px;">
+            <canvas id="ticketVolumeChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Row 3: AHT Distribution + Login Hours ─────────────── -->
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px;">
+
+    <div class="chart-card">
+        <div class="chart-title">AHT Distribution</div>
+        <div class="chart-subtitle">Agent AHT vs team average — current period</div>
+        <div class="chart-container" style="height:200px;">
+            <canvas id="ahtChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="chart-title">Login Hours Heatmap</div>
+        <div class="chart-subtitle">Week-day × hour-of-day login density</div>
+        <div id="loginHeatmap" style="height:200px;overflow:hidden;"></div>
+    </div>
+
+</div>
+
+<!-- ── Row 4: Break Patterns + Week-off Calendar ─────────── -->
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px;">
+
+    <div class="chart-card">
+        <div class="chart-title">Break Pattern Distribution</div>
+        <div class="chart-subtitle">Average team break duration per shift hour</div>
+        <div class="chart-container" style="height:180px;">
+            <canvas id="breakPatternChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="chart-title">Week-Off Schedule</div>
+        <div class="chart-subtitle">Agents with weekly offs by day</div>
+        <div class="chart-container" style="height:180px;">
+            <canvas id="weekOffChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Row 5: Late Login / Early Logout Bar + Error Patterns ─ -->
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px;">
+
+    <div class="chart-card">
+        <div class="chart-title">Punctuality Analysis</div>
+        <div class="chart-subtitle">Late logins & early logouts by agent (top 10)</div>
+        <div class="chart-container" style="height:200px;">
+            <canvas id="punctualityChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="chart-title">Error Category Breakdown</div>
+        <div class="chart-subtitle">Error frequency by category — with suggestions</div>
+        <div class="chart-container" style="height:200px;">
+            <canvas id="errorPatternChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Row 6: Top Performers Table ───────────────────────── -->
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Team Leaderboard</div>
+            <div style="font-size:11px;color:var(--clr-text-muted);margin-top:2px;">Ranked by composite performance score</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="window.location='/performance/performance'">View All →</button>
+    </div>
+    <div class="table-wrap" style="border:none;border-radius:0;">
+        <table class="data-table" id="leaderboardTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Agent</th>
+                    <th>Present %</th>
+                    <th>AHT</th>
+                    <th>Quality</th>
+                    <th>Tickets</th>
+                    <th>Performance</th>
+                    <th>Login Hrs</th>
+                    <th>Issues</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+                <tr><td colspan="10" style="text-align:center;padding:30px;color:var(--clr-text-muted);">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Row 7: Shift-Swap Requests ────────────────────────── -->
+<div class="chart-grid chart-grid-2">
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Pending Shift Swaps</div>
+            <span class="badge badge-leave" id="swapCount">0 pending</span>
+        </div>
+        <div id="shiftSwapList" style="font-size:13px;">
+            <div style="color:var(--clr-text-muted);padding:20px;text-align:center;">Loading…</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Recent Behavior Issues</div>
+        </div>
+        <div id="behaviorList" style="font-size:13px;">
+            <div style="color:var(--clr-text-muted);padding:20px;text-align:center;">Loading…</div>
+        </div>
+    </div>
+
+</div>

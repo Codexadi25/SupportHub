@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: String, enum: ['new','user', 'editor', 'admin', 'team_lead', 'quality_analyst', 'vendor'], default: 'new' },
     department: { type: String, trim: true, lowercase: true, default: 'none' },
+    organization: { type: String, trim: true, lowercase: true, default: 'default' }, // NEW: multi-org support
+    teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },   // NEW: team assignment
     email: { type: String, default: '' },
     profilePic: { type: String, default: '' },
     image: { type: String, default: '' },
@@ -25,7 +27,10 @@ const userSchema = new mongoose.Schema({
     profileName: { type: String, default: '' },
     displayName: { type: String, default: '' },
     usernameLastChanged: { type: Date, default: null },
-    bgColor: { type: String, default: '' }
+    bgColor: { type: String, default: '' },
+    employeeId: { type: String, default: '' },        // NEW: employee ID for bulk imports
+    shiftType: { type: String, default: 'general' },  // NEW: default shift
+    isActive: { type: Boolean, default: true },        // NEW: soft delete / deactivation
     }, 
 { timestamps: true });
 

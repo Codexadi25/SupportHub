@@ -1,0 +1,258 @@
+<!-- partials/modals.ejs -->
+
+<!-- ══════════════════════════════════════════════════════
+     UPLOAD MODAL
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal modal-xl">
+
+    <div class="modal-header">
+      <span style="font-size:22px;">📥</span>
+      <span class="modal-title">Bulk Data Upload</span>
+      <button class="modal-close" onclick="closeModal('uploadModal')">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Step 1: Select Data Type -->
+      <div id="uploadStep1">
+        <p style="color:var(--clr-text-secondary);font-size:13px;margin-bottom:16px;">
+          Select the type of data you are uploading. Each workbook sheet is auto-detected, or choose a specific chunk.
+        </p>
+        <div class="data-type-grid">
+          <div class="data-type-option selected" data-type="full" onclick="selectDataType(this,'full')">
+            <div class="dt-icon">📋</div>Full Record
+          </div>
+          <div class="data-type-option" data-type="attendance" onclick="selectDataType(this,'attendance')">
+            <div class="dt-icon">📅</div>Attendance
+          </div>
+          <div class="data-type-option" data-type="aht" onclick="selectDataType(this,'aht')">
+            <div class="dt-icon">⏱️</div>AHT Report
+          </div>
+          <div class="data-type-option" data-type="quality" onclick="selectDataType(this,'quality')">
+            <div class="dt-icon">⭐</div>Quality Scores
+          </div>
+          <div class="data-type-option" data-type="shift_swap" onclick="selectDataType(this,'shift_swap')">
+            <div class="dt-icon">🔄</div>Shift Swap
+          </div>
+          <div class="data-type-option" data-type="late_login" onclick="selectDataType(this,'late_login')">
+            <div class="dt-icon">🕐</div>Late Login
+          </div>
+          <div class="data-type-option" data-type="leave" onclick="selectDataType(this,'leave')">
+            <div class="dt-icon">🌿</div>Leave Data
+          </div>
+          <div class="data-type-option" data-type="breaks" onclick="selectDataType(this,'breaks')">
+            <div class="dt-icon">☕</div>Break Patterns
+          </div>
+          <div class="data-type-option" data-type="behavior" onclick="selectDataType(this,'behavior')">
+            <div class="dt-icon">⚠️</div>Behavior
+          </div>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event)" />
+          <div class="upload-icon">📂</div>
+          <div class="upload-title">Drop your CSV or Excel file here</div>
+          <div class="upload-hint">Supports <strong>.csv</strong>, <strong>.xlsx</strong>, <strong>.xls</strong> · Multiple workbook sheets supported</div>
+        </div>
+
+        <!-- Sheet selector (shown after file load) -->
+        <div id="sheetSelector" style="display:none;margin-top:16px;">
+          <p style="font-size:12px;color:var(--clr-text-muted);margin-bottom:8px;">📑 Detected workbook sheets — select which to import:</p>
+          <div class="sheet-tabs" id="sheetTabsList"></div>
+        </div>
+
+        <!-- Preview table -->
+        <div id="previewWrap" style="display:none;margin-top:16px;">
+          <p style="font-size:12px;color:var(--clr-text-muted);margin-bottom:8px;">👁 Preview (first 5 rows)</p>
+          <div class="table-wrap" style="max-height:220px;overflow-y:auto;">
+            <table class="data-table" id="previewTable"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload Results -->
+      <div id="uploadResults" style="display:none;">
+        <div id="uploadProgressList"></div>
+        <div id="uploadSummary" style="margin-top:16px;padding:14px;background:var(--clr-surface-2);border-radius:var(--radius-md);font-size:13px;"></div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <a href="/performance/sample.csv" download class="btn btn-ghost btn-sm">⬇ Sample CSV</a>
+      <button class="btn btn-ghost" onclick="closeModal('uploadModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="startUpload()" id="uploadBtn" disabled>
+        ⬆ Upload Data
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SHARE / EXPORT MODAL
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span style="font-size:22px;">↗</span>
+      <span class="modal-title">Share & Export</span>
+      <button class="modal-close" onclick="closeModal('shareModal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label class="form-label">Export Format</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="exportData('xlsx')">📊 Excel (.xlsx)</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportData('csv')">📄 CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportData('pdf')">📑 PDF Report</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Share via</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="shareVia('gmail')">📧 Gmail</button>
+          <button class="btn btn-ghost btn-sm" onclick="shareVia('outlook')">📬 Outlook</button>
+          <button class="btn btn-ghost btn-sm" onclick="shareVia('whatsapp')">💬 WhatsApp</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">View-only Public Link</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" class="form-input" id="publicLinkInput"
+                 value="" placeholder="Generate link…" readonly />
+          <button class="btn btn-primary btn-sm" onclick="generatePublicLink()">Generate</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyPublicLink()" id="copyLinkBtn" style="display:none;">Copy</button>
+        </div>
+        <p style="font-size:11px;color:var(--clr-text-muted);margin-top:4px;">
+          Link expires in 7 days · Read-only access · No login required
+        </p>
+      </div>
+
+      <div class="form-group" style="border-top:1px dashed var(--clr-border, #374151);padding-top:14px;margin-top:14px;">
+        <label class="form-label">🔒 Secure Encrypted Public API (Auto-destruct TTL)</label>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+          <input type="text" class="form-input" id="secureApiLinkInput"
+                 value="" placeholder="Generate secure API link…" readonly style="flex:1;" />
+          <button class="btn btn-primary btn-sm" onclick="generateSecureApiLink()">Generate API Link</button>
+          <button class="btn btn-ghost btn-sm" onclick="copySecureApiLink()" id="copySecureLinkBtn" style="display:none;">Copy</button>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;font-size:12px;">
+          <label style="display:flex;align-items:center;gap:4px;">
+            Validity (mins): 
+            <select id="secureApiDuration" style="background:var(--clr-surface-2, #1f2937);color:var(--clr-text-main, #f3f4f6);border:1px solid var(--clr-border, #374151);border-radius:4px;padding:2px 6px;">
+              <option value="5">5 Mins</option>
+              <option value="10">10 Mins</option>
+              <option value="30">30 Mins</option>
+              <option value="60" selected>1 Hour</option>
+              <option value="1440">24 Hours</option>
+            </select>
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="secureApiOneTime" /> Auto-destroy on first view
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Include Sections</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" checked id="exp_attendance"> Attendance
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" checked id="exp_performance"> Performance
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="exp_breaks"> Break Patterns
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="exp_behavior"> Behavior Issues
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="exp_errors"> Error Patterns
+          </label>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('shareModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     EMPLOYEE PROFILE MODAL
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="empModal">
+  <div class="modal modal-xl">
+    <div class="modal-header">
+      <span style="font-size:22px;">👤</span>
+      <span class="modal-title" id="empModalName">Employee Profile</span>
+      <button class="modal-close" onclick="closeModal('empModal')">✕</button>
+    </div>
+    <div class="modal-body" id="empModalBody">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MY PROFILE & SESSION MODAL
+     ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="myProfileModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span style="font-size:22px;">👤</span>
+      <span class="modal-title">My Profile & Session</span>
+      <button class="modal-close" onclick="closeModal('myProfileModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="myProfileForm" onsubmit="saveMyProfile(event)">
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" for="profileUsername" style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--clr-text-secondary);">Username</label>
+          <input type="text" class="form-input" id="profileUsername" readonly style="background: var(--clr-surface-2); cursor: not-allowed; opacity: 0.8;" />
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" for="profileDisplayName" style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--clr-text-secondary);">Display Name</label>
+          <input type="text" class="form-input" id="profileDisplayName" required placeholder="Enter display name..." style="width: 100%;" />
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label" for="profileEmail" style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--clr-text-secondary);">Email Address</label>
+          <input type="email" class="form-input" id="profileEmail" required placeholder="name@company.com" style="width: 100%;" />
+        </div>
+        
+        <div style="border-top: 1px dashed var(--clr-border, #374151); margin: 18px 0; padding-top: 14px;">
+          <h4 style="font-size: 12px; color: var(--clr-text-secondary); margin-bottom: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Session Diagnostics</h4>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; margin-bottom: 12px;">
+            <div style="background: var(--clr-surface-2); padding: 8px 12px; border-radius: 6px;">
+              <div style="color: var(--clr-text-muted); font-size: 11px;">IP Address</div>
+              <div id="profileIp" style="font-weight: 600; color: var(--clr-text-main); margin-top: 2px;">-</div>
+            </div>
+            <div style="background: var(--clr-surface-2); padding: 8px 12px; border-radius: 6px;">
+              <div style="color: var(--clr-text-muted); font-size: 11px;">Session ID</div>
+              <div id="profileSessionId" style="font-weight: 600; color: var(--clr-text-main); margin-top: 2px; font-family: monospace; word-break: break-all;" title="-">-</div>
+            </div>
+          </div>
+          
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px;">
+            <span id="profileOrgBadge" class="badge" style="background: #4f46e5; color: white; padding: 4px 8px; border-radius: 4px; font-weight: 500;">Org: -</span>
+            <span id="profileRoleBadge" class="badge" style="background: #059669; color: white; padding: 4px 8px; border-radius: 4px; font-weight: 500;">Role: -</span>
+            <span id="profileDeptBadge" class="badge" style="background: #d97706; color: white; padding: 4px 8px; border-radius: 4px; font-weight: 500;">Dept: -</span>
+          </div>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('myProfileModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

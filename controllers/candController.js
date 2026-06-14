@@ -189,7 +189,21 @@ exports.generateAiTemplate = asyncHandler(async (req, res) => {
         throw err;
     }
 
-    // 2. Find or create Category
+    // 2. Check user role privilege level
+    const userRole = req.session?.user?.role || req.user?.role;
+    const isEditorOrAbove = ['editor', 'team_lead', 'quality_analyst', 'vendor', 'admin'].includes(userRole);
+    const finalTags = [...new Set([...tags, 'AI'])];
+
+    if (!isEditorOrAbove) {
+        return res.status(200).json({
+            success: true,
+            saved: false,
+            text,
+            tags: finalTags
+        });
+    }
+
+    // 3. Find or create Category for authorized users
     let category;
     if (categoryId && categoryId !== 'all') {
         category = await Category.findOne({ _id: categoryId, lob });
@@ -203,10 +217,8 @@ exports.generateAiTemplate = asyncHandler(async (req, res) => {
         }
     }
 
-    // 3. Save new template
+    // 4. Save new template
     const now = new Date();
-    // Ensure tags contains "AI"
-    const finalTags = [...new Set([...tags, 'AI'])];
     category.templates.push({
         text,
         tags: finalTags,
@@ -231,6 +243,7 @@ exports.generateAiTemplate = asyncHandler(async (req, res) => {
 
     res.status(201).json({
         success: true,
+        saved: true,
         template: newTemplate,
         categoryTitle: category.title,
         categoryId: category._id

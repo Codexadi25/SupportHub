@@ -1,0 +1,136 @@
+<div class="notifications-panel-container" style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <div class="card" style="background: var(--card-bg, #fff); border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border-color, #e2e8f0);">
+        <div class="panel-header" style="display:flex; align-items:center; gap:12px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color, #e2e8f0); padding-bottom: 15px;">
+            <span style="font-size: 2rem;">📣</span>
+            <div>
+                <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: var(--text, #1e293b);">Send Targeted Notification</h2>
+                <p style="margin: 4px 0 0 0; font-size: 0.875rem; color: var(--text-muted, #64748b);">Dispatch direct notification alerts or announcements to specific users.</p>
+            </div>
+        </div>
+
+        <form id="send-notification-form" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="notif-recipient" style="font-weight: 500; font-size: 0.9rem; color: var(--text, #334155);">Recipient User *</label>
+                <select id="notif-recipient" name="recipientId" required style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); background: var(--bg-input, #fff); color: var(--text, #1e293b); width: 100%;">
+                    <option value="">-- Select Recipient --</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="notif-type" style="font-weight: 500; font-size: 0.9rem; color: var(--text, #334155);">Notification Type *</label>
+                <select id="notif-type" name="type" required style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); background: var(--bg-input, #fff); color: var(--text, #1e293b); width: 100%;">
+                    <option value="username_change">Username Change</option>
+                    <option value="password_change">Password Change/Update</option>
+                    <option value="role_change">Role/Department Access Modification</option>
+                    <option value="app_update">App Update</option>
+                    <option value="sop_update">SOP Update</option>
+                    <option value="daily_briefing">Daily Briefing</option>
+                    <option value="other" selected>Other Notification / Announcement</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="notif-title" style="font-weight: 500; font-size: 0.9rem; color: var(--text, #334155);">Title *</label>
+                <input type="text" id="notif-title" name="title" required maxlength="150" placeholder="e.g. Password Updated Successfully" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); background: var(--bg-input, #fff); color: var(--text, #1e293b);">
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="notif-content-type" style="font-weight: 500; font-size: 0.9rem; color: var(--text, #334155);">Message Format *</label>
+                <select id="notif-content-type" name="contentType" required style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); background: var(--bg-input, #fff); color: var(--text, #1e293b); width: 100%;">
+                    <option value="plain" selected>Plain Text</option>
+                    <option value="html">HTML</option>
+                    <option value="markdown">Markdown</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="notif-content" style="font-weight: 500; font-size: 0.9rem; color: var(--text, #334155);">Message Content *</label>
+                <textarea id="notif-content" name="content" rows="4" required placeholder="Type the message details here..." style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); background: var(--bg-input, #fff); color: var(--text, #1e293b); resize: vertical;"></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                <button type="submit" class="action-btn" style="padding: 10px 20px; font-weight: 500; font-size: 0.95rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; background: var(--primary, #2563eb); color: #fff; border: none; transition: filter 0.2s;">
+                    <span>Send Notification</span> 🚀
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const recipientSelect = document.getElementById('notif-recipient');
+        const form = document.getElementById('send-notification-form');
+        
+        async function loadRecipients() {
+            try {
+                const res = await fetch('/api/admin/users');
+                if (!res.ok) throw new Error('Failed to fetch users');
+                const users = await res.json();
+                
+                recipientSelect.innerHTML = '<option value="">-- Select Recipient --</option>';
+                
+                users.forEach(u => {
+                    const option = document.createElement('option');
+                    option.value = u._id || u.id;
+                    option.textContent = `${u.displayName || u.username} (${u.role.replace('_',' ')} · ${u.department || 'no dept'})`;
+                    recipientSelect.appendChild(option);
+                });
+            } catch (err) {
+                console.error('[SendNotifPanel] Error loading users:', err);
+            }
+        }
+        
+        if (recipientSelect) {
+            loadRecipients();
+        }
+
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const recipientId = document.getElementById('notif-recipient').value;
+                const type = document.getElementById('notif-type').value;
+                const title = document.getElementById('notif-title').value.trim();
+                const content = document.getElementById('notif-content').value.trim();
+                const contentType = document.getElementById('notif-content-type').value;
+                
+                if (!recipientId || !title || !content) {
+                    alert('Please fill out all required fields.');
+                    return;
+                }
+                
+                try {
+                    const userDept = '<%= (user.department || "zomato").toLowerCase().trim() %>';
+                    const res = await fetch(`/api/${userDept}/notifications`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            recipientId,
+                            type,
+                            title,
+                            content,
+                            contentType
+                        })
+                    });
+                    
+                    const data = await res.json();
+                    if (!res.ok) {
+                        throw new Error(data.message || 'Failed to dispatch notification');
+                    }
+                    
+                    alert('Notification sent successfully!');
+                    form.reset();
+                    
+                    if (window.loadNotifications) {
+                        window.loadNotifications();
+                    }
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                }
+            });
+        }
+    });
+</script>

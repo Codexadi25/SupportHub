@@ -1,0 +1,192 @@
+<!-- views/employee.ejs -->
+
+<div class="section-header">
+    <div>
+        <div class="section-title">Employee Profile</div>
+        <div class="section-subtitle">Detailed individual performance & attendance view</div>
+    </div>
+    <div class="section-actions" style="display:flex;gap:10px;align-items:center;">
+        <div style="display:flex;gap:4px;align-items:center;background:var(--clr-surface-2);border:1px solid var(--clr-border);border-radius:6px;padding:3px 8px;">
+            <span style="font-size:13px;color:var(--clr-text-muted);">🔍</span>
+            <input type="text" id="empIdSearchInput" placeholder="Enter EMP ID..." style="background:none;border:none;color:var(--clr-text-main);font-size:13px;padding:4px;outline:none;width:120px;" onkeydown="if(event.key==='Enter') searchByEmpId()" />
+            <button class="btn btn-primary btn-sm" onclick="searchByEmpId()" style="padding:4px 10px;font-size:12px;border-radius:4px;">Search</button>
+        </div>
+        <select class="form-select" id="empSelector" onchange="loadEmployee(this.value)" style="padding:7px 12px;font-size:13px;">
+            <option value="">— Select Employee —</option>
+            <% (employees || []).forEach(e => { %>
+            <option value="<%= e._id %>" <%= String(e._id) === empId ? 'selected' : '' %>>
+                <%= e.displayName || e.username %> (<%= e.employeeId || e.username %>)
+            </option>
+            <% }) %>
+        </select>
+    </div>
+</div>
+
+<!-- Profile Header Card -->
+<div class="card" style="margin-bottom:16px;" id="empProfileCard">
+    <div style="display:flex;align-items:center;gap:20px;">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--clr-blue);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;flex-shrink:0;border:3px solid var(--clr-blue-dim);"
+             id="empAvatar">?</div>
+        <div style="flex:1;">
+            <div style="font-family:var(--font-display);font-size:20px;font-weight:800;" id="empName">Select an employee</div>
+            <div style="font-size:12px;color:var(--clr-text-muted);margin-top:2px;" id="empMeta">—</div>
+        </div>
+        <div style="display:flex;gap:8px;" id="empActions">
+            <button class="btn btn-ghost btn-sm" onclick="shareAsImage()" id="btnShareImage" style="display:none;align-items:center;gap:6px;padding:6px 12px;font-size:12px;">📸 Share as Image</button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('shareModal')" id="btnShareModal" style="display:none;align-items:center;gap:6px;padding:6px 12px;font-size:12px;">↗ Share Report</button>
+        </div>
+    </div>
+</div>
+
+<!-- KPI Mini Row -->
+<div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px;" id="empKpiRow">
+    <div class="kpi-card kpi-green">
+        <div class="kpi-icon">📅</div>
+        <div class="kpi-value" id="emp-kpi-present">--</div>
+        <div class="kpi-label">Attendance %</div>
+        <div class="kpi-target" id="emp-kpi-present-target">Target: >=80%</div>
+    </div>
+    <div class="kpi-card kpi-blue">
+        <div class="kpi-icon">⏱️</div>
+        <div class="kpi-value" id="emp-kpi-aht">--</div>
+        <div class="kpi-label">Avg AHT</div>
+        <div class="kpi-target" id="emp-kpi-aht-target">Target: <=6.0 min</div>
+    </div>
+    <div class="kpi-card kpi-teal">
+        <div class="kpi-icon">⭐</div>
+        <div class="kpi-value" id="emp-kpi-quality">--</div>
+        <div class="kpi-label">Quality</div>
+        <div class="kpi-target" id="emp-kpi-quality-target">Target: >=95%</div>
+    </div>
+    <div class="kpi-card kpi-amber">
+        <div class="kpi-icon">🕐</div>
+        <div class="kpi-value" id="emp-kpi-late">--</div>
+        <div class="kpi-label">Late Days</div>
+        <div class="kpi-target" id="emp-kpi-late-target">Target: 0</div>
+    </div>
+    <div class="kpi-card kpi-purple">
+        <div class="kpi-icon">🌿</div>
+        <div class="kpi-value" id="emp-kpi-leave">--</div>
+        <div class="kpi-label">Leaves Used</div>
+        <div class="kpi-target" id="emp-kpi-leave-target">Target: <=2 days</div>
+    </div>
+    <div class="kpi-card kpi-red">
+        <div class="kpi-icon">⚠️</div>
+        <div class="kpi-value" id="emp-kpi-issues">--</div>
+        <div class="kpi-label">Issues</div>
+        <div class="kpi-target" id="emp-kpi-issues-target">Target: 0</div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="chart-grid chart-grid-1-2" style="margin-bottom:16px;">
+
+    <!-- ── Polygon Radar Chart ──────────────────────────── -->
+    <div class="chart-card">
+        <div class="chart-title">Overall Performance Polygon</div>
+        <div class="chart-subtitle">Multi-dimension performance snapshot</div>
+        <div class="radar-wrap" style="margin-top:16px;">
+            <div class="radar-canvas-wrap">
+                <canvas id="performanceRadar"></canvas>
+            </div>
+            <div class="radar-legend" id="radarLegend">
+                <!-- Injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Attendance Calendar Heatmap ─────────────────── -->
+    <div class="chart-card">
+        <div class="chart-title">Attendance Calendar</div>
+        <div class="chart-subtitle">Day-wise attendance for the selected period</div>
+        <div id="attendanceCalendar" style="margin-top:12px;"></div>
+        <div style="display:flex;gap:12px;margin-top:12px;font-size:11px;flex-wrap:wrap;">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--clr-green);display:inline-block;"></span>Present</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--clr-red);display:inline-block;"></span>Absent</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--clr-amber);display:inline-block;"></span>Leave</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--clr-purple);display:inline-block;"></span>Week Off</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- Row 2: Trend + Break Pattern -->
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px;">
+
+    <div class="chart-card">
+        <div class="chart-title">Performance Trend</div>
+        <div class="chart-subtitle">Quality & AHT over time</div>
+        <div class="chart-container" style="height:180px;">
+            <canvas id="empPerformanceTrend"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <div class="chart-title">Break Pattern</div>
+        <div class="chart-subtitle">Average break taken per shift hour</div>
+        <div class="chart-container" style="height:180px;">
+            <canvas id="empBreakPattern"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- Row 3: Error Suggestions + Behavior Log -->
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px;">
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">🔍 Error Patterns & Suggestions</div>
+        </div>
+        <div id="empErrorList">
+            <div style="color:var(--clr-text-muted);padding:20px;text-align:center;">No data</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">⚠️ Behavior Log</div>
+        </div>
+        <div id="empBehaviorLog">
+            <div style="color:var(--clr-text-muted);padding:20px;text-align:center;">No issues recorded</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Detailed Records Table -->
+<div style="margin-bottom:16px;">
+    <div class="table-toolbar" style="border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--clr-surface);">
+        <div style="font-size:13px;font-weight:600;color:var(--clr-text-primary);">📋 Daily Records</div>
+        <div class="table-search">
+            <span class="icon">🔍</span>
+            <input type="text" placeholder="Search date, status…" oninput="filterEmpTable(this.value)" />
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="exportEmployeeData()">⬇ Export</button>
+    </div>
+    <div class="table-wrap" style="border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Status</th>
+                    <th>Shift</th>
+                    <th>Login</th>
+                    <th>Logout</th>
+                    <th>Login Hrs</th>
+                    <th>Late (min)</th>
+                    <th>AHT</th>
+                    <th>Quality</th>
+                    <th>Tickets</th>
+                    <th>Break (min)</th>
+                    <th>Issues</th>
+                </tr>
+            </thead>
+            <tbody id="empRecordsBody">
+                <tr><td colspan="13" style="text-align:center;padding:30px;color:var(--clr-text-muted);">Select an employee to load records</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination" id="empPagination"></div>
+</div>

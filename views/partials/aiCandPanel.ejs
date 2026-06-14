@@ -1,0 +1,148 @@
+<div class="ai-cand-container" style="padding: 15px; display: flex; flex-direction: column; gap: 20px; height: 100%; overflow-y: auto;">
+    
+    <!-- Header with Admin controls -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--clr-border, #e2e8f0); padding-bottom: 12px;">
+        <h2 style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1.5rem; font-weight: 700; color: var(--clr-text-main, #1e293b);">
+            <span>✨</span> AI Canned Responses
+        </h2>
+        <% if (user.role === 'admin') { %>
+            <button id="btn-admin-prompt-toggle" class="btn" style="background: rgba(37,99,235,0.1); color: var(--clr-primary, #2563eb); border: 1px solid rgba(37,99,235,0.2); padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;">
+                ⚙️ Manage Prompt Template
+            </button>
+        <% } %>
+    </div>
+
+    <!-- Admin Prompt Config Panel (Toggled, hidden by default) -->
+    <% if (user.role === 'admin') { %>
+        <div id="admin-prompt-panel" style="display: none; background: rgba(37, 99, 235, 0.03); border: 1px solid rgba(37, 99, 235, 0.15); border-radius: 12px; padding: 16px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+            <h3 style="margin: 0 0 10px; font-size: 1rem; font-weight: 700; color: var(--clr-primary, #2563eb);">System Prompt Configuration</h3>
+            <p style="margin: 0 0 12px; font-size: 0.8rem; color: var(--clr-text-muted, #64748b); line-height: 1.4;">
+                Define how the AI constructs responses. Use <strong>{{selectedTags}}</strong> for selected sentence chunks and <strong>{{extraContext}}</strong> for the free-text context.
+            </p>
+            <textarea id="admin-prompt-textarea" rows="8" style="width: 100%; padding: 10px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 8px; font-family: monospace; font-size: 0.85rem; margin-bottom: 12px; resize: vertical; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);"></textarea>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="btn-admin-prompt-save" class="btn btn-primary" style="background: var(--clr-primary, #2563eb); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(37,99,235,0.15);">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    <% } %>
+
+    <!-- Left & Right Main Section Grid -->
+    <div class="ai-panel-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-height: 500px;">
+        
+        <!-- LEFT COLUMN: GENERATOR -->
+        <div class="ai-generator-card" style="background: var(--clr-bg-card, #ffffff); border: 1px solid var(--clr-border, #e2e8f0); border-radius: 14px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 18px;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--clr-text-main, #1e293b); display: flex; align-items: center; gap: 6px;">
+                <span style="color: var(--clr-primary, #2563eb);">⚡</span> AI Generator (<%= (user.department || 'General').toUpperCase() %> LOB)
+            </h3>
+
+            <!-- Tag selection grid -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label style="font-weight: 600; font-size: 0.85rem; color: var(--clr-text-main, #1e293b);">Select Sentence Chunks (Tags)</label>
+                    <button id="btn-create-tag-trigger" class="btn" style="background: transparent; color: var(--clr-primary, #2563eb); border: none; padding: 0; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        ➕ Add Custom Tag
+                    </button>
+                </div>
+
+                <!-- Custom tag builder box (hidden by default) -->
+                <div id="create-tag-box" style="display: none; background: rgba(0,0,0,0.02); border: 1px dashed var(--clr-border, #cbd5e1); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="new-tag-input" placeholder="e.g. Traffic Delay" style="flex: 1; padding: 6px 10px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 6px; font-size: 0.85rem; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);">
+                        <% if (user.role === 'admin') { %>
+                            <select id="new-tag-visibility" style="padding: 6px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 6px; font-size: 0.85rem; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);">
+                                <option value="public">Public</option>
+                                <option value="private">Private</option>
+                            </select>
+                        <% } %>
+                        <button id="btn-save-tag" class="btn btn-primary" style="background: var(--clr-primary, #2563eb); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                            Save
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tag List Chips Group -->
+                <div id="ai-generator-tags-list" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 150px; overflow-y: auto; padding: 4px; border: 1px solid var(--clr-border, #e2e8f0); border-radius: 8px; background: rgba(0,0,0,0.01);">
+                    <div class="loading-tags" style="font-size: 0.8rem; color: var(--clr-text-muted, #64748b); padding: 8px;">Loading tags...</div>
+                </div>
+            </div>
+
+            <!-- Extra context text area -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="ai-context-input" style="font-weight: 600; font-size: 0.85rem; color: var(--clr-text-main, #1e293b);">Additional Context (Free Text)</label>
+                <textarea id="ai-context-input" rows="3" placeholder="Add custom order info or specific reasons here..." style="width: 100%; padding: 10px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 8px; font-size: 0.85rem; resize: none; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);"></textarea>
+            </div>
+
+            <button id="btn-generate-response" class="btn btn-primary" style="background: var(--clr-primary, #2563eb); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(37,99,235,0.2); transition: all 0.2s;">
+                <span>✨</span> Generate Response
+            </button>
+
+            <!-- Output Container -->
+            <div id="ai-output-container" style="display: none; border-top: 1px solid var(--clr-border, #e2e8f0); padding-top: 15px; margin-top: auto;">
+                <h4 style="margin: 0 0 8px; font-size: 0.9rem; font-weight: 700; color: var(--clr-text-main, #1e293b);">Generated Result:</h4>
+                <div id="ai-output-box" style="background: rgba(37,99,235,0.03); border: 1px solid rgba(37,99,235,0.15); border-radius: 8px; padding: 12px; font-size: 0.9rem; color: var(--clr-text-main, #1e293b); line-height: 1.5; margin-bottom: 12px; position: relative;">
+                    <!-- result text here -->
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button id="btn-copy-ai-output" class="btn" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background: #22c55e; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                        📋 Copy Result
+                    </button>
+                    <button id="btn-rephrase-ai-output" class="btn" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background: #e2e8f0; color: var(--clr-text-main, #1e293b); border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                        🔄 Rephrase
+                    </button>
+                    <% if (user.role === 'admin') { %>
+                        <button id="btn-save-as-admin-cand" class="btn" style="flex: 1.2; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--clr-primary, #2563eb); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                            💾 Save Official
+                        </button>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: OFFICIAL CAND LIST -->
+        <div class="ai-cands-list-card" style="background: var(--clr-bg-card, #ffffff); border: 1px solid var(--clr-border, #e2e8f0); border-radius: 14px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--clr-text-main, #1e293b); display: flex; align-items: center; gap: 6px;">
+                    📚 Official AI Cands
+                </h3>
+                <span id="ai-cands-count" style="font-size: 0.8rem; background: rgba(0,0,0,0.05); padding: 3px 8px; border-radius: 12px; color: var(--clr-text-muted, #64748b); font-weight: 600;">0 cands</span>
+            </div>
+
+            <!-- List Search Input -->
+            <div style="position: relative;">
+                <input type="text" id="ai-cands-search-input" placeholder="Search official cands or tags..." style="width: 100%; padding: 8px 12px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 8px; font-size: 0.85rem; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);">
+            </div>
+
+            <!-- List scroll container -->
+            <div id="ai-cands-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; max-height: 400px; padding: 2px;">
+                <div class="loading-cands" style="font-size: 0.85rem; color: var(--clr-text-muted, #64748b); text-align: center; padding: 20px;">Loading official cands...</div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Edit Admin Cand Modal -->
+<div id="edit-ai-cand-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="modal-content" style="background: var(--clr-bg-card, #ffffff); border-radius: 12px; width: 500px; max-width: 90%; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 15px; position: relative;">
+        <button class="modal-close-btn" id="close-edit-ai-cand-modal" style="position: absolute; top: 12px; right: 15px; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--clr-text-muted, #64748b);">&times;</button>
+        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--clr-text-main, #1e293b);">Edit Official Canned Response</h3>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+            <label for="edit-ai-cand-text" style="font-weight: 600; font-size: 0.85rem;">Response Text</label>
+            <textarea id="edit-ai-cand-text" rows="4" style="width: 100%; padding: 10px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 8px; font-size: 0.85rem; resize: vertical; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);"></textarea>
+        </div>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+            <label style="font-weight: 600; font-size: 0.85rem;">Select Tags</label>
+            <div id="edit-ai-cand-tags-list" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 100px; overflow-y: auto; padding: 6px; border: 1px solid var(--clr-border, #e2e8f0); border-radius: 8px; background: rgba(0,0,0,0.01);">
+                <!-- tags here -->
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+            <button id="btn-cancel-edit-ai-cand" class="btn" style="background: #e2e8f0; color: var(--clr-text-main, #1e293b); border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">Cancel</button>
+            <button id="btn-save-edit-ai-cand" class="btn btn-primary" style="background: var(--clr-primary, #2563eb); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/aiCand.js"></script>

@@ -1,0 +1,152 @@
+/* ═══════════════════════════════════════════════════════
+   tables.css — Data Tables, Grids, Lists
+   ═══════════════════════════════════════════════════════ */
+
+.table-wrap {
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--clr-border);
+    background: var(--clr-surface);
+}
+
+table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.data-table thead {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--clr-surface-2);
+}
+.data-table th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--clr-text-muted);
+    border-bottom: 1px solid var(--clr-border);
+    white-space: nowrap;
+}
+.data-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--clr-border);
+    color: var(--clr-text-secondary);
+    vertical-align: middle;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--clr-surface-2); }
+.data-table tbody tr:hover td { color: var(--clr-text-primary); }
+
+/* ── Sortable headers ─────────────────────────────────────── */
+.data-table th.sortable { cursor: pointer; user-select: none; }
+.data-table th.sortable:hover { color: var(--clr-text-primary); }
+.data-table th.sort-asc::after  { content: ' ↑'; }
+.data-table th.sort-desc::after { content: ' ↓'; }
+
+/* ── Employee row ─────────────────────────────────────────── */
+.emp-cell {
+    display: flex; align-items: center; gap: 10px;
+}
+.emp-cell .emp-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--clr-surface-3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    flex-shrink: 0;
+    border: 1px solid var(--clr-border);
+    color: var(--clr-blue);
+}
+.emp-cell .emp-name { font-weight: 600; color: var(--clr-text-primary); font-size: 13px; }
+.emp-cell .emp-id   { font-size: 11px; color: var(--clr-text-muted); font-family: var(--font-mono); }
+
+/* ── Score cells ──────────────────────────────────────────── */
+.score-cell {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 12px;
+}
+.score-high   { color: var(--clr-green); }
+.score-medium { color: var(--clr-amber); }
+.score-low    { color: var(--clr-red); }
+
+/* ── Mini sparkline placeholder ───────────────────────────── */
+.sparkline { height: 28px; width: 80px; display: inline-block; }
+
+/* ── Table toolbar ────────────────────────────────────────── */
+.table-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--clr-border);
+    background: var(--clr-surface);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.table-search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--clr-surface-2);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    flex: 1; max-width: 280px;
+}
+.table-search input {
+    background: none; border: none; outline: none;
+    color: var(--clr-text-primary); font-size: 13px;
+    flex: 1;
+}
+.table-search input::placeholder { color: var(--clr-text-muted); }
+.table-search .icon { color: var(--clr-text-muted); font-size: 14px; }
+
+/* ── Pagination ──────────────────────────────────────────── */
+.pagination {
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--clr-border);
+    background: var(--clr-surface);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    font-size: 12px;
+}
+.pagination .page-info { color: var(--clr-text-muted); flex: 1; }
+.page-btn {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    background: var(--clr-surface-2);
+    border: 1px solid var(--clr-border);
+    color: var(--clr-text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    transition: all var(--transition);
+}
+.page-btn:hover { background: var(--clr-surface-3); color: var(--clr-text-primary); }
+.page-btn.active {
+    background: var(--clr-blue); border-color: var(--clr-blue);
+    color: #fff; font-weight: 700;
+}
+
+/* ── Heat Calendar ────────────────────────────────────────── */
+.heat-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+.heat-day {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    background: var(--clr-surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-family: var(--font-mono);
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+}
+.heat-day:hover { transform: scale(1.15); z-index: 2; }
+.heat-day.level-0 { background: var(--clr-surface-2); }
+.heat-day.level-1 { background: rgba(59,126,255,0.15); color: var(--clr-blue); }
+.heat-day.level-2 { background: rgba(59,126,255,0.3);  color: var(--clr-blue); }
+.heat-day.level-3 { background: rgba(59,126,255,0.5);  color: #fff; }
+.heat-day.level-4 { background: var(--clr-blue);        color: #fff; }
+.heat-day.absent  { background: var(--clr-red-dim);     color: var(--clr-red); }
+.heat-day.leave   { background: var(--clr-amber-dim);   color: var(--clr-amber); }
+.heat-day.week-off{ background: var(--clr-purple-dim);  color: var(--clr-purple); }

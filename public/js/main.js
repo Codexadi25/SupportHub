@@ -229,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const el = document.getElementById(tabId);
                 if (el) el.classList.add('active');
             }
+            filterContent();
         });
     });
 
@@ -239,9 +240,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterContent = () => {
         const searchTerm = searchInput.value.toLowerCase().trim();
         const currentTab = document.querySelector('.tab-content.active');
+        if (!currentTab) return;
         const hasActiveSearch = searchTerm.length > 0 || activeTags.size > 0;
         
         if (currentTab.id === 'Cands') {
+            // Remove temporary AI response cards if all tag filters are cleared
+            if (activeTags.size === 0) {
+                document.querySelectorAll('#cands-list-container .temp-ai-cand').forEach(el => el.remove());
+            }
+
             const candsContainer = document.getElementById('cands-list-container');
             const categoryGroups = document.querySelectorAll('#cands-list-container .category-group');
             const candItems = document.querySelectorAll('#cands-list-container .cand-item');
@@ -322,6 +329,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const content  = (card.querySelector('.pn-card-body')?.textContent   || '').toLowerCase();
                 const category = (card.dataset.pnCategory || '').toLowerCase();
                 card.style.display = (!searchTerm || title.includes(searchTerm) || content.includes(searchTerm) || category.includes(searchTerm)) ? '' : 'none';
+            });
+        } else if (currentTab.id === 'AICands') {
+            const aiCandItems = document.querySelectorAll('#ai-cands-list .official-ai-cand-item');
+            aiCandItems.forEach(item => {
+                const text = (item.querySelector('.ai-cand-text')?.textContent || '').toLowerCase();
+                const tags = (item.dataset.tags || '').toLowerCase();
+                const match = text.includes(searchTerm) || tags.includes(searchTerm);
+                item.style.display = (!searchTerm || match) ? '' : 'none';
+            });
+        } else if (currentTab.id === 'Feedback') {
+            const feedbackItems = document.querySelectorAll('#feedback-list-container .feedback-item');
+            feedbackItems.forEach(item => {
+                const title = (item.querySelector('.feedback-title')?.textContent || '').toLowerCase();
+                const description = (item.querySelector('.feedback-description')?.textContent || '').toLowerCase();
+                const tags = Array.from(item.querySelectorAll('.feedback-tag')).map(t => t.textContent.toLowerCase()).join(' ');
+                const type = (item.querySelector('.feedback-type')?.textContent || '').toLowerCase();
+                const match = title.includes(searchTerm) || description.includes(searchTerm) || tags.includes(searchTerm) || type.includes(searchTerm);
+                item.style.display = (!searchTerm || match) ? '' : 'none';
             });
         }
     };
@@ -412,11 +437,50 @@ document.addEventListener('DOMContentLoaded', () => {
                     categoryId
                 });
                 
-                showToast('AI Canned Response Generated successfully!', 'success');
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1200);
+                if (data.saved) {
+                    showToast('AI Canned Response Generated and Saved successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1200);
+                } else {
+                    showToast('AI Canned Response Generated successfully! (View only, not saved)', 'success');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    
+                    // Remove generation box
+                    const aiBox = document.getElementById('ai-generation-box');
+                    if (aiBox) aiBox.remove();
+                    
+                    // Add temp card
+                    const candsContainer = document.getElementById('cands-list-container');
+                    if (candsContainer) {
+                        document.querySelectorAll('#cands-list-container .temp-ai-cand').forEach(el => el.remove());
+                        
+                        const tempCard = document.createElement('div');
+                        tempCard.className = 'cand-item cand-ai-item temp-ai-cand';
+                        tempCard.dataset.tags = data.tags.join(' ');
+                        tempCard.title = 'Click to copy (Temporary)';
+                        tempCard.style.border = '2px dashed var(--primary, #2563eb)';
+                        tempCard.style.background = 'rgba(37, 99, 235, 0.05)';
+                        
+                        const tagChips = data.tags.map(t => `<span class="cand-tag-chip tag">${t}</span>`).join(' ');
+                        
+                        tempCard.innerHTML = `
+                            <div class="cand-header">
+                                <span class="cand-category-label" style="color: var(--primary, #2563eb); font-weight: 700;">AI GENERATED (TEMP)
+                                    <span class="cand-tags">
+                                        <span class="cand-status-tag status-ai">✨ AI (TEMP)</span>
+                                        ${tagChips}
+                                    </span>
+                                </span>
+                            </div>
+                            <p class="cand-text">${data.text}</p>
+                        `;
+                        candsContainer.appendChild(tempCard);
+                        tempCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                    filterContent();
+                }
             } catch (err) {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;

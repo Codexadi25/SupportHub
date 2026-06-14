@@ -1,0 +1,166 @@
+<!-- partials/sidebar.ejs -->
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+        <div class="logo-icon">📊</div>
+        <div>
+            <div class="logo-text">PulseTrack</div>
+            <div class="logo-sub">Performance Suite</div>
+        </div>
+    </div>
+
+    <!-- Organization Switcher (admin/vendor only) -->
+    <% if (['admin','vendor'].includes(user.role)) { %>
+    <div class="sidebar-org">
+        <select id="orgSwitcher" onchange="switchOrg(this.value)">
+            <% (locals.orgs || [user.organization || 'default']).forEach(o => { %>
+            <option value="<%= o %>" <%= o === (user.organization || 'default') ? 'selected' : '' %>>
+                🏢 <%= o.charAt(0).toUpperCase() + o.slice(1) %>
+            </option>
+            <% }) %>
+        </select>
+    </div>
+    <% } %>
+
+    <nav class="sidebar-nav">
+
+        <div class="nav-section-label">Overview</div>
+
+        <a class="nav-item <%= currentPage==='dashboard' ? 'active' : '' %>"
+           href="/performance/dashboard" data-page="dashboard">
+            <span class="nav-icon">⚡</span>
+            <span>Dashboard</span>
+        </a>
+
+        <a class="nav-item <%= currentPage==='overview' ? 'active' : '' %>"
+           href="/performance/overview" data-page="overview">
+            <span class="nav-icon">🏠</span>
+            <span>Team Overview</span>
+        </a>
+
+        <div class="nav-section-label">Tracking</div>
+
+        <a class="nav-item <%= currentPage==='attendance' ? 'active' : '' %>"
+           href="/performance/records" data-page="attendance">
+            <span class="nav-icon">📅</span>
+            <span>Attendance</span>
+        </a>
+
+        <a class="nav-item <%= currentPage==='performance' ? 'active' : '' %>"
+           href="/performance/performance" data-page="performance">
+            <span class="nav-icon">🎯</span>
+            <span>Performance</span>
+        </a>
+
+        <a class="nav-item <%= currentPage==='shifts' ? 'active' : '' %>"
+           href="/performance/shifts" data-page="shifts">
+            <span class="nav-icon">🔄</span>
+            <span>Shifts & Swaps</span>
+        </a>
+
+        <a class="nav-item <%= currentPage==='leaves' ? 'active' : '' %>"
+           href="/performance/leaves" data-page="leaves">
+            <span class="nav-icon">🌿</span>
+            <span>Leave Tracker</span>
+        </a>
+
+        <a class="nav-item <%= currentPage==='breaks' ? 'active' : '' %>"
+           href="/performance/breaks" data-page="breaks">
+            <span class="nav-icon">☕</span>
+            <span>Break Patterns</span>
+        </a>
+
+        <a class="nav-item <%= currentPage==='behavior' ? 'active' : '' %>"
+           href="/performance/behavior" data-page="behavior">
+            <span class="nav-icon">⚠️</span>
+            <span>Behavior Issues</span>
+            <% if ((behaviorCount || 0) > 0) { %>
+            <span class="nav-badge"><%= behaviorCount %></span>
+            <% } %>
+        </a>
+
+        <a class="nav-item <%= currentPage==='errors' ? 'active' : '' %>"
+           href="/performance/errors" data-page="errors">
+            <span class="nav-icon">🔍</span>
+            <span>Error Patterns</span>
+        </a>
+
+        <div class="nav-section-label">Employee</div>
+
+        <a class="nav-item <%= currentPage==='employee' ? 'active' : '' %>"
+           href="/performance/employee" data-page="employee">
+            <span class="nav-icon">👤</span>
+            <span>Employee Profile</span>
+        </a>
+
+        <a class="nav-item <%= currentPage==='trends' ? 'active' : '' %>"
+           href="/performance/trends" data-page="trends">
+            <span class="nav-icon">📈</span>
+            <span>Trends</span>
+        </a>
+
+        <div class="nav-section-label">Data</div>
+
+        <a class="nav-item <%= currentPage==='upload' ? 'active' : '' %>"
+           href="/performance/upload" data-page="upload">
+            <span class="nav-icon">⬆️</span>
+            <span>Upload Data</span>
+        </a>
+
+        <a class="nav-item <%= currentPage==='export' ? 'active' : '' %>"
+           href="/performance/export" data-page="export">
+            <span class="nav-icon">⬇️</span>
+            <span>Export & Share</span>
+        </a>
+
+        <% if (['admin', 'vendor', 'team_lead'].includes(user.role)) { %>
+        <div class="nav-section-label">Management</div>
+        <a class="nav-item <%= currentPage==='teams' ? 'active' : '' %>"
+           href="/performance/admin/teams" data-page="teams">
+            <span class="nav-icon">👥</span>
+            <span>Teams</span>
+        </a>
+        <a class="nav-item <%= currentPage==='breaks-recorder' ? 'active' : '' %>"
+           href="/performance/admin/breaks-recorder" data-page="breaks-recorder">
+            <span class="nav-icon">⏱️</span>
+            <span>Break Recorder</span>
+        </a>
+        <a class="nav-item <%= currentPage==='settings' ? 'active' : '' %>"
+           href="/performance/admin/settings" data-page="settings">
+            <span class="nav-icon">⚙️</span>
+            <span>Settings</span>
+        </a>
+        <% } %>
+
+        <% if (['admin', 'team_lead', 'vendor'].includes(user.role)) { %>
+        <div class="nav-section-label">Demo Tools</div>
+        <a class="nav-item" href="#" onclick="runDemoAction('seed'); return false;">
+            <span class="nav-icon">🌱</span>
+            <span>Load Demo Data</span>
+        </a>
+        <a class="nav-item" href="#" onclick="runDemoAction('clear'); return false;">
+            <span class="nav-icon">🗑️</span>
+            <span>Clear Demo Data</span>
+        </a>
+        <% } %>
+
+    </nav>
+
+    <div class="sidebar-footer" onclick="openMyProfileModal()" style="cursor: pointer;">
+        <div class="sidebar-user">
+            <div class="avatar">
+                <% if (user.image || user.profilePic) { %>
+                    <%- user.image || user.profilePic %>
+                <% } else { %>
+                    <%= (user.displayName || user.username || 'U').charAt(0).toUpperCase() %>
+                <% } %>
+            </div>
+            <div class="user-info">
+                <div id="sidebar-user-displayname" class="user-name truncate"><%= user.displayName || user.username %></div>
+                <div class="user-role"><%= user.role.replace('_',' ') %> · <%= user.department || 'n/a' %></div>
+            </div>
+            <span style="color:var(--clr-text-muted);font-size:14px;">⋯</span>
+        </div>
+    </div>
+
+</aside>

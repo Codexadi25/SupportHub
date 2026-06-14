@@ -1,0 +1,134 @@
+/* ═══════════════════════════════════════════════════════
+   charts.css — Chart containers, Polygon/Radar, Legends
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Chart.js global overrides ───────────────────────────── */
+.chartjs-size-monitor { pointer-events: none; }
+
+/* ── Radar / Polygon Performance Chart ───────────────────── */
+.radar-wrap {
+    display: flex; align-items: center; gap: 24px;
+}
+.radar-canvas-wrap {
+    position: relative; flex-shrink: 0;
+    width: 260px; height: 260px;
+}
+.radar-legend { flex: 1; }
+.radar-legend-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--clr-border);
+    font-size: 12px;
+}
+.radar-legend-item:last-child { border-bottom: none; }
+.radar-legend-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+}
+.radar-legend-label { color: var(--clr-text-secondary); flex: 1; }
+.radar-legend-value {
+    font-family: var(--font-mono); font-weight: 700;
+    font-size: 13px; color: var(--clr-text-primary);
+}
+
+/* ── Break Pattern Visual ─────────────────────────────────── */
+.break-timeline {
+    display: flex; gap: 4px; align-items: flex-end;
+    height: 60px; padding: 4px 0;
+}
+.break-hour-col {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 2px;
+}
+.break-bar {
+    width: 100%; border-radius: 3px 3px 0 0;
+    background: var(--clr-blue-dim);
+    border: 1px solid rgba(59,126,255,0.3);
+    transition: height 0.4s ease;
+    min-height: 4px;
+    cursor: pointer;
+    position: relative;
+}
+.break-bar:hover { background: var(--clr-blue); }
+.break-bar .tooltip-text {
+    position: absolute; bottom: calc(100% + 4px); left: 50%;
+    transform: translateX(-50%);
+    background: var(--clr-surface-3);
+    border: 1px solid var(--clr-border);
+    padding: 4px 8px; border-radius: 4px;
+    font-size: 10px; white-space: nowrap;
+    pointer-events: none; opacity: 0;
+    transition: opacity var(--transition);
+    z-index: 10;
+}
+.break-bar:hover .tooltip-text { opacity: 1; }
+.break-hour-label {
+    font-size: 9px; color: var(--clr-text-muted); font-family: var(--font-mono);
+}
+
+/* ── Trend Line Mini ──────────────────────────────────────── */
+.trend-sparkline-wrap { position: relative; }
+
+/* ── Legend ──────────────────────────────────────────────── */
+.chart-legend {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    margin-top: 12px; font-size: 11px;
+}
+.legend-item {
+    display: flex; align-items: center; gap: 5px;
+    color: var(--clr-text-secondary);
+}
+.legend-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+}
+.legend-line {
+    width: 16px; height: 2px; border-radius: 2px;
+}
+
+/* ── Donut ────────────────────────────────────────────────── */
+.donut-wrap {
+    display: flex; align-items: center; gap: 20px;
+}
+.donut-canvas { flex-shrink: 0; width: 140px; height: 140px; }
+.donut-stats { flex: 1; }
+.donut-stat-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 0;
+    font-size: 12px;
+    border-bottom: 1px solid var(--clr-border);
+}
+.donut-stat-item:last-child { border-bottom: none; }
+.donut-stat-label { color: var(--clr-text-secondary); display: flex; align-items: center; gap: 6px; }
+.donut-stat-val { font-family: var(--font-mono); font-weight: 700; font-size: 12px; }
+
+/* ── Gauge ────────────────────────────────────────────────── */
+.gauge-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.gauge-canvas { width: 120px; height: 60px; position: relative; }
+.gauge-value {
+    font-family: var(--font-display); font-size: 22px; font-weight: 800;
+    color: var(--clr-text-primary);
+}
+.gauge-label { font-size: 11px; color: var(--clr-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ── Heatmap Grid ─────────────────────────────────────────── */
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: 48px repeat(7, 1fr);
+    gap: 3px;
+}
+.heatmap-label { font-size: 10px; color: var(--clr-text-muted); display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+.heatmap-cell {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+}
+.heatmap-cell:hover { transform: scale(1.15); z-index: 2; }
+.heatmap-cell[data-level="0"] { background: var(--clr-surface-2); }
+.heatmap-cell[data-level="1"] { background: rgba(0,229,160,0.2); }
+.heatmap-cell[data-level="2"] { background: rgba(0,229,160,0.4); }
+.heatmap-cell[data-level="3"] { background: rgba(0,229,160,0.7); }
+.heatmap-cell[data-level="4"] { background: var(--clr-green); }
