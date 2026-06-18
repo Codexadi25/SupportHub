@@ -209,6 +209,64 @@
 
         .widget-title { font-weight: 700; margin-bottom: 15px; border-left: 4px solid var(--z-red); padding-left: 10px; }
 
+        /* ─── COMPENSATION POLICY WIDGET ─────────────────────────────── */
+        .comp-slabs { display: flex; flex-direction: column; gap: 10px; }
+
+        .comp-slab {
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .slab-range  { font-size: 0.82rem; font-weight: 700; color: var(--z-dark); }
+        .slab-result { font-size: 0.85rem; font-weight: 800; }
+        .slab-cap    { font-size: 0.68rem; color: var(--z-gray); width: 100%; }
+
+        .slab-none { background: #e8f5e9; border: 1px solid #c8e6c9; }
+        .slab-none .slab-result { color: #2e7d32; }
+
+        .slab-mid  { background: #fff8e1; border: 1px solid #ffe0b2; }
+        .slab-mid  .slab-result { color: #e65100; }
+
+        .slab-full { background: #ffebee; border: 1px solid #ffcdd2; }
+        .slab-full .slab-result { color: #c62828; }
+
+        /* ─── RECENT UPDATES — RED BRAND WIDGET ──────────────────────── */
+        .widget-updates {
+            background: var(--z-red);
+            color: #fff;
+        }
+        .widget-updates .widget-title {
+            color: #fff;
+            border-left-color: #fff;
+        }
+        .widget-updates .updates-list {
+            color: rgba(255,255,255,0.92);
+        }
+        .widget-updates .updates-list li {
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+        .widget-updates .updates-list li:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .widget-updates .updates-list li strong {
+            color: #fff;
+            background: rgba(255,255,255,0.18);
+            padding: 1px 7px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 3px;
+            font-size: 0.78rem;
+        }
+
         .comp-calc input {
             width: 100%;
             padding: 10px;
@@ -1500,74 +1558,185 @@ Note: If DP stated that the item is out of stock, agent must confirm this from M
          <div class="category-title">02. AWAITING PICK UP <span>(Phase: Pre-Transit)</span></div>
          <div class="sop-grid">
 
-            <!-- 11 -->
-            <div class="sop-card" data-tags="awaiting pickup restaurant confirms picked up status 30 mins wait escalate reassign" onclick="openModal(this)">
-               <div class="card-header">Awaiting Pickup — Order Picked but Status Not Updated</div>
-               <div class="card-cond">Restaurant says order picked, status still shows Awaiting Pickup</div>
+            <div class="sop-card" data-tags="restaurant confirms picked up status not updated 30 mins wait escalate" onclick="openModal(this)">
+               <div class="card-header">Restaurant Confirms Picked, Status Not Updated</div>
+               <div class="card-cond">MX says order already picked up, status still "Awaiting Pickup"</div>
                <span class="action-tag tag-wait">Wait or Escalate</span>
                <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
                <div class="card-detail-data" style="display:none">
-Scenario 1: Restaurant confirms order already picked up but status shows "Awaiting Pickup":
 • If less than 30 minutes → Send wait prompt.
 • If more than 30 minutes → Escalate the case.
-
-Scenario 2: Both DP &amp; MX unresponsive (Status: Awaiting Pickup):
-• If delay &gt;30 mins → Reassign the order.
-• If no rider available for reassignment → Escalate the case.
-
-Scenario 3: Delay &gt;37 mins, status still "Waiting for Pickup", DP en route to restaurant:
-• Contact both DP and MX. Reassign the order to another available DP.
-
-Scenario 4: DP &amp; MX unresponsive but DP was just assigned a few minutes ago:
-• Call the DP. If still unresponsive → Mention in PN: "DP recently assigned by backend and is on the way to the restaurant; hence escalated" (only if delay &gt;30 mins).
-
-Case 1 – DP denies delivery (vehicle / accident / rain):
-• Try to reassign. If DP unavailable → Cancel the order (applies pre &amp; post pickup; time does not matter).
-• Note: In rain, another DP can pick if available.
-
-Case 2 – DP says no longer working with Zomato:
-• Try to reassign. If DP unavailable → Escalate the case.
-
-Case 3 – Mismatch in DP &amp; MX response (Delay &gt;30 mins):
-• DP: Food not ready / MX: Food is ready → Reconnect with DP and confirm order is ready for pickup.
-
-Case 4 – DP says "just reached the restaurant":
-• Expected time: 2–3 minutes. Order status: Arrived at restaurant.
-
-Case 5 – Delay &lt;30 mins, DP &amp; MX unresponsive, food ready &amp; DP waiting at restaurant:
-• Set order status: Preparation End. Set expected time: 5–10 minutes.
-
-Case 6 – DP cannot see order on device:
-• Ask DP to refresh the app. If still not visible → Reassign. If fails → Cancel.
-
-If MX unresponsive and DP unsure about prep time and delay reason:
-• If delay &gt;40 mins → Escalate the case.
-
-Scenario: DP &amp; MX both unresponsive, delay &lt;30 mins:
-• Set order status: Preparation End. Expected time: up to 5 mins.
-• Note: Do not add expected time less or more than 5 mins.
-
-Scenario: Delay &gt;30 mins, DP says caught by police (Status: Awaiting Pickup):
-• First reassign. If no DP available → Escalate.
-
-Scenario: DP confirms will reach restaurant and gives time (e.g., 20 mins):
-• Give waiting prompt. Compensate as per delay.
                </div>
             </div>
 
-            <!-- 12 -->
-            <div class="sop-card" data-tags="picked another dp awaiting pickup mx prepare again cancel prompt" onclick="openModal(this)">
+            <div class="sop-card" data-tags="dp mx both unresponsive awaiting pickup reassign 30 mins no rider escalate" onclick="openModal(this)">
+               <div class="card-header">DP &amp; MX Both Unresponsive</div>
+               <div class="card-cond">Status: Awaiting Pickup, no response from either side</div>
+               <span class="action-tag tag-esc">Reassign or Escalate</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• If delay &gt;30 mins → Reassign the order to another DP.
+• If "no rider available" for reassignment → Escalate the case.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="delay 37 mins waiting pickup dp en route reassign both contact" onclick="openModal(this)">
+               <div class="card-header">Delay &gt;37 Mins, DP En Route to Restaurant</div>
+               <div class="card-cond">Status still "Waiting for Pickup" despite DP heading there</div>
+               <span class="action-tag tag-esc">Reassign</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Contact both the DP and the Merchant (MX).
+• Reassign the order to another available DP.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="dp assigned few minutes ago unresponsive pn mention recently assigned escalate 30 mins" onclick="openModal(this)">
+               <div class="card-header">DP Recently Assigned but Unresponsive</div>
+               <div class="card-cond">DP &amp; MX unresponsive, but DP assigned only minutes ago</div>
+               <span class="action-tag tag-esc">Call &amp; Escalate</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Call the DP.
+• If the DP is still unresponsive → mention in PN: "DP recently assigned by backend and is on the way to the restaurant; hence escalated" (only if the delay is more than 30 minutes).
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="dp denies delivery vehicle accident rain reassign cancel pre post pickup any time" onclick="openModal(this)">
+               <div class="card-header">Case 1 — DP Denies Delivery</div>
+               <div class="card-cond">Vehicle issue / accident / rain — DP refuses to deliver</div>
+               <span class="action-tag tag-cancel">Reassign or Cancel</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Try to reassign the order. Do not force the DP to deliver.
+• If DP is unavailable → Cancel the order (applies for both pre and post pickup; time does not matter).
+• Note: In rain, another DP can pick up the order if available with a rain coat.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="dp no longer working zomato reassign escalate" onclick="openModal(this)">
+               <div class="card-header">Case 2 — DP No Longer Working with Zomato</div>
+               <div class="card-cond">DP states they've left the platform</div>
+               <span class="action-tag tag-esc">Reassign or Escalate</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Try to reassign the order.
+• If DP is unavailable → Escalate the case.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="mismatch dp mx response food not ready vs ready reconnect confirm 30 mins" onclick="openModal(this)">
+               <div class="card-header">Case 3 — Mismatch in DP &amp; MX Response</div>
+               <div class="card-cond">Delay &gt;30 mins, DP says food not ready, MX says ready</div>
+               <span class="action-tag tag-wait">Reconnect &amp; Confirm</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Reconnect with the DP and confirm that the order is ready for pickup.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="dp just reached restaurant expected time 2 3 mins arrived status" onclick="openModal(this)">
+               <div class="card-header">Case 4 — DP "Just Reached the Restaurant"</div>
+               <div class="card-cond">DP confirms fresh arrival at the restaurant</div>
+               <span class="action-tag tag-wait">Expected: 2–3 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Expected time: 2–3 minutes.
+• Order status: Arrived at restaurant.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="delay less 30 mins dp mx unresponsive food ready waiting prep end 5 10 mins" onclick="openModal(this)">
+               <div class="card-header">Case 5 — Food Ready, DP Waiting (Delay &lt;30 mins)</div>
+               <div class="card-cond">DP &amp; MX unresponsive but food is ready and DP is at restaurant</div>
+               <span class="action-tag tag-wait">Status: Prep End · 5–10 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Set order status: Preparation End.
+• Set expected time: 5–10 minutes.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="device app issue cannot see order refresh reassign cancel fails" onclick="openModal(this)">
+               <div class="card-header">Case 6 — Device / App Issue</div>
+               <div class="card-cond">DP cannot see the order on their device</div>
+               <span class="action-tag tag-cancel">Refresh → Reassign → Cancel</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Ask DP to refresh the app and check again.
+• If still not visible → Reassign the order.
+• If reassignment fails → Cancel the order.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="mx unresponsive dp unsure prep time delay reason 40 mins escalate" onclick="openModal(this)">
+               <div class="card-header">MX Unresponsive, DP Unsure of Prep Time</div>
+               <div class="card-cond">DP doesn't know reason for delay, MX unreachable</div>
+               <span class="action-tag tag-esc">Escalate if &gt;40m</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• If the merchant (MX) is unresponsive and the DP confirms they are unsure about the preparation time and delay reason:
+• If the delay is more than 40 minutes → Escalate the case.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="dp mx unresponsive delay less 30 mins prep end 5 mins exact no buffer" onclick="openModal(this)">
+               <div class="card-header">DP &amp; MX Unresponsive, Delay &lt;30 Mins</div>
+               <div class="card-cond">Both unreachable but delay is still short</div>
+               <span class="action-tag tag-wait">Status: Prep End · 5 mins exact</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Set order status: Preparation End.
+• Set expected time: up to 5 minutes.
+• Note: Do not add expected time less or more than 5 mins — keep it exact.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="dp caught police awaiting pickup reassign escalate 30 mins" onclick="openModal(this)">
+               <div class="card-header">DP Caught by Police (Awaiting Pickup)</div>
+               <div class="card-cond">Delay &gt;30 mins, DP says detained by police</div>
+               <span class="action-tag tag-esc">Reassign or Escalate</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• First reassign the order.
+• If no DP is available → Escalate the ticket.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="dp confirms time reach restaurant waiting prompt compensate" onclick="openModal(this)">
+               <div class="card-header">DP Confirms ETA to Restaurant</div>
+               <div class="card-cond">DP gives a specific time (e.g., 20 mins) to reach</div>
+               <span class="action-tag tag-wait">Prompt &amp; Compensate</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Give a waiting prompt.
+• Compensate as per the delay.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="another dp already picked order mx prepare again waiting prompt cancel" onclick="openModal(this)">
                <div class="card-header">Picked by Another DP</div>
                <div class="card-cond">Current DP says another DP already picked the order</div>
                <span class="action-tag tag-cancel">Check MX — Cancel if Needed</span>
                <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
                <div class="card-detail-data" style="display:none">
-If the current DP says another delivery partner has already picked up the order:
-• Call MX and confirm if the order can be prepared again.
-• If MX confirms YES (can prepare again) → Provide waiting prompt. Compensate as per delay.
+• Call the restaurant (MX) and confirm if the order can be prepared again.
+• If MX confirms YES (can prepare again) → Provide a waiting prompt. Compensate as per the delay.
 • If MX confirms NO (cannot prepare again) → Cancel the order.
-• Cancellation Prompt: The order was picked up by a different delivery partner, which caused a delay. Unfortunately, the restaurant is unable to prepare it again, so the order has been cancelled.
+• Cancellation Prompt: The order was picked up by a different delivery partner, which caused a delay. Unfortunately, the restaurant is unable to prepare it again.
 • If MX is unresponsive → Check with the DP for confirmation.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="other dp picked order mx unresponsive dp passed call disconnected no confirmation escalate" onclick="openModal(this)">
+               <div class="card-header">Other DP Picked — MX Unresponsive, Call Disconnected</div>
+               <div class="card-cond">DP claims passing call to MX then disconnects without confirmation</div>
+               <span class="action-tag tag-esc">Escalate the Ticket</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• If DP says another DP picked up the order → Check with MX.
+• If MX is unresponsive → Ask DP to pass the call to MX.
+• If DP disconnects the call saying "I am on call with support" with no confirmation obtained → Escalate the ticket.
                </div>
             </div>
 
@@ -1831,28 +2000,66 @@ Select Cancellation when:
          <div class="category-title">04. GROUPED ORDER SCENARIOS <span>(Phase: Multi-Order)</span></div>
          <div class="sop-grid">
 
-            <!-- 30 -->
-            <div class="sop-card" data-tags="grouped order multi dp support different cx order number lifeline eta buffer 5 mins prompt" onclick="openModal(this)">
-               <div class="card-header">Grouped / Multi-Order Delay</div>
-               <div class="card-cond">DP carrying multiple orders causing delay</div>
+            <div class="sop-card" data-tags="grouped order another cx dp support escalate dp support" onclick="openModal(this)">
+               <div class="card-header">DP Needs Support for Another CX Order</div>
+               <div class="card-cond">DP requests help for a different customer's order</div>
+               <span class="action-tag tag-wait">Do Not Escalate</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Do NOT escalate the ticket.
+• Ask the DP to contact DP Support for that specific order.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="grouped order dp delivery details order number lifeline eta buffer prompt" onclick="openModal(this)">
+               <div class="card-header">DP Confirms Time / Delivery Details</div>
+               <div class="card-cond">DP provides delivery info for the grouped order</div>
+               <span class="action-tag tag-wait">Give Prompt + ETA</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Ask DP for delivery details of the specific order (order number).
+• Example: If the DP says they will deliver another order within 5 minutes, ask for the specific order number.
+• If DP provides the details → Give the appropriate prompt.
+• If DP does not provide details → Check Lifeline ETA.
+• If DP not confirming time → Add buffer time of 5 mins to ETA.
+• If DP unresponsive → Add 5 mins to ETA.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="grouped order dp waiting second order change cod not home coming down buffer eta" onclick="openModal(this)">
+               <div class="card-header">DP Waiting on Second Order Delivery</div>
+               <div class="card-cond">DP waiting for another CX (COD change, not home, etc.)</div>
+               <span class="action-tag tag-wait">Buffer 5 mins + ETA</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• DP informed waiting for second order to get delivered — reasons may include: CX getting change for COD order, customer not responding, CX not at home, CX coming down to collect, etc.
+• If DP did not confirm time → Add buffer time (5 mins) + ETA and set expected time accordingly.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="grouped order dp at another restaurant pickup delay prompt compensate" onclick="openModal(this)">
+               <div class="card-header">Case 1 — DP at Another Restaurant</div>
+               <div class="card-cond">DP picking up a second order from a different restaurant</div>
                <span class="action-tag tag-wait">Prompt &amp; Compensate</span>
                <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
                <div class="card-detail-data" style="display:none">
-• If DP says they need support for another order from a different CX → Do NOT escalate. Ask them to contact DP Support for that specific order.
-• Ask DP for delivery details of the specific order (order number). If DP provides the details → Give appropriate prompt. If not → Check Lifeline ETA.
-• If DP not confirming time → Agents can add buffer time of 5 mins to ETA.
-• If DP unresponsive → Add 5 mins to ETA.
-• If DP informed waiting for second order delivery (CX getting change, not home, coming down, etc.) → Buffer time (5 mins) + ETA and add expected time.
-
-Case 1 – DP at another restaurant:
 • Prompt: The delivery partner is currently picking up another order from a different restaurant, which is causing a delay. Your order is being prioritized and will be delivered as soon as possible.
+• Compensate as per the delay.
+               </div>
+            </div>
 
-Case 2 – DP on another drop:
+            <div class="sop-card" data-tags="grouped order dp on another drop delivery completing prompt compensate eta order series" onclick="openModal(this)">
+               <div class="card-header">Case 2 — DP on Another Drop</div>
+               <div class="card-cond">DP completing delivery to another customer first</div>
+               <span class="action-tag tag-wait">Prompt &amp; Compensate</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
 • Prompt: The delivery partner is currently completing another delivery and will reach your location shortly.
-• Note: Compensation should be provided as per the delay.
+• Compensate as per the delay.
 
 If DP is on the way and not responding (delay &lt;30 mins):
-• Check the order series. If first order = assigned ticket's order → Give ETA.
+• Check the order series.
+• If first order = assigned ticket's order → Give ETA.
 • If second order = assigned ticket's order → ETA + 5 mins.
                </div>
             </div>
@@ -1865,30 +2072,168 @@ If DP is on the way and not responding (delay &lt;30 mins):
          <div class="category-title">05. ORDER STATUS &amp; EXPECTED TIME <span>(Quick Reference)</span></div>
          <div class="sop-grid">
 
-            <!-- 31 -->
-            <div class="sop-card" data-tags="order status expected time mx voc dp voc preparation end arrival restaurant cx location eta" onclick="openModal(this)">
-               <div class="card-header">Order Status &amp; Expected Time — Reference</div>
-               <div class="card-cond">What status and time to set based on VOC</div>
-               <span class="action-tag tag-wait">Set Correct Status</span>
+            <div class="sop-card" data-tags="no buffer timing dp mx confirming time share same range pick highest" onclick="openModal(this)">
+               <div class="card-header">General Timing Rule</div>
+               <div class="card-cond">How to handle confirmed time vs. time ranges from DP/MX</div>
+               <span class="action-tag tag-wait">No Buffer — Use as Stated</span>
                <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
                <div class="card-detail-data" style="display:none">
-MX VOC: Packing food / Preparing food / Giving food → Set Status: Preparation End
+• No buffer timing should be given.
+• If DP/MX is confirming the time → Share the same.
+• If DP/MX shares a time in range (e.g. 5–10 mins) → Pick the highest range and share the same in properties.
+               </div>
+            </div>
 
-Arriving soon (order picked up, on way to deliver):
-• Expected time: Less than 5 mins (if ETA not showing)
+            <div class="sop-card" data-tags="mx voc packing preparing giving food preparation end status food not ready" onclick="openModal(this)">
+               <div class="card-header">MX VOC — Food Being Prepared</div>
+               <div class="card-cond">MX says: packing / preparing / giving food</div>
+               <span class="action-tag tag-wait">Status: Prep End</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• MX VOC: Packing food / Preparing food / Giving food → Set Order Status: Preparation End.
 
-Reassigned case (order picked up by 1st DP):
-• If DP says he is on the way to collect order from 2nd DP → Status: Arrival at CX Location
-• Expected time: Pickup time + ETA
+Awaiting Pickup (DP waiting at restaurant) / Food Not Ready / Valet Not Assigned:
+• Awaiting Pickup: If DP &amp; MX are UR, and Lifeline shows DP is waiting at the restaurant → Expected time: 5–10 mins, Order status: Preparation End.
+• Food Not Ready: DP &amp; MX are UR → Expected time: 10 mins, Order status: Preparation End.
+• In food-not-ready cases, if MX is unresponsive, it is mandatory to check with the DP for the reason for delay. Ask the DP to connect with MX for clarification.
+               </div>
+            </div>
 
-From 17-Apr-26 update (expected times):
-• Post pick-up case: 10 mins (5 mins for search + 5 mins for pickup)
-• Valet not assigned: 10 mins
-• Food not ready: 10 mins
-• Mall order (food waiting): 5 mins
-• Multi-order case: 5 mins
-• Arriving soon status: 5 mins
-• DP waiting at restaurant, DP UR, MX confirmed food ready → Status: Arrival at Restaurant, Time: 5 mins
+            <div class="sop-card" data-tags="valet not assigned food not ready expected 10 mins call mx ur prep end" onclick="openModal(this)">
+               <div class="card-header">Valet Not Assigned + Food Not Ready</div>
+               <div class="card-cond">Both conditions confirmed together</div>
+               <span class="action-tag tag-wait">Expected: 10 mins · Prep End</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+Case: Valet not assigned → Expected time should be 10 mins.
+• Call MX. If MX is UR → Expected time: 10 mins. Order Status Expected Time: Preparation End (Food not ready).
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="valet not assigned food ready progress bar arrival restaurant call mx ur 10 mins" onclick="openModal(this)">
+               <div class="card-header">Valet Not Assigned + Food Ready</div>
+               <div class="card-cond">Check progress bar — food is already ready</div>
+               <span class="action-tag tag-wait">Status: Arrival at Restaurant · 10 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+Food is Ready (check with progress bar):
+• Call MX. If MX is UR → Expected time: 10 mins. Order Status Expected Time: Arrival at Restaurant.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="mall order arriving soon walker handed over prep end 5 mins 1 5 mins" onclick="openModal(this)">
+               <div class="card-header">Mall Order / Arriving Soon</div>
+               <div class="card-cond">Order handed to walker, or DP close to delivery</div>
+               <span class="action-tag tag-wait">Expected: 1–5 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Mall Order: If DP is waiting and the restaurant says order is handed over to walker → Expected time: 5 mins, Order status expected time: Preparation End.
+• Arriving Soon: Expected time should be 1–5 mins.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="multi order eta 5 mins arrival cx location only ur time not confirmed" onclick="openModal(this)">
+               <div class="card-header">Multi-Order</div>
+               <div class="card-cond">DP carrying more than one order</div>
+               <span class="action-tag tag-wait">ETA + 5 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Expected time should be ETA + 5 mins.
+• Order Status Expected: Arrival at CX location.
+• Note: Only for UR cases / if time is not confirmed.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="reassignment initiated 10 mins search pickup eta second dp assigned 5 mins" onclick="openModal(this)">
+               <div class="card-header">When Re-Assignment Initiated</div>
+               <div class="card-cond">Order being reassigned to a new DP</div>
+               <span class="action-tag tag-wait">10 mins (5+5) + ETA</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Expected time: 10 mins (5 mins for search + 5 mins for pickup) + ETA.
+
+Re-assignment Scenario:
+• If 2nd DP is assigned → Attempt call. If time not confirmed → Expected time should be 5 mins + ETA.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="awaiting pickup mx confirms dp not available call dp ur waiting res arrival 5 mins" onclick="openModal(this)">
+               <div class="card-header">Awaiting Pickup — MX Confirms DP Not at Restaurant</div>
+               <div class="card-cond">MX says DP hasn't arrived yet</div>
+               <span class="action-tag tag-wait">Status: Arrival at Res · 5 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• If MX confirms DP is not available at the restaurant → Call DP.
+• If DP is UR → Status: DP waiting at restaurant. Expected time: 5 mins. Order status expected time: Arrival at restaurant.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="reassigned case order picked 1st dp second dp arrival cx location pickup eta" onclick="openModal(this)">
+               <div class="card-header">Reassigned Case (1st DP Picked Up)</div>
+               <div class="card-cond">Order picked by 1st DP, now reassigned to 2nd DP</div>
+               <span class="action-tag tag-wait">Status: Arrival at CX</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• If DP says he is on the way to collect order from 2nd DP → Status: Arrival at CX Location.
+• Expected time: Pickup time + ETA.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="arriving soon picked up order on way deliver 5 mins eta not showing" onclick="openModal(this)">
+               <div class="card-header">Arriving Soon (Order Picked Up)</div>
+               <div class="card-cond">Order picked, DP on the way to deliver</div>
+               <span class="action-tag tag-wait">Expected: &lt;5 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Status: Arriving Soon (order picked up, on way to deliver).
+• Expected time: Less than 5 mins (if ETA not showing).
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="post pickup expected time 10 mins search pickup valet not assigned food not ready" onclick="openModal(this)">
+               <div class="card-header">Post Pick-Up / Valet / Food Not Ready (17-Apr Update)</div>
+               <div class="card-cond">Expected time for common pre &amp; post pickup scenarios</div>
+               <span class="action-tag tag-wait">Expected: 10 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Post pick-up case: 10 mins (5 mins for search + 5 mins for pickup) + ETA where reassignment initiated.
+• Valet not assigned: 10 mins.
+• Food not ready: 10 mins.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="mall order food waiting 5 mins multi-order arriving soon expected time" onclick="openModal(this)">
+               <div class="card-header">Mall Order / Multi-Order / Arriving Soon (17-Apr Update)</div>
+               <div class="card-cond">Expected time for mall, grouped, and near-arrival cases</div>
+               <span class="action-tag tag-wait">Expected: 5 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Mall order (food waiting outside): 5 mins.
+• Multi-order case: 5 mins + ETA.
+• Arriving soon status: 5 mins.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="dp waiting restaurant dp ur mx confirmed food ready arrival at restaurant 5 mins" onclick="openModal(this)">
+               <div class="card-header">DP Waiting at Restaurant (DP UR)</div>
+               <div class="card-cond">DP waiting, unresponsive, MX confirmed food ready</div>
+               <span class="action-tag tag-wait">Status: Arrival at Restaurant · 5 mins</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• DP waiting at restaurant, DP unresponsive, MX confirmed food is ready.
+→ Set Status: Arrival at Restaurant.
+→ Set Expected Time: 5 mins.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="no time delivered cancelled order re-assigned lifeline pre pickup note" onclick="openModal(this)">
+               <div class="card-header">When NOT to Add Time</div>
+               <div class="card-cond">Exceptions where expected time should be skipped</div>
+               <span class="action-tag tag-esc">Skip Expected Time</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• No time has to be added in case the order is already delivered or cancelled.
+• If the agent re-assigned the DP from the Lifeline, time should not be given (pre-pickup).
                </div>
             </div>
 
@@ -1896,19 +2241,70 @@ From 17-Apr-26 update (expected times):
       </div>
 
       <!-- ═══ CATEGORY 6: COMPENSATION POLICY ═══════════════════════════════ -->
+      <!-- ═══ CATEGORY 6: DP RE-ASSIGNMENT GUIDELINES ═══════════════════════ -->
       <div class="category-block">
-         <div class="category-title">06. COMPENSATION POLICY <span>(Delay-Based)</span></div>
+         <div class="category-title">06. DP RE-ASSIGNMENT GUIDELINES <span>(General Rules)</span></div>
          <div class="sop-grid">
 
-            <div class="sop-card" data-tags="compensation policy delay 30 45 minutes ov order value min max" onclick="openModal(this)">
-               <div class="card-header">New Compensation Policy</div>
-               <div class="card-cond">Delay-based compensation slabs (effective Apr 2026)</div>
-               <span class="action-tag tag-wait">Apply Per Slab</span>
+            <div class="sop-card" data-tags="select right option reassignment dp not responding personal emergency pn mandatory" onclick="openModal(this)">
+               <div class="card-header">Select the Right Re-assignment Option</div>
+               <div class="card-cond">Always pick the specific reason from Issues &amp; Actions</div>
+               <span class="action-tag tag-esc">Mandatory PN if No Exact Match</span>
                <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
                <div class="card-detail-data" style="display:none">
-• If delay is &lt;30 mins → No compensation should be given.
-• If delay is 30–45 minutes → 35% of OV (Min. ₹50, Max ₹100).
-• If delay is 45+ minutes → 100% of OV (Max ₹500).
+• Always select the specific re-assignment option in DP re-assignment (from Issues and Actions).
+• If DP is not responding → select "DP not responding."
+• If the exact option is not available → choose another option, but mentioning the correct reason in PN is mandatory.
+• If DP has a personal emergency → select only that option.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="post pickup reassignment expected time 10 mins eta arrival cx location awaiting pickup self reassign no time" onclick="openModal(this)">
+               <div class="card-header">Expected Time for Re-assignment</div>
+               <div class="card-cond">Different rules for post-pickup vs awaiting-pickup re-assignment</div>
+               <span class="action-tag tag-wait">10 mins + ETA (Post-Pickup Only)</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+Post-pickup re-assignment (whether from DP's or Agent's end):
+• Expected time = 10 minutes + ETA.
+• Order status expected time = Arrival to CX location.
+
+Awaiting pickup re-assignment (self re-assignment from advisor's end):
+• Do not mention expected time.
+• Do not mention order status expected time.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="dp ur unresponsive post pickup double tracking mandatory recently assigned prompt" onclick="openModal(this)">
+               <div class="card-header">UR (Unresponsive DP) Handling</div>
+               <div class="card-cond">Post-pickup DP not responding to calls</div>
+               <span class="action-tag tag-esc">Double Tracking Mandatory</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• If DP is UR (Post pickup) → Double tracking mention is mandatory.
+• If DP is UR and order is already picked → Check DP assignment history.
+• If DP was assigned a few minutes back, use this prompt: "The delivery partner is unresponsive, but as per tracking, he has been recently assigned and will deliver the order shortly."
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="important note delay reason dp end mx end mandatory every case" onclick="openModal(this)">
+               <div class="card-header">⚠️ Important — Always Specify Delay Source</div>
+               <div class="card-cond">Every ticket must state whether delay is DP-side or MX-side</div>
+               <span class="action-tag tag-esc">Mandatory on Every Ticket</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• It is mandatory to clearly mention whether the delay is from the DP end or MX end, and specify it accurately in every case.
+               </div>
+            </div>
+
+            <div class="sop-card" data-tags="already cancelled order can delivered yes no action cancellation reason" onclick="openModal(this)">
+               <div class="card-header">Already Cancelled Order</div>
+               <div class="card-cond">Order was cancelled prior to this ticket being assigned</div>
+               <span class="action-tag tag-cancel">No Action — Cancellation Reason</span>
+               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+               <div class="card-detail-data" style="display:none">
+• Can the order still be delivered? — Yes, but no further action is required from the agent.
+• Cancellation reason to log: "Order is already cancelled due to _________."
                </div>
             </div>
 
@@ -1919,13 +2315,35 @@ From 17-Apr-26 update (expected times):
 
    <aside class="sidebar">
 
+      <!-- Compensation Policy -->
+      <div class="widget">
+         <div class="widget-title">💰 Compensation Policy</div>
+         <div class="comp-slabs">
+            <div class="comp-slab slab-none">
+               <div class="slab-range">&lt; 30 mins</div>
+               <div class="slab-result">No Compensation</div>
+            </div>
+            <div class="comp-slab slab-mid">
+               <div class="slab-range">30 – 45 mins</div>
+               <div class="slab-result">35% of OV</div>
+               <div class="slab-cap">Min ₹50 · Max ₹100</div>
+            </div>
+            <div class="comp-slab slab-full">
+               <div class="slab-range">45+ mins</div>
+               <div class="slab-result">100% of OV</div>
+               <div class="slab-cap">Max ₹500</div>
+            </div>
+         </div>
+      </div>
+
       <!-- Compensation Calculator -->
       <div class="widget">
          <div class="widget-title">🧮 Compensation Calculator</div>
          <div class="comp-calc">
-            <input type="number" id="calcDelay" placeholder="Delay in minutes" oninput="runCalc()">
-            <input type="number" id="calcOV" placeholder="Order Value (₹)" oninput="runCalc()">
-            <div class="calc-result">
+            <input type="number" id="calcDelay" placeholder="Delay in minutes" oninput="runCalc()" min="0">
+            <input type="number" id="calcOV" placeholder="Order Value (₹)" oninput="runCalc()" min="0">
+            <div class="calc-result" id="calcResult">
+               <div style="font-size:0.78rem;color:#686B78;margin-bottom:4px;" id="calcSlab"></div>
                <div style="font-size:0.8rem;color:#686B78;margin-bottom:5px;">Compensation Amount</div>
                <div id="finalComp">₹0</div>
             </div>
@@ -1945,24 +2363,27 @@ From 17-Apr-26 update (expected times):
       <div class="widget">
          <div class="widget-title">💬 Quick Prompts</div>
          <ul class="updates-list">
-            <li><strong>Personal issue (tea/lunch/washroom):</strong> The delivery partner encountered an operational issue, so your order has been delayed. It will be delivered soon.</li>
+            <li><strong>Personal issue (tea/lunch/washroom/party):</strong> The delivery partner encountered an operational issue, so your order has been delayed. It will be delivered soon.</li>
             <li><strong>Delay from MX, DP on way:</strong> Order is delayed due to _____ issue at the restaurant and will be delivered shortly.</li>
             <li><strong>Delay from DP, on way to deliver:</strong> Order delayed by delivery partner due to _____; it will be delivered soon.</li>
             <li><strong>Delay from MX, DP waiting at restaurant:</strong> Order is delayed due to _____ issue at the restaurant. Delivery partner will pickup your order shortly.</li>
+            <li><strong>Already cancelled order:</strong> Cancellation reason — Order is already cancelled due to _________.</li>
          </ul>
       </div>
 
-      <!-- Recent Updates -->
-      <div class="widget">
+      <!-- Recent Updates — red brand background -->
+      <div class="widget widget-updates">
          <div class="widget-title">🔔 Recent Updates</div>
          <ul class="updates-list">
+            <li><strong>46158:</strong> Re-assignment guidelines reiterated — select specific reason always, mandatory PN if exact option unavailable. Post-pickup re-assignment = 10 mins + ETA, status: Arrival to CX. Awaiting-pickup self re-assignment = no time/status. DP UR post-pickup needs double tracking. Always specify DP-end vs MX-end delay.</li>
             <li><strong>17-Apr-26:</strong> Expected time guidelines updated — Post pickup: 10 mins, Valet not assigned: 10 mins, Food not ready: 10 mins, Mall order: 5 mins, Multi-order: 5 mins, Arriving soon: 5 mins. Scheduled orders: verify status matches current time; escalate if unclear. Non-logged-in DP delivery — escalate immediately.</li>
+            <li><strong>46139:</strong> If delay &gt;40 mins and food not ready, MX UR but DP confirms en route to pickup — Status: Prep End, Time: 10 mins.</li>
             <li><strong>14-Apr-26:</strong> Post-Pickup DP Reassigned (PPC) case added: Primary DP waiting = Arrival at CX + 10 mins ETA. Second DP on way = 5 mins + ETA. No need to ask delay reason in PPC.</li>
             <li><strong>10-Apr-26:</strong> Spillage policy confirmed — Minor: prompt only; Major/fully damaged: cancel regardless of delay. New compensation slabs effective: &lt;30m = no comp; 30–45m = 35% OV (₹50–₹100); 45m+ = 100% OV (max ₹500).</li>
-            <li><strong>Feb 20 (46073):</strong> Transfer tickets — check call logs first, listen to recordings, follow tracking details. No need to call again if recording available. If agent did not get info from call, next agent should call stakeholder to gather info.</li>
-            <li><strong>Feb 14 (46064):</strong> Valet not assigned — must mention time &amp; status. Expected Time: ETA as per LL or up to 10 mins if not visible. Order Status Expected Time: Arrival at restaurant.</li>
-            <li><strong>Feb 8 (46063):</strong> Mandatory: mention order status, tracking details, and delay time in every ticket. In DP UR case — mention two tracking details (before &amp; after calling DP).</li>
-            <li><strong>Dec 27 (46057):</strong> Always mention expected time as per DP/MX VOC. Buffer up to 10 mins if food not ready and pickup waiting on Lifeline. PN must include: delay timing, tracking status, call connection status, any unusual observations. Prep End status if order under preparation.</li>
+            <li><strong>46073:</strong> Transfer tickets — check call logs first, listen to recordings, follow tracking details. No need to call again if recording available. If agent did not get info from call, next agent should call stakeholder to gather info.</li>
+            <li><strong>46064:</strong> Valet not assigned — must mention time &amp; status. Expected Time: ETA as per LL or up to 10 mins if not visible. Order Status Expected Time: Arrival at restaurant.</li>
+            <li><strong>46063:</strong> Mandatory: mention order status, tracking details, and delay time in every ticket. In DP UR case — mention two tracking details (before &amp; after calling DP).</li>
+            <li><strong>46057:</strong> Always mention expected time as per DP/MX VOC. Buffer up to 10 mins if food not ready and pickup waiting on Lifeline. PN must include: delay timing, tracking status, call connection status, any unusual observations. Prep End status if order under preparation.</li>
          </ul>
       </div>
 
@@ -1984,18 +2405,45 @@ From 17-Apr-26 update (expected times):
      CORE SOP SCRIPTS
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
-    /* ─ COMP CALCULATOR ──────────────────────────────────────────── */
+    /* ─ COMP CALCULATOR (policy: <30=none, 30-45=35% OV, 45+=100% OV) ─ */
     function runCalc() {
         const delay = parseInt(document.getElementById('calcDelay').value);
         const ov    = parseFloat(document.getElementById('calcOV').value);
-        let comp = 0;
-        if (!delay || !ov) { document.getElementById('finalComp').innerText = "₹0"; return; }
-        if (delay > 30 && delay <= 45) {
-            comp = ov < 50 ? ov : Math.max(50, Math.min(100, ov * 0.35));
-        } else if (delay > 45) {
-            comp = Math.min(500, ov);
+        const slabEl   = document.getElementById('calcSlab');
+        const compEl   = document.getElementById('finalComp');
+        const resultEl = document.getElementById('calcResult');
+
+        if (!delay || !ov || isNaN(delay) || isNaN(ov)) {
+            compEl.innerText = "₹0";
+            slabEl.innerText = "";
+            resultEl.style.background  = "";
+            resultEl.style.borderColor = "#f0f0f0";
+            return;
         }
-        document.getElementById('finalComp').innerText = "₹" + Math.round(comp);
+
+        let comp, slab, color;
+
+        if (delay < 30) {
+            comp  = 0;
+            slab  = "Delay < 30 mins — No compensation";
+            color = "#e8f5e9";
+            compEl.style.color = "#2e7d32";
+        } else if (delay <= 45) {
+            comp  = Math.max(50, Math.min(100, ov * 0.35));
+            slab  = "Delay 30–45 mins — 35% of OV (Min ₹50, Max ₹100)";
+            color = "#fff8e1";
+            compEl.style.color = "#e65100";
+        } else {
+            comp  = Math.min(500, ov);
+            slab  = "Delay 45+ mins — 100% of OV (Max ₹500)";
+            color = "#ffebee";
+            compEl.style.color = "#c62828";
+        }
+
+        compEl.innerText = "₹" + Math.round(comp);
+        slabEl.innerText = slab;
+        resultEl.style.borderColor = color;
+        resultEl.style.background  = color;
     }
 
     /* ─ SEARCH ───────────────────────────────────────────────────── */
