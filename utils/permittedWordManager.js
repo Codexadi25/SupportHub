@@ -109,33 +109,77 @@ async function syncWordsFromDatabase() {
             });
         }
     });
+
+    // Collect all unique content words from TAG_KEYWORDS
+    try {
+        const { TAG_KEYWORDS } = require('./autoTagGenerator');
+        if (TAG_KEYWORDS) {
+            Object.values(TAG_KEYWORDS).forEach(keywordsArr => {
+                if (Array.isArray(keywordsArr)) {
+                    keywordsArr.forEach(kw => {
+                        const words = extractCleanContentWords(kw);
+                        words.forEach(w => dbWords.add(w));
+                    });
+                }
+            });
+        }
+    } catch (err) {
+        console.warn('[Word Sync] Failed to extract words from TAG_KEYWORDS:', err.message);
+    }
     
     console.log(`[Word Sync] Extracted ${dbWords.size} unique content words from database. Syncing...`);
     
+    if (dbWords.size === 0) {
+        console.log('[Word Sync] Completed. No words to sync.');
+        return { created: 0, updated: 0 };
+    }
+
+    const wordsArray = Array.from(dbWords);
+    const existingRecords = await PermittedWord.find({ word: { $in: wordsArray } });
+    const existingMap = new Map();
+    existingRecords.forEach(rec => {
+        existingMap.set(rec.word, rec);
+    });
+
+    const bulkOps = [];
     let created = 0;
     let updated = 0;
     
-    for (const word of dbWords) {
+    for (const word of wordsArray) {
         const similarWords = getWordVariations(word);
+        const existing = existingMap.get(word);
         
-        // Find existing or create new
-        const existing = await PermittedWord.findOne({ word });
         if (existing) {
-            // Only update similarWords if it wasn't manual/edited (or just update to be safe)
             const combinedSimilar = Array.from(new Set([...existing.similarWords, ...similarWords]));
-            existing.similarWords = combinedSimilar;
-            existing.source = 'cands_db';
-            await existing.save();
+            bulkOps.push({
+                updateOne: {
+                    filter: { _id: existing._id },
+                    update: {
+                        $set: {
+                            similarWords: combinedSimilar,
+                            source: 'cands_db'
+                        }
+                    }
+                }
+            });
             updated++;
         } else {
-            await PermittedWord.create({
-                word,
-                similarWords,
-                source: 'cands_db',
-                isActive: true
+            bulkOps.push({
+                insertOne: {
+                    document: {
+                        word,
+                        similarWords,
+                        source: 'cands_db',
+                        isActive: true
+                    }
+                }
             });
             created++;
         }
+    }
+
+    if (bulkOps.length > 0) {
+        await PermittedWord.bulkWrite(bulkOps);
     }
     
     console.log(`[Word Sync] Completed. Created: ${created}, Updated: ${updated}`);

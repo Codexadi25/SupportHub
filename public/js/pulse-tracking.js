@@ -198,6 +198,38 @@ function initTrackingPage(container, page, title) {
                 </table>
             </div>
         </div>`;
+    } else if (page === 'leaderboard') {
+        html += `
+        <div class="card">
+            <div class="table-toolbar" style="border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:none;border-bottom:none;padding:0 0 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                <div style="font-size:13px;font-weight:600;color:var(--clr-text-primary);" id="tableTitleText">🏆 Full Department Leaderboard</div>
+                <div class="table-search" style="margin-bottom:0;">
+                    <span class="icon">🔍</span>
+                    <input type="text" id="leaderboardSearchInput" placeholder="Search agents..." oninput="filterLeaderboardTable()" />
+                </div>
+            </div>
+            <div class="table-wrap" style="border:1px solid var(--clr-border);border-radius:var(--radius-md);">
+                <table class="data-table" id="leaderboardDataTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Agent</th>
+                            <th>Present %</th>
+                            <th>AHT</th>
+                            <th>Quality</th>
+                            <th>Tickets</th>
+                            <th>Performance Score</th>
+                            <th>Login Hrs</th>
+                            <th>Issues</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardTableBody">
+                        <tr><td colspan="10" style="text-align:center;padding:30px;color:var(--clr-text-muted);">Loading leaderboard…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
     } else {
         // Standard Table Pages (attendance, performance, shifts, leaves, breaks, behavior, errors, teams)
         html += `
@@ -224,6 +256,20 @@ function initTrackingPage(container, page, title) {
     }
 
     container.innerHTML = html;
+
+    // Render action buttons
+    const actionsEl = container.querySelector('#trackingActions');
+    if (actionsEl && ['attendance', 'performance'].includes(page)) {
+        const role = window.APP?.user?.role || '';
+        const hasAdminAccess = window.APP?.user?.hasAdminPanelAccess || false;
+        if (['admin', 'vendor', 'team_lead', 'quality_analyst'].includes(role) || hasAdminAccess) {
+            actionsEl.innerHTML = `
+                <button class="btn btn-primary btn-sm" onclick="openAddRecordModal()">
+                    ➕ Add/Edit Record
+                </button>
+            `;
+        }
+    }
 
     // Load actual data
     loadTrackingPageData();
@@ -292,6 +338,10 @@ async function loadTrackingPageData() {
 
         } else if (_activeTrackingPage === 'breaks-recorder') {
             await loadBreakRecorderUsers();
+
+        } else if (_activeTrackingPage === 'leaderboard') {
+            const leaderboard = await api(`/api/performance/leaderboard${q}`);
+            renderLeaderboardPageTable(leaderboard || []);
 
         } else {
             // attendance, performance, shifts, leaves, breaks, errors
@@ -1115,3 +1165,157 @@ async function performBreaksToggle(userIds) {
 
 // Global load hook bound to refresh action
 window.loadTrackingPageData = loadTrackingPageData;
+
+// --- Manual Record Add/Edit Actions ---
+function openAddRecordModal() {
+    const modal = document.getElementById('addRecordModal');
+    if (!modal) return;
+    
+    // Set default date to today
+    const dateInput = document.getElementById('manual-record-date');
+    if (dateInput) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    
+    // Clear and load drop down
+    populateEmployeesDropdown();
+    
+    modal.style.display = 'flex';
+}
+window.openAddRecordModal = openAddRecordModal;
+
+async function populateEmployeesDropdown() {
+    const selectEl = document.getElementById('manual-record-employee');
+    if (!selectEl) return;
+    
+    try {
+        const users = await api('/api/admin/users');
+        selectEl.innerHTML = '<option value="">-- Select Employee --</option>' + users.map(u => 
+            `<option value="${u.employeeId}" data-name="${u.displayName || u.username}" data-dept="${u.department || 'general'}" data-team="${u.teamId || ''}">${u.employeeId || 'No ID'} — ${u.displayName || u.username} [${(u.department || 'general').toUpperCase()}]${u.isActive ? '' : ' (Dummy)'}</option>`
+        ).join('');
+    } catch (err) {
+        console.error('Failed to populate employees dropdown:', err);
+        toast('Failed to load employee list', 'error');
+    }
+}
+
+async function saveManualRecord(event) {
+    event.preventDefault();
+    const date = document.getElementById('manual-record-date')?.value;
+    const employeeSelect = document.getElementById('manual-record-employee');
+    const employeeId = employeeSelect?.value;
+    const selectedOption = employeeSelect?.options[employeeSelect.selectedIndex];
+    const agentName = selectedOption?.getAttribute('data-name') || '';
+    const department = selectedOption?.getAttribute('data-dept') || '';
+    const teamId = selectedOption?.getAttribute('data-team') || '';
+    
+    const status = document.getElementById('manual-record-status')?.value;
+    const shiftType = document.getElementById('manual-record-shift')?.value;
+    
+    const ticketsProcessed = document.getElementById('manual-record-tickets')?.value;
+    const aht = document.getElementById('manual-record-aht')?.value;
+    const qualityScore = document.getElementById('manual-record-quality')?.value;
+    const csat = document.getElementById('manual-record-csat')?.value;
+    const fcr = document.getElementById('manual-record-fcr')?.value;
+    const loginHrs = document.getElementById('manual-record-loginhrs')?.value;
+
+    if (!date || !employeeId) {
+        return toast('Date and Employee are required', 'error');
+    }
+
+    try {
+        const body = {
+            date,
+            employeeId,
+            agentName,
+            status,
+            shiftType,
+            ticketsProcessed,
+            aht,
+            qualityScore,
+            csat,
+            fcr,
+            loginHrs,
+            department,
+            teamId: teamId || null
+        };
+        
+        const res = await fetch('/performance/api/performance/record', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        
+        const result = await res.json();
+        if (res.ok && result.success) {
+            toast('Record saved successfully!', 'success');
+            closeModal('addRecordModal');
+            loadTrackingPageData(); // Refresh table data
+        } else {
+            toast(result.error || 'Failed to save record', 'error');
+        }
+    } catch (err) {
+        console.error('Save manual record error:', err);
+        toast(err.message || 'Connection error', 'error');
+    }
+}
+window.saveManualRecord = saveManualRecord;
+
+/* ─────────────────────────────────────────────────────────
+   NEW: LEADERBOARD PAGE RENDERING
+   ───────────────────────────────────────────────────────── */
+function renderLeaderboardPageTable(agents) {
+    const tbody = document.getElementById('leaderboardTableBody');
+    if (!tbody) return;
+    if (!agents?.length) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--clr-text-muted);">No metrics available for the leaderboard.</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = agents.map((a, i) => `
+        <tr>
+            <td style="color:var(--clr-text-muted);font-family:var(--font-mono);font-weight:700;">${i+1}</td>
+            <td>
+                <div class="emp-cell">
+                    <div class="emp-avatar" style="position:relative;">
+                        ${(a.agentName||'?').charAt(0).toUpperCase()}
+                        <span style="position:absolute;bottom:-4px;right:-4px;font-size:12px;" title="${a.league}">${a.medal}</span>
+                    </div>
+                    <div>
+                        <div class="emp-name">
+                            ${a.agentName}
+                            <span class="league-badge" style="background:${a.leagueColor}20;color:${a.leagueColor};border:1px solid ${a.leagueColor}40;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;">${a.league}</span>
+                        </div>
+                        <div class="emp-id">${a.employeeId}</div>
+                    </div>
+                </div>
+            </td>
+            <td><span class="score-cell ${scoreClass(a.attendancePct)}">${pct(a.attendancePct)}</span></td>
+            <td><span class="score-cell font-mono">${fmt(a.avgAHT)} m</span></td>
+            <td><span class="score-cell ${scoreClass(a.avgQuality)}">${pct(a.avgQuality)}</span></td>
+            <td class="font-mono">${a.totalTickets || 0}</td>
+            <td>
+                <div class="progress-bar" style="width:80px;">
+                    <div class="progress-fill ${scoreClass(a.performanceScore)}" style="width:${a.performanceScore||0}%;background:${a.performanceScore>=80?'var(--clr-green)':a.performanceScore>=60?'var(--clr-amber)':'var(--clr-red)'};"></div>
+                </div>
+                <div style="font-size:10px;font-family:var(--font-mono);margin-top:2px;">${pct(a.performanceScore)}</div>
+            </td>
+            <td class="font-mono">${fmt(a.avgLoginHrs)} h</td>
+            <td>${a.behaviorIssues > 0 ? `<span class="badge badge-absent">${a.behaviorIssues}</span>` : '<span style="color:var(--clr-text-muted);">—</span>'}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openEmpModal('${a.userId}')">View Profile</button></td>
+        </tr>`).join('');
+}
+window.renderLeaderboardPageTable = renderLeaderboardPageTable;
+
+function filterLeaderboardTable() {
+    const query = document.getElementById('leaderboardSearchInput')?.value?.toLowerCase() || '';
+    const table = document.getElementById('leaderboardDataTable');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+}
+window.filterLeaderboardTable = filterLeaderboardTable;

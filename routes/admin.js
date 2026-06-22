@@ -41,4 +41,8 @@ router.post('/permitted-words', isVendorOrAdmin, adminController.addPermittedWor
 router.delete('/permitted-words/:id', isVendorOrAdmin, adminController.deletePermittedWord);
 router.post('/sync-permitted-words', isVendorOrAdmin, adminController.syncPermittedWords);
 
+// Employee Mapping APIs
+router.post('/employee-mapping/map', isUserManager, adminController.mapEmployeeId);
+router.post('/employee-mapping/create-unknown', isUserManager, adminController.createUnknownEmployee);
+
 module.exports = router;

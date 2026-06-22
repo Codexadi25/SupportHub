@@ -99,3 +99,76 @@ img { max-width: 100%; display: block; }
 .gap-4         { gap: 16px; }
 .flex-1        { flex: 1; }
 .truncate      { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Theme Overrides ────────────────────────────────────── */
+body.theme-midnight {
+    --clr-bg:           #0a0c16;
+    --clr-surface:      #121527;
+    --clr-surface-2:    #1a1e35;
+    --clr-surface-3:    #24294a;
+    --clr-border:       rgba(255,255,255,0.06);
+    --clr-blue:         #4f46e5;
+    --clr-blue-dim:     rgba(79, 70, 229, 0.12);
+}
+
+body.theme-ocean {
+    --clr-bg:           #060b13;
+    --clr-surface:      #0d1726;
+    --clr-surface-2:    #152238;
+    --clr-surface-3:    #1e304f;
+    --clr-border:       rgba(2, 132, 199, 0.1);
+    --clr-blue:         #0284c7;
+    --clr-blue-dim:     rgba(2, 132, 199, 0.12);
+}
+
+body.theme-forest {
+    --clr-bg:           #050806;
+    --clr-surface:      #0c130e;
+    --clr-surface-2:    #142218;
+    --clr-surface-3:    #1b3022;
+    --clr-border:       rgba(16, 185, 129, 0.1);
+    --clr-blue:         #10b981;
+    --clr-blue-dim:     rgba(16, 185, 129, 0.12);
+}
+
+body.theme-crimson {
+    --clr-bg:           #0a0506;
+    --clr-surface:      #160d0f;
+    --clr-surface-2:    #241518;
+    --clr-surface-3:    #321d22;
+    --clr-border:       rgba(244, 63, 94, 0.1);
+    --clr-blue:         #f43f5e;
+    --clr-blue-dim:     rgba(244, 63, 94, 0.12);
+}
+
+body.theme-amber {
+    --clr-bg:           #080603;
+    --clr-surface:      #130f08;
+    --clr-surface-2:    #21180d;
+    --clr-surface-3:    #302313;
+    --clr-border:       rgba(245, 158, 11, 0.1);
+    --clr-blue:         #f59e0b;
+    --clr-blue-dim:     rgba(245, 158, 11, 0.12);
+}
+
+/* ── League Badges & Medals ─────────────────────────────── */
+.league-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.emp-avatar {
+    position: relative;
+}
+
+.medal-indicator {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    font-size: 12px;
+}

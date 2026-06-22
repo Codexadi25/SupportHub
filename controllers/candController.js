@@ -180,7 +180,7 @@ exports.generateAiTemplate = asyncHandler(async (req, res) => {
     const scenario = tags.join(', ');
 
     // 1. Generate response text using OpenAI or Gemini
-    const { generateAiCannedResponse } = require('../services/aiService');
+    const { generateAiCannedResponse } = require('../services/cannedAiService');
     let text;
     try {
         text = await generateAiCannedResponse(scenario);
@@ -259,7 +259,7 @@ exports.rephraseAiTemplate = asyncHandler(async (req, res) => {
         throw new Error('Text is required to rephrase');
     }
 
-    const { rephraseAiCannedResponse } = require('../services/aiService');
+    const { rephraseAiCannedResponse } = require('../services/cannedAiService');
     let rephrasedText;
     try {
         rephrasedText = await rephraseAiCannedResponse(text);
@@ -272,5 +272,12 @@ exports.rephraseAiTemplate = asyncHandler(async (req, res) => {
         success: true,
         text: rephrasedText
     });
+});
+
+// GET ALL TEMPLATES FOR LOB //
+exports.getAllTemplates = asyncHandler(async (req, res) => {
+    const lob = (req.params.lob || 'zomato').toLowerCase().trim();
+    const categories = await Category.find({ lob }).sort({ title: 1 });
+    res.json({ success: true, categories });
 });
 

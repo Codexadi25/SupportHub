@@ -1,0 +1,59 @@
+<% if (user.role !== 'new') { %>
+<div class="audio-translate-container" style="padding: 20px; display: flex; flex-direction: column; gap: 24px; height: 100%; overflow-y: auto;">
+  
+  <div style="border-bottom: 1px solid var(--clr-border, #e2e8f0); padding-bottom: 12px;">
+     <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--clr-text-main, #1e293b); display: flex; align-items: center; gap: 8px;">
+       <span>💡</span> SupportHub Autocomplete Extension
+     </h2>
+     <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--clr-text-muted, #64748b);">
+       Accelerate comment composition with real-time word prediction, local AI training, and inline autocomplete tabs.
+     </p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: start;">
+    
+    <!-- LEFT PANEL: Instructions -->
+    <div style="background: var(--clr-bg-card, #ffffff); border: 1px solid var(--clr-border, #e2e8f0); border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 15px;">
+      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--clr-text-main, #1e293b); display: flex; align-items: center; gap: 6px;">
+        ⚙️ Installation Guide
+      </h3>
+      
+      <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem; color: var(--clr-text-main, #334155); line-height: 1.5;">
+        <li>
+          <strong>Download &amp; Extract:</strong><br>
+          Click the "Download Extension" button on the right to download the <code>SupportHubExtension.zip</code> file, then extract it to a folder.
+        </li>
+        <li>
+          <strong>Run the Installer Helper:</strong><br>
+          Open the extracted folder and double-click <strong><code>Double-Click-To-Install.bat</code></strong>. This script will automatically copy the extension permanently to your user profile, open Google Chrome's Extensions setup tab, and open the extension folder for you.
+        </li>
+        <li>
+          <strong>Drag and Drop to Install:</strong><br>
+          Ensure <strong>Developer mode</strong> (top-right switch on the Chrome Extensions page) is turned ON. Drag the opened folder from File Explorer and drop it anywhere onto the Chrome page to install instantly!
+        </li>
+      </ol>
+    </div>
+
+    <!-- RIGHT PANEL: Download Card -->
+    <div style="background: var(--clr-bg-card, #ffffff); border: 1px solid var(--clr-border, #e2e8f0); border-radius: 12px; padding: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px;">
+      <div style="font-size: 3.5rem;">📦</div>
+      
+      <div>
+        <h3 style="margin: 0 0 6px 0; font-size: 1.15rem; font-weight: 700; color: var(--clr-text-main, #1e293b);">Ready to Install</h3>
+        <p style="margin: 0; font-size: 0.8rem; color: var(--clr-text-muted, #64748b); max-width: 250px; line-height: 1.4;">
+          Contains the predictive autocomplete content scripts, local prefix matcher, and dynamic update sync.
+        </p>
+      </div>
+
+      <a href="/extension.zip" download="SupportHubExtension.zip" style="width: 100%; max-width: 240px; background: var(--clr-primary, #2563eb); color: white; text-decoration: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(37,99,235,0.2); transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+        <i class="bi bi-download" style="font-size: 1.1rem;"></i> Download Extension
+      </a>
+      
+      <span style="font-size: 0.75rem; color: var(--clr-text-muted, #94a3b8); font-weight: 500;">
+        Size: ~6 KB • Manifest V3 Compliant
+      </span>
+    </div>
+
+  </div>
+</div>
+<% } %>

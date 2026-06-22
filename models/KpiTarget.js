@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const kpiTargetSchema = new mongoose.Schema({
-    organization: { type: String, lowercase: true, required: true },
+    organization: { type: String, lowercase: true, required: true, default: 'startek india' },
     // Scopes: 
     // - org-level target: teamId = null, userId = null
     // - team-level target: teamId = ObjectId, userId = null

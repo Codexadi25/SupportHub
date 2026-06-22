@@ -13,10 +13,10 @@ const breakEntrySchema = new mongoose.Schema({
 // ─── Main Performance Record ──────────────────────────────────────────────────
 const performanceRecordSchema = new mongoose.Schema({
     // ── Identity ──────────────────────────────────────────────────────────────
-    userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     employeeId:   { type: String, required: true },
     agentName:    { type: String, required: true },
-    organization: { type: String, lowercase: true, default: 'default' },
+    organization: { type: String, lowercase: true, default: 'startek india' },
     department:   { type: String, lowercase: true, default: 'none' },
     teamId:       { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
 
@@ -98,7 +98,8 @@ const performanceRecordSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Compound unique index: one record per employee per date per organization
-performanceRecordSchema.index({ userId: 1, date: 1, organization: 1 }, { unique: true });
+performanceRecordSchema.index({ userId: 1, date: 1, organization: 1 }, { unique: true, partialFilterExpression: { userId: { $exists: true, $ne: null } } });
+performanceRecordSchema.index({ employeeId: 1, date: 1, organization: 1 }, { unique: true });
 performanceRecordSchema.index({ organization: 1, department: 1, date: 1 });
 performanceRecordSchema.index({ teamId: 1, date: 1 });
 performanceRecordSchema.index({ employeeId: 1, date: 1 });

@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "SupportHub Autocomplete",
+  "version": "1.2",
+  "description": "SupportHub Autocomplete and Canned Response Predictive Assistant.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "cookies",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.svg"
+  },
+  "icons": {
+    "16": "icon.svg",
+    "32": "icon.svg",
+    "48": "icon.svg",
+    "128": "icon.svg"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "css": ["contentScript.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["contentScript.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

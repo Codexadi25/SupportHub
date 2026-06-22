@@ -235,8 +235,15 @@ async function clearDemoData(org) {
     const mockUsers = await User.find({ username: /^demo_/, organization: org }).select('_id');
     const mockUserIds = mockUsers.map(u => u._id);
 
-    // 2. Delete attendance records for these users
-    const recordResult = await PerformanceRecord.deleteMany({ userId: { $in: mockUserIds }, organization: org });
+    // 2. Delete attendance records for these users or employee IDs
+    const mockEmpIds = ['EMP001', 'EMP002', 'EMP003', 'EMP004', 'EMP005', 'EMP006', 'EMP007', 'EMP008', 'EMP009', 'EMP010'];
+    const recordResult = await PerformanceRecord.deleteMany({ 
+        $or: [
+            { userId: { $in: mockUserIds } },
+            { employeeId: { $in: mockEmpIds } }
+        ],
+        organization: org 
+    });
 
     // 3. Delete mock users
     const userResult = await User.deleteMany({ _id: { $in: mockUserIds } });

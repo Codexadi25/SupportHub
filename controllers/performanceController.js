@@ -10,6 +10,23 @@ const ExcelJS          = require('exceljs');
 const { nanoid }       = require('nanoid');
 const crypto           = require('crypto');
 const seeder           = require('../utils/demoSeeder');
+const Logger           = require('../utils/logger');
+
+/* ─────────────────────────────────────────────────────────
+   LEAGUE SYSTEM — Calculate employee rank/medal from KPI composite
+   Leagues: Iron, Bronze, Silver, Gold, Platinum, Diamond, Performance Ninja, Grand Master
+   ───────────────────────────────────────────────────────── */
+function computeLeague(score) {
+    const s = Math.max(0, Math.min(100, score || 0));
+    if (s >= 95) return { name: 'Grand Master - All Rounder', medal: '🏆', tier: 8, color: '#FFD700' };
+    if (s >= 88) return { name: 'Performance Ninja', medal: '⚡', tier: 7, color: '#E040FB' };
+    if (s >= 78) return { name: 'Diamond', medal: '💎', tier: 6, color: '#00BCD4' };
+    if (s >= 65) return { name: 'Platinum', medal: '🌟', tier: 5, color: '#B0BEC5' };
+    if (s >= 52) return { name: 'Gold', medal: '🥇', tier: 4, color: '#FFC107' };
+    if (s >= 40) return { name: 'Silver', medal: '🥈', tier: 3, color: '#9E9E9E' };
+    if (s >= 28) return { name: 'Bronze', medal: '🥉', tier: 2, color: '#CD7F32' };
+    return { name: 'Iron', medal: '⚙️', tier: 1, color: '#607D8B' };
+}
 
 /* ─────────────────────────────────────────────────────────
    HELPER — build the mongoose filter from req.query
@@ -222,7 +239,23 @@ async function apiSummary(req, res) {
         const filter = buildFilter(req);
         const todayFilter = { ...filter, date: { $gte: new Date(new Date().setHours(0,0,0,0)) } };
 
-        const [statusAgg, metrics] = await Promise.all([
+        // Determine previous period for change % calculation
+        const { from, to } = req.query;
+        let prevFilter = null;
+        if (from && to) {
+            const fromD = new Date(from);
+            const toD   = new Date(to + 'T23:59:59');
+            const span  = toD - fromD;  // ms duration
+            prevFilter  = { ...filter, date: { $gte: new Date(fromD - span), $lte: new Date(fromD - 1) } };
+        } else {
+            // default: previous 7 days vs this 7 days
+            const now    = new Date();
+            const cutoff = new Date(now - 7 * 24 * 60 * 60 * 1000);
+            const prevCut= new Date(now - 14 * 24 * 60 * 60 * 1000);
+            prevFilter   = { ...filter, date: { $gte: prevCut, $lte: new Date(cutoff - 1) } };
+        }
+
+        const [statusAgg, metrics, prevMetrics, prevStatus] = await Promise.all([
             PerformanceRecord.aggregate([
                 { $match: todayFilter },
                 { $group: { _id: '$status', count: { $sum: 1 } } }
@@ -235,8 +268,26 @@ async function apiSummary(req, res) {
                     avgQuality:    { $avg: '$qualityScore' },
                     totalTickets:  { $sum: '$ticketsProcessed' },
                     lateCount:     { $sum: { $cond: ['$isLateLogin', 1, 0] } },
-                    behaviorCount: { $sum: { $size: { $ifNull: ['$behaviorIssues',[]] } } }
+                    behaviorCount: { $sum: { $size: { $ifNull: ['$behaviorIssues',[]] } } },
+                    presentCount:  { $sum: { $cond: [{ $eq: ['$status','present'] }, 1, 0] } },
+                    totalCount:    { $sum: 1 }
                 }}
+            ]),
+            PerformanceRecord.aggregate([
+                { $match: prevFilter },
+                { $group: {
+                    _id: null,
+                    avgAHT:       { $avg: '$aht' },
+                    avgQuality:   { $avg: '$qualityScore' },
+                    totalTickets: { $sum: '$ticketsProcessed' },
+                    lateCount:    { $sum: { $cond: ['$isLateLogin', 1, 0] } },
+                    presentCount: { $sum: { $cond: [{ $eq: ['$status','present'] }, 1, 0] } },
+                    totalCount:   { $sum: 1 }
+                }}
+            ]),
+            PerformanceRecord.aggregate([
+                { $match: prevFilter },
+                { $group: { _id: '$status', count: { $sum: 1 } } }
             ])
         ]);
 
@@ -249,7 +300,18 @@ async function apiSummary(req, res) {
             if (s._id === 'leave')   leaveCount   = s.count;
         });
 
-        const m = metrics[0] || {};
+        const m  = metrics[0]  || {};
+        const pm = prevMetrics[0] || {};
+
+        // Calculate real change percentages
+        const chg = (cur, prev) => {
+            if (!prev || prev === 0) return cur > 0 ? 100 : 0;
+            return Math.round(((cur - prev) / prev) * 100);
+        };
+
+        const curAttPct  = m.totalCount  ? (m.presentCount  / m.totalCount  * 100) : 0;
+        const prevAttPct = pm.totalCount ? (pm.presentCount / pm.totalCount * 100) : 0;
+
         const teamId = filter.teamId || req.teamScope || req.query.team || null;
         const userId = req.query.userId || null;
         const targets = await resolveTargets(req.orgScope, teamId, userId);
@@ -263,11 +325,21 @@ async function apiSummary(req, res) {
             behaviorIssues:  m.behaviorCount|| 0,
             statusBreakdown,
             targets,
-            // Placeholder change %s — replace with prev-period comparison
-            presentChg: 5, absentChg: -2, lateChg: 0, ahtChg: -3, qualityChg: 2, ticketChg: 8
+            // Real period-over-period change percentages
+            presentChg: chg(curAttPct, prevAttPct),
+            absentChg:  chg(m.totalCount - m.presentCount || 0, pm.totalCount - pm.presentCount || 0),
+            lateChg:    chg(m.lateCount || 0, pm.lateCount || 0),
+            ahtChg:     chg(m.avgAHT   || 0, pm.avgAHT   || 0),
+            qualityChg: chg(m.avgQuality || 0, pm.avgQuality || 0),
+            ticketChg:  chg(m.totalTickets || 0, pm.totalTickets || 0)
         });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        console.error('[apiSummary] Error:', e);
+        await Logger.logError('[Performance] apiSummary failed', e, { action: 'api_summary', resource: 'performance' });
+        res.status(500).json({ error: e.message });
+    }
 }
+
 
 /* ─────────────────────────────────────────────────────────
    API: ATTENDANCE TREND
@@ -426,6 +498,62 @@ async function apiWeekOff(req, res) {
 }
 
 /* ─────────────────────────────────────────────────────────
+   API: LOGIN HEATMAP (7 days x 24 hours density)
+   ───────────────────────────────────────────────────────── */
+async function apiLoginHeatmap(req, res) {
+    try {
+        const filter = buildFilter(req);
+        const records = await PerformanceRecord.find(
+            {
+                ...filter,
+                loginTime: { $ne: '' },
+                logoutTime: { $ne: '' }
+            },
+            'date weekDay loginTime logoutTime'
+        ).lean();
+
+        const grid = Array.from({ length: 7 }, () => Array(24).fill(0));
+        const dayMap = { 'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6 };
+
+        records.forEach(r => {
+            let dayName = r.weekDay;
+            if (!dayName && r.date) {
+                const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                dayName = weekdays[new Date(r.date).getDay()];
+            }
+            const dayIndex = dayMap[dayName];
+            if (dayIndex === undefined) return;
+
+            const startHour = parseInt((r.loginTime || '').split(':')[0], 10);
+            const endHour   = parseInt((r.logoutTime || '').split(':')[0], 10);
+
+            if (isNaN(startHour) || isNaN(endHour)) return;
+
+            if (startHour <= endHour) {
+                for (let h = startHour; h < endHour; h++) {
+                    grid[dayIndex][h]++;
+                }
+                if (startHour === endHour) {
+                    grid[dayIndex][startHour]++;
+                }
+            } else {
+                for (let h = startHour; h < 24; h++) {
+                    grid[dayIndex][h]++;
+                }
+                for (let h = 0; h < endHour; h++) {
+                    grid[dayIndex][h]++;
+                }
+            }
+        });
+
+        res.json(grid);
+    } catch (e) {
+        console.error('Error in apiLoginHeatmap:', e);
+        res.status(500).json({ error: e.message });
+    }
+}
+
+/* ─────────────────────────────────────────────────────────
    API: PUNCTUALITY (top 10 worst)
    ───────────────────────────────────────────────────────── */
 async function apiPunctuality(req, res) {
@@ -476,7 +604,7 @@ async function apiErrors(req, res) {
 }
 
 /* ─────────────────────────────────────────────────────────
-   API: LEADERBOARD
+   API: LEADERBOARD — with League/Medal system
    ───────────────────────────────────────────────────────── */
 async function apiLeaderboard(req, res) {
     try {
@@ -487,6 +615,7 @@ async function apiLeaderboard(req, res) {
                 _id:             '$userId',
                 agentName:       { $first: '$agentName' },
                 employeeId:      { $first: '$employeeId' },
+                department:      { $first: '$department' },
                 totalDays:       { $sum: 1 },
                 presentDays:     { $sum: { $cond: [{ $eq: ['$status','present'] }, 1, 0] } },
                 avgAHT:          { $avg: '$aht' },
@@ -494,17 +623,94 @@ async function apiLeaderboard(req, res) {
                 avgPerformance:  { $avg: '$performanceScore' },
                 avgLoginHrs:     { $avg: '$loginHrs' },
                 totalTickets:    { $sum: '$ticketsProcessed' },
+                lateDays:        { $sum: { $cond: ['$isLateLogin', 1, 0] } },
                 behaviorIssues:  { $sum: { $size: { $ifNull: ['$behaviorIssues',[]] } } }
             }},
             { $addFields: {
                 attendancePct:   { $multiply: [{ $divide: ['$presentDays','$totalDays'] }, 100] }
             }},
             { $sort: { avgPerformance: -1 } },
-            { $limit: 20 }
+            { $limit: 50 }
         ]);
-        res.json(agg.map(a => ({ ...a, userId: a._id })));
-    } catch (e) { res.status(500).json({ error: e.message }); }
+
+        const result = agg.map((a, idx) => {
+            // Composite KPI score: weighted blend of key metrics
+            const attScore     = a.totalDays ? (a.presentDays / a.totalDays) * 100 : 0;
+            const qualScore    = Math.min(100, a.avgQuality  || 0);
+            const perfScore    = Math.min(100, a.avgPerformance || 0);
+            // AHT: lower is better — score 100 if <=3 min, 0 if >=20 min
+            const ahtEff       = a.avgAHT ? Math.max(0, Math.min(100, 100 - ((a.avgAHT - 3) / 17) * 100)) : 50;
+            const behavPenalty = Math.max(0, 100 - (a.behaviorIssues || 0) * 5);
+            const punctuality  = a.totalDays ? (1 - (a.lateDays || 0) / a.totalDays) * 100 : 100;
+
+            const composite = (
+                attScore   * 0.25 +
+                qualScore  * 0.25 +
+                perfScore  * 0.20 +
+                ahtEff     * 0.15 +
+                behavPenalty * 0.10 +
+                punctuality  * 0.05
+            );
+
+            const league = computeLeague(composite);
+
+            return {
+                ...a,
+                userId:       a._id,
+                rank:         idx + 1,
+                compositeScore: Math.round(composite),
+                league:       league.name,
+                medal:        league.medal,
+                leagueTier:   league.tier,
+                leagueColor:  league.color
+            };
+        });
+
+        res.json(result);
+    } catch (e) {
+        console.error('[apiLeaderboard] Error:', e);
+        await Logger.logError('[Performance] apiLeaderboard failed', e, { action: 'api_leaderboard', resource: 'performance' });
+        res.status(500).json({ error: e.message });
+    }
 }
+
+/* ─────────────────────────────────────────────────────────
+   API: AHT DISTRIBUTION — Per agent for selected period
+   ───────────────────────────────────────────────────────── */
+async function apiAhtDistribution(req, res) {
+    try {
+        const filter = buildFilter(req);
+        const agg = await PerformanceRecord.aggregate([
+            { $match: { ...filter, aht: { $gt: 0 }, status: 'present' } },
+            { $group: {
+                _id:      '$userId',
+                agentName: { $first: '$agentName' },
+                avgAHT:   { $avg: '$aht' }
+            }},
+            { $sort: { avgAHT: 1 } },
+            { $limit: 30 }
+        ]);
+
+        // Also calculate team/org average
+        const overallAgg = await PerformanceRecord.aggregate([
+            { $match: { ...filter, aht: { $gt: 0 }, status: 'present' } },
+            { $group: { _id: null, avgAHT: { $avg: '$aht' } } }
+        ]);
+
+        const teamAvg = overallAgg[0]?.avgAHT || 0;
+
+        res.json({
+            agents:  agg.map(a => a.agentName || 'Unknown'),
+            ahtData: agg.map(a => Math.round((a.avgAHT || 0) * 10) / 10),
+            teamAvg: Math.round(teamAvg * 10) / 10
+        });
+    } catch (e) {
+        console.error('[apiAhtDistribution] Error:', e);
+        await Logger.logError('[Performance] apiAhtDistribution failed', e, { action: 'api_aht_distribution', resource: 'performance' });
+        res.status(500).json({ error: e.message });
+    }
+}
+
 
 /* ─────────────────────────────────────────────────────────
    API: SHIFT SWAPS
@@ -800,8 +1006,16 @@ async function bulkUpload(req, res) {
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         try {
-            const userObj = await resolveUserId(row['Employee ID'] || row['employeeId'], row['Agent Name'] || row['agentName'], org || req.orgScope);
-            if (!userObj) throw new Error('Employee not found');
+            const empId = row['Employee ID'] || row['employeeId'] || '';
+            const agentName = row['Agent Name'] || row['agentName'] || '';
+            const email = row['Email'] || row['email'] || '';
+            const dept = row['Department'] || row['department'] || '';
+
+            if (!empId && !agentName && !email) {
+                throw new Error('Row lacks identifying information (Employee ID, Agent Name, or Email)');
+            }
+
+            const userObj = await resolveOrCreateUser(empId, agentName, org || req.orgScope, dept, null, email);
             const userId = userObj._id;
 
             // Auto-map/backfill employee ID and name in the row
@@ -814,7 +1028,7 @@ async function bulkUpload(req, res) {
 
             const updateDoc = buildUpdateDoc(dataType, row, userId, org || req.orgScope, req.user._id, batchId);
             await PerformanceRecord.findOneAndUpdate(
-                { userId, date, organization: org || req.orgScope },
+                { employeeId: row['Employee ID'], date, organization: org || req.orgScope },
                 { $set: updateDoc },
                 { upsert: true, new: true, setDefaultsOnInsert: true }
             );
@@ -833,8 +1047,23 @@ async function bulkUpload(req, res) {
     res.json({ batchId, successRows, failedRows, errors: errors.slice(0, 20) });
 }
 
-async function resolveUserId(empId, agentName, org) {
-    // 1. Try by employee ID or username
+async function resolveUserId(empId, agentName, org, email = '') {
+    // 1. Try by email first if provided
+    if (email) {
+        const uEmail = await User.findOne({
+            email: String(email).trim().toLowerCase(),
+            organization: org
+        });
+        if (uEmail) {
+            // Map employeeId if not set or different
+            if (empId && uEmail.employeeId !== String(empId).trim()) {
+                uEmail.employeeId = String(empId).trim();
+                await uEmail.save();
+            }
+            return uEmail.toObject ? uEmail.toObject() : uEmail;
+        }
+    }
+    // 2. Try by employee ID or username
     if (empId) {
         const u = await User.findOne({
             $or: [
@@ -845,7 +1074,7 @@ async function resolveUserId(empId, agentName, org) {
         }).lean();
         if (u) return u;
     }
-    // 2. Try by Agent Name (displayName)
+    // 3. Try by Agent Name (displayName)
     if (agentName) {
         const cleanName = String(agentName).trim();
         const uName = await User.findOne({
@@ -863,6 +1092,41 @@ async function resolveUserId(empId, agentName, org) {
         if (uUser) return uUser;
     }
     return null;
+}
+
+async function resolveOrCreateUser(empId, agentName, org, dept = 'general', teamId = null, email = '') {
+    let user = await resolveUserId(empId, agentName, org, email);
+    if (user) {
+        return user;
+    }
+
+    const cleanEmpId = String(empId || '').trim();
+    if (!cleanEmpId && !agentName) {
+        throw new Error('Cannot resolve or create employee: missing ID and Name');
+    }
+
+    // Auto-generate employeeId if empty
+    const finalEmpId = cleanEmpId || 'EMP-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const sanitizedEmpId = finalEmpId.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const suffix = crypto.randomBytes(3).toString('hex');
+    const dummyUsername = `dummy_${sanitizedEmpId}_${suffix}`;
+    const dummyPassword = crypto.randomBytes(16).toString('hex');
+
+    const newUser = new User({
+        username: dummyUsername,
+        password: dummyPassword,
+        role: 'user',
+        displayName: agentName || `Dummy ${finalEmpId}`,
+        employeeId: finalEmpId,
+        organization: org,
+        department: (dept || 'general').toLowerCase().trim(),
+        teamId: teamId || null,
+        email: email ? String(email).trim().toLowerCase() : '',
+        isActive: false
+    });
+
+    await newUser.save();
+    return newUser.toObject ? newUser.toObject() : newUser;
 }
 
 function buildUpdateDoc(type, row, userId, org, uploadedBy, batchId) {
@@ -1019,32 +1283,58 @@ async function exportCSV(req, res) {
 }
 
 async function exportPDF(req, res) {
-    res.status(501).json({ error: 'PDF export — integrate a PDF library like puppeteer or pdfkit' });
+    // PDF export: redirect to the printable shared page; client prints/saves as PDF
+    // For server-side PDF, integrate puppeteer or html-pdf-node
+    try {
+        const token = crypto.randomBytes(24).toString('hex');
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min temp token
+        await SharedReport.create({
+            token,
+            userId: req.query.userId || null,
+            filters: req.query,
+            org: req.orgScope,
+            oneTime: true,
+            expiresAt
+        });
+        const link = `${req.protocol}://${req.get('host')}/performance/shared/${token}?print=1`;
+        res.redirect(link);
+    } catch (e) {
+        console.error('[exportPDF] Error:', e);
+        await Logger.logError('[Performance] exportPDF failed', e, { action: 'export_pdf', resource: 'performance' });
+        res.status(500).json({ error: e.message });
+    }
 }
 
 /* ─────────────────────────────────────────────────────────
-   PUBLIC SHARE LINK
+   PUBLIC SHARE LINK — DB-backed via SharedReport model
    ───────────────────────────────────────────────────────── */
-const _shareTokens = new Map(); // In production: store in Redis or DB
-
 async function generateShareLink(req, res) {
     try {
         const token = crypto.randomBytes(24).toString('hex');
-        _shareTokens.set(token, {
+        const duration = parseInt(req.query.duration || 10080, 10); // default 7 days in mins
+        const expiresAt = new Date(Date.now() + duration * 60 * 1000);
+
+        await SharedReport.create({
+            token,
+            userId: req.query.userId || null,
             filters: req.query,
             org: req.orgScope,
-            team: req.teamScope,
-            expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
+            oneTime: false,
+            expiresAt
         });
-        const link = `${req.protocol}://${req.get('host')}/performance/api/performance/view/${token}`;
-        res.json({ link });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+
+        const link = `${req.protocol}://${req.get('host')}/performance/shared/${token}`;
+        res.json({ success: true, link, token, expiresAt });
+    } catch (e) {
+        console.error('[generateShareLink] Error:', e);
+        await Logger.logError('[Performance] generateShareLink failed', e, { action: 'generate_share_link', resource: 'performance' });
+        res.status(500).json({ error: e.message });
+    }
 }
 
 async function viewSharedReport(req, res) {
-    const data = _shareTokens.get(req.params.token);
-    if (!data || Date.now() > data.expiresAt) return res.status(410).send('Link expired or invalid.');
-    res.json({ message: 'Shared report — render a read-only view here', filters: data.filters });
+    // Legacy in-memory endpoint — now redirects to DB-backed route
+    return res.redirect(`/performance/shared/${req.params.token}`);
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -1135,13 +1425,12 @@ async function apiEmployeeProfileByEmpId(req, res) {
 async function generateEncryptedApiLink(req, res) {
     try {
         const { userId, duration = 60, oneTime = false, filters = {} } = req.body;
-        if (!userId) {
-            return res.status(400).json({ error: 'userId is required' });
-        }
         
-        const userExists = await User.findById(userId);
-        if (!userExists) {
-            return res.status(404).json({ error: 'User not found' });
+        if (userId) {
+            const userExists = await User.findById(userId);
+            if (!userExists) {
+                return res.status(404).json({ error: 'User not found' });
+            }
         }
 
         const crypto = require('crypto');
@@ -1150,47 +1439,71 @@ async function generateEncryptedApiLink(req, res) {
 
         await SharedReport.create({
             token,
-            userId,
+            userId: userId || null,
             filters,
+            org: req.orgScope,
             oneTime: !!oneTime,
             expiresAt
         });
 
-        const link = `${req.protocol}://${req.get('host')}/performance/api/performance/shared-report/${token}`;
+        const link = `${req.protocol}://${req.get('host')}/performance/shared/${token}`;
         res.json({ success: true, link, token, expiresAt });
     } catch (e) {
+        console.error('[generateEncryptedApiLink] Error:', e);
+        await Logger.logError('[Performance] generateEncryptedApiLink failed', e, { action: 'generate_encrypted_link', resource: 'performance' });
         res.status(500).json({ error: e.message });
     }
 }
 
+/* ─────────────────────────────────────────────────────────
+   UNIFIED SHARED REPORT PAGE — browser-viewable HTML
+   Used by: /performance/shared/:token  (public, no login)
+   Handles both the old encrypted API links and the new simple share links
+   ───────────────────────────────────────────────────────── */
 async function viewEncryptedSharedReport(req, res) {
+    // Legacy route redirect
+    return res.redirect(`/performance/shared/${req.params.token}`);
+}
+
+async function viewSharedReportPage(req, res) {
     try {
         const { token } = req.params;
         const shared = await SharedReport.findOne({ token }).populate('userId');
-        
+
         if (!shared) {
-            return res.status(404).json({ error: 'Report not found, invalid, or expired.' });
+            return res.status(404).render('sharedReport', {
+                error: 'This report link is invalid or has never existed.',
+                report: null
+            });
         }
 
         if (new Date() > shared.expiresAt) {
             await SharedReport.deleteOne({ _id: shared._id });
-            return res.status(410).json({ error: 'Report has expired.' });
+            return res.status(410).render('sharedReport', {
+                error: 'This report link has expired and is no longer accessible.',
+                report: null
+            });
         }
 
-        const userId = shared.userId._id;
-        const org = shared.userId.organization || 'default';
-        
-        const filter = { userId, organization: org };
+        const userId = shared.userId?._id;
+        const org    = shared.userId?.organization || shared.org || 'default';
+
+        const filter = { organization: org };
+        if (userId) filter.userId = userId;
+
         if (shared.filters?.from || shared.filters?.to) {
             filter.date = {};
             if (shared.filters.from) filter.date.$gte = new Date(shared.filters.from);
-            if (shared.filters.to) filter.date.$lte = new Date(shared.filters.to + 'T23:59:59');
+            if (shared.filters.to)   filter.date.$lte = new Date(shared.filters.to + 'T23:59:59');
         }
+        if (shared.filters?.dept) filter.department = shared.filters.dept;
 
         const [user, agg, records] = await Promise.all([
-            User.findById(userId).populate('teamId','name').lean(),
+            userId ? User.findById(userId).populate('teamId','name').lean() : null,
             PerformanceRecord.aggregate([
-                { $match: { ...filter, userId: new mongoose.Types.ObjectId(userId) } },
+                { $match: userId
+                    ? { ...filter, userId: new mongoose.Types.ObjectId(userId) }
+                    : filter },
                 { $group: {
                     _id: null,
                     totalDays:      { $sum: 1 },
@@ -1199,57 +1512,72 @@ async function viewEncryptedSharedReport(req, res) {
                     lateDays:       { $sum: { $cond: ['$isLateLogin', 1, 0] } },
                     avgAHT:         { $avg: '$aht' },
                     avgQuality:     { $avg: '$qualityScore' },
+                    totalTickets:   { $sum: '$ticketsProcessed' },
                     behaviorIssues: { $sum: { $size: { $ifNull: ['$behaviorIssues',[]] } } }
                 }}
             ]),
-            PerformanceRecord.find(filter).sort({ date: -1 }).limit(100).lean()
+            PerformanceRecord.find(
+                userId
+                    ? { ...filter, userId: new mongoose.Types.ObjectId(userId) }
+                    : filter
+            ).sort({ date: -1 }).limit(30).lean()
         ]);
 
         const m = agg[0] || {};
-        
-        const reportData = {
-            metadata: {
-                sharedAt: shared.createdAt,
-                expiresAt: shared.expiresAt,
-                oneTimeView: shared.oneTime
-            },
-            employee: {
-                agentName:      user?.displayName || user?.username,
-                employeeId:     user?.employeeId,
-                department:     user?.department,
-                teamName:       user?.teamId?.name,
-                shiftType:      user?.shiftType,
-            },
-            summary: {
-                attendancePct:  m.totalDays ? (m.presentDays/m.totalDays*100) : 0,
-                leavesUsed:     m.leaveDays      || 0,
-                lateDays:       m.lateDays       || 0,
-                avgAHT:         m.avgAHT         || 0,
-                avgQuality:     m.avgQuality     || 0,
-                behaviorIssues: m.behaviorIssues || 0,
-            },
-            recentRecords: records.map(r => ({
-                date: r.date,
-                status: r.status,
-                shiftType: r.shiftType,
-                loginTime: r.loginTime,
-                logoutTime: r.logoutTime,
-                loginHrs: r.loginHrs,
-                lateLoginMins: r.lateLoginMins,
-                aht: r.aht,
-                qualityScore: r.qualityScore,
-                ticketsProcessed: r.ticketsProcessed,
-                performanceScore: r.performanceScore
-            }))
-        };
 
+        // If oneTime: delete before rendering so the page renders but link dies
         if (shared.oneTime) {
             await SharedReport.deleteOne({ _id: shared._id });
         }
 
-        res.json(reportData);
+        const report = {
+            metadata: {
+                sharedAt:    shared.createdAt,
+                expiresAt:   shared.expiresAt,
+                oneTimeView: shared.oneTime,
+                printMode:   req.query.print === '1'
+            },
+            employee: user ? {
+                agentName:  user.displayName || user.username,
+                employeeId: user.employeeId,
+                department: user.department,
+                teamName:   user.teamId?.name,
+                shiftType:  user.shiftType,
+                image:      user.image || user.profilePic || ''
+            } : null,
+            summary: {
+                attendancePct:  m.totalDays ? Math.round(m.presentDays / m.totalDays * 100) : 0,
+                leavesUsed:     m.leaveDays      || 0,
+                lateDays:       m.lateDays       || 0,
+                avgAHT:         m.avgAHT ? Math.round(m.avgAHT * 10) / 10 : 0,
+                avgQuality:     m.avgQuality ? Math.round(m.avgQuality * 10) / 10 : 0,
+                totalTickets:   m.totalTickets   || 0,
+                behaviorIssues: m.behaviorIssues || 0,
+            },
+            records: records.map(r => ({
+                date:             r.date,
+                status:           r.status,
+                shiftType:        r.shiftType,
+                loginTime:        r.loginTime,
+                logoutTime:       r.logoutTime,
+                loginHrs:         r.loginHrs,
+                lateLoginMins:    r.lateLoginMins,
+                aht:              r.aht,
+                qualityScore:     r.qualityScore,
+                ticketsProcessed: r.ticketsProcessed,
+                performanceScore: r.performanceScore
+            })),
+            filters: shared.filters || {}
+        };
+
+        res.render('sharedReport', { report, error: null });
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        console.error('[viewSharedReportPage] Error:', e);
+        await Logger.logError('[Performance] viewSharedReportPage failed', e, { action: 'view_shared_report', resource: 'performance' });
+        res.status(500).render('sharedReport', {
+            error: 'An internal error occurred loading this report.',
+            report: null
+        });
     }
 }
 
@@ -1520,19 +1848,112 @@ async function apiToggleAgentBreaks(req, res) {
     }
 }
 
+async function apiSaveRecord(req, res) {
+    try {
+        const org = req.orgScope;
+        const {
+            date,
+            employeeId,
+            agentName,
+            status,
+            shiftType,
+            ticketsProcessed,
+            aht,
+            qualityScore,
+            csat,
+            fcr,
+            loginHrs,
+            department,
+            teamId,
+            leaveType
+        } = req.body;
+
+        if (!date || !employeeId) {
+            return res.status(400).json({ error: 'Date and Employee ID are required.' });
+        }
+
+        const recordDate = new Date(date);
+        if (isNaN(recordDate)) {
+            return res.status(400).json({ error: 'Invalid date format.' });
+        }
+
+        // Resolve or create user (dummy deactivated if unknown)
+        const userObj = await resolveOrCreateUser(employeeId, agentName, org, department, teamId);
+        
+        // Calculate weekday
+        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const weekDay = weekdays[recordDate.getDay()];
+
+        const recordDoc = {
+            userId: userObj._id,
+            employeeId: userObj.employeeId,
+            agentName: userObj.displayName || userObj.username,
+            organization: org,
+            department: (department || userObj.department || 'general').toLowerCase().trim(),
+            teamId: teamId || userObj.teamId || null,
+            date: recordDate,
+            weekDay,
+            shiftType: shiftType || 'general',
+            status: status || 'present',
+            leaveType: leaveType || 'none',
+            ticketsProcessed: parseInt(ticketsProcessed || 0, 10),
+            aht: parseFloat(aht || 0),
+            qualityScore: parseFloat(qualityScore || 0),
+            csat: parseFloat(csat || 0),
+            fcr: parseFloat(fcr || 0),
+            loginHrs: parseFloat(loginHrs || 0),
+            dataSource: 'manual',
+            uploadedBy: req.user._id
+        };
+
+        recordDoc.performanceScore = parseFloat(req.body.performanceScore || qualityScore || 0);
+
+        const savedRecord = await PerformanceRecord.findOneAndUpdate(
+            { employeeId: userObj.employeeId, date: recordDate, organization: org },
+            { $set: recordDoc },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        res.json({ success: true, record: savedRecord });
+    } catch (e) {
+        console.error('Error in apiSaveRecord:', e);
+        res.status(500).json({ error: e.message });
+    }
+}
+
+/* ─────────────────────────────────────────────────────────
+   LEADERBOARD PAGE VIEW
+   ───────────────────────────────────────────────────────── */
+async function viewLeaderboard(req, res) {
+    try {
+        const { teams, departments } = await getTeamsAndDepts(req.orgScope);
+        res.render('performanceLayout', {
+            body: `<div class="tracking-page-container" data-page="leaderboard" data-title="Employee Leaderboard"></div>`,
+            title: 'Employee Leaderboard — PulseTrack',
+            user: req.user,
+            currentPage: 'leaderboard',
+            org: req.orgScope,
+            teams, departments,
+            filters: req.query,
+            behaviorCount: 0
+        });
+    } catch (e) { res.status(500).send(e.message); }
+}
+
 module.exports = {
     viewDashboard, viewOverview, viewRecords, viewPerformance, viewShifts, viewLeaves,
     viewBreaks, viewBehavior, viewErrors, viewEmployee, viewTrends, viewUpload, viewExport,
-    viewTeams, viewSettings, downloadSampleCSV,
-    apiSummary, apiTrend, apiPerformanceTrend, apiTickets, apiBreaks, apiWeekOff,
-    apiPunctuality, apiErrors, apiLeaderboard, apiShiftSwaps, apiBehaviorIssues, apiRecords,
+    viewTeams, viewSettings, viewLeaderboard, downloadSampleCSV,
+    apiSummary, apiTrend, apiPerformanceTrend, apiTickets, apiBreaks, apiWeekOff, apiLoginHeatmap,
+    apiPunctuality, apiErrors, apiLeaderboard, apiAhtDistribution, apiShiftSwaps, apiBehaviorIssues, apiRecords,
     apiEmployeeProfile, apiEmployeeRadar, apiEmployeeTrend, apiEmployeeBreaks,
     apiEmployeeErrors, apiEmployeeBehavior,
     approveShiftSwap, rejectShiftSwap,
     bulkUpload, exportXLSX, exportCSV, exportPDF,
-    generateShareLink, viewSharedReport,
+    generateShareLink, viewSharedReport, viewSharedReportPage,
     seedDemo, clearDemo,
     apiEmployeeProfileByEmpId, generateEncryptedApiLink, viewEncryptedSharedReport,
     apiGetSettings, apiSaveSettings,
-    viewBreaksRecorder, apiGetBreakRecorderUsers, apiToggleAgentBreaks
+    viewBreaksRecorder, apiGetBreakRecorderUsers, apiToggleAgentBreaks,
+    apiSaveRecord
 };

@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // State
     let availableTags = [];
     let officialCands = [];
+    let aiTemplates = [];
     let selectedTagIds = new Set();
     let currentGeneratedText = '';
     let currentEditCandId = null;
@@ -279,11 +280,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const fontSize = '0.8rem';
             const cursor = 'pointer';
             
+            const isAdmin = window.currentUserRole === 'admin';
+            const deleteBtn = isAdmin ? `<span class="delete-tag-btn" data-id="${tag._id}" style="font-size: 0.8rem; font-weight: 700; color: #ef4444; margin-left: 4px; padding: 0 2px; cursor: pointer;">&times;</span>` : '';
+
             return `
                 <div class="tag-chip" data-id="${tag._id}" style="display: flex; align-items: center; gap: 6px; padding: ${padding}; border: ${borderStyle}; border-radius: ${borderRadius}; font-size: ${fontSize}; cursor: ${cursor}; background: var(--clr-bg-card, #ffffff); font-weight: 500; transition: all 0.15s; user-select: none;">
                     <span>${tag.name}</span>
                     <span style="font-size: 0.65rem; background: rgba(0,0,0,0.04); padding: 1px 4px; border-radius: 4px; color: ${color}; font-weight: 600;">${badge}</span>
-                    <span class="delete-tag-btn" data-id="${tag._id}" style="font-size: 0.8rem; font-weight: 700; color: #ef4444; margin-left: 4px; padding: 0 2px; cursor: pointer;">&times;</span>
+                    ${deleteBtn}
                 </div>
             `;
         }).join('');
@@ -314,9 +318,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${apiBase}/admin-cands`);
             const data = await response.json();
-            if (response.ok && data.cands) {
-                officialCands = data.cands;
-                officialCandsCount.textContent = `${officialCands.length} cand${officialCands.length !== 1 ? 's' : ''}`;
+            if (response.ok) {
+                officialCands = data.cands || [];
+                aiTemplates = data.aiTemplates || [];
+                const totalCount = officialCands.length + aiTemplates.length;
+                officialCandsCount.textContent = `${totalCount} cand${totalCount !== 1 ? 's' : ''}`;
                 renderOfficialCandsList();
             }
         } catch (err) {
@@ -327,17 +333,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render official cands list
     function renderOfficialCandsList() {
         if (!officialCandsList) return;
-        if (officialCands.length === 0) {
+        if (officialCands.length === 0 && aiTemplates.length === 0) {
             officialCandsList.innerHTML = '<div style="font-size: 0.85rem; color: var(--clr-text-muted, #64748b); text-align: center; padding: 30px;">No official AI cands saved yet.</div>';
             return;
         }
 
-        officialCandsList.innerHTML = officialCands.map((cand, index) => {
-            const tagsChips = cand.tags.map(t => `<span style="font-size: 0.7rem; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.15); padding: 2px 6px; border-radius: 4px; color: var(--clr-primary, #2563eb); font-weight: 500;">${t.name}</span>`).join(' ');
-            const isAdmin = window.currentUserRole === 'admin';
+        const isAdmin = window.currentUserRole === 'admin';
+        const isEditorOrAbove = ['admin', 'vendor', 'team_lead', 'editor', 'quality_analyst'].includes(window.currentUserRole);
+
+        // Render standalone AiCand entries
+        const officialCandsHtml = officialCands.map((cand, index) => {
+            const tagsChips = cand.tags.map(t => `<span class="ai-cand-tag-badge" data-name="${t.name.replace(/"/g, '&quot;')}" style="font-size: 0.7rem; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.15); padding: 2px 6px; border-radius: 4px; color: var(--clr-primary, #2563eb); font-weight: 500; cursor: pointer;">${t.name}</span>`).join(' ');
             
             return `
-                <div class="official-ai-cand-item" data-id="${cand._id}" data-tags="${cand.tags.map(t => t.name).join(' ')}" style="border: 1px solid var(--clr-border, #e2e8f0); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--clr-bg-card, #ffffff); transition: all 0.2s;">
+                <div class="official-ai-cand-item" data-id="${cand._id}" data-tags="${cand.tags.map(t => t.name).join(' ')}" style="border: 1px solid var(--clr-border, #e2e8f0); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--clr-bg-card, #ffffff); transition: all 0.2s; margin-bottom: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
                         <p class="ai-cand-text" style="margin: 0; font-size: 0.85rem; line-height: 1.5; color: var(--clr-text-main, #1e293b); cursor: pointer;" title="Click to copy">${cand.text}</p>
                         <div style="display: flex; gap: 4px; align-items: center;">
@@ -357,7 +366,47 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }).join('');
 
-        // Attach list event handlers
+        // Render Category templates (with isAi: true)
+        const templatesHtml = aiTemplates.map(tpl => {
+            const tagChips = (tpl.tags || []).map(t => `<span class="cand-tag-chip tag" style="font-size: 0.7rem; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.15); padding: 2px 6px; border-radius: 4px; color: var(--clr-primary, #2563eb); font-weight: 500;">${t}</span>`).join(' ');
+            
+            const actionButtons = isEditorOrAbove ? `
+                <button class="icon-btn btn-edit-cand" style="border: none; background: rgba(37,99,235,0.05); color: var(--clr-primary, #2563eb); font-size: 0.85rem; cursor: pointer; padding: 4px 6px; border-radius: 4px;" title="Edit Cand">&#9998;</button>
+                <button class="icon-btn btn-delete-cand" style="border: none; background: rgba(239,68,68,0.05); color: #ef4444; font-size: 0.85rem; cursor: pointer; padding: 4px 6px; border-radius: 4px;" title="Delete Cand">&#128465;</button>
+            ` : '';
+
+            return `
+                <div class="category-group" data-category-id="${tpl.categoryId}" style="margin-bottom: 8px;">
+                    <div class="cand-item cand-ai-item" data-category-id="${tpl.categoryId}" data-template-id="${tpl._id}" data-tags="${(tpl.tags || []).join(' ')}" style="border: 1px solid var(--clr-border, #e2e8f0); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--clr-bg-card, #ffffff); transition: all 0.2s;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                            <p class="cand-text" style="margin: 0; font-size: 0.85rem; line-height: 1.5; color: var(--clr-text-main, #1e293b); cursor: pointer;" title="Click to copy">${tpl.text}</p>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button class="copy-cand-btn" data-text="${tpl.text.replace(/"/g, '&quot;')}" style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: #22c55e; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Copy</button>
+                                ${actionButtons}
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                            <span class="cand-status-tag status-ai" style="font-size: 0.7rem; background: #a855f7; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">✨ AI</span>
+                            <span style="font-size: 0.7rem; color: var(--clr-text-muted, #64748b); font-weight: 500; margin-right: 6px;">[${tpl.categoryTitle}]</span>
+                            ${tagChips}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        officialCandsList.innerHTML = officialCandsHtml + templatesHtml;
+
+        // Attach tag badge click to filter
+        document.querySelectorAll('.ai-cand-tag-badge').forEach(badge => {
+            badge.addEventListener('click', (e) => {
+                const tagName = badge.dataset.name;
+                localSearchInput.value = tagName;
+                filterCandsList(tagName);
+            });
+        });
+
+        // Attach list event handlers for copy buttons
         document.querySelectorAll('.copy-cand-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const text = btn.dataset.text;
@@ -367,8 +416,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Click text to copy
-        document.querySelectorAll('.official-ai-cand-item .ai-cand-text').forEach(p => {
+        // Click text to copy (handles both types)
+        document.querySelectorAll('.official-ai-cand-item .ai-cand-text, .cand-ai-item .cand-text').forEach(p => {
             p.addEventListener('click', () => {
                 navigator.clipboard.writeText(p.textContent)
                     .then(() => showToast('Copied to clipboard!', 'success'))
@@ -376,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Move Up
+        // Move Up (standalone only)
         document.querySelectorAll('.move-up-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.id;
@@ -391,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Move Down
+        // Move Down (standalone only)
         document.querySelectorAll('.move-down-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.id;
@@ -406,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Edit Admin Cand
+        // Edit Admin Cand (standalone only)
         document.querySelectorAll('.edit-cand-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.id;
@@ -420,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Delete Admin Cand
+        // Delete Admin Cand (standalone only)
         document.querySelectorAll('.delete-cand-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const id = btn.dataset.id;
@@ -442,12 +491,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Filter list search
     function filterCandsList(query) {
         const term = query.toLowerCase().trim();
-        const items = document.querySelectorAll('.official-ai-cand-item');
-        items.forEach(item => {
+        
+        // Filter official standalone AI cands
+        const officialItems = document.querySelectorAll('.official-ai-cand-item');
+        officialItems.forEach(item => {
             const text = (item.querySelector('.ai-cand-text')?.textContent || '').toLowerCase();
             const tags = (item.dataset.tags || '').toLowerCase();
             const match = text.includes(term) || tags.includes(term);
             item.style.display = (!term || match) ? '' : 'none';
+        });
+
+        // Filter Category AI templates
+        const categoryGroups = document.querySelectorAll('.category-group');
+        categoryGroups.forEach(group => {
+            const candItem = group.querySelector('.cand-ai-item');
+            if (candItem) {
+                const text = (candItem.querySelector('.cand-text')?.textContent || '').toLowerCase();
+                const tags = (candItem.dataset.tags || '').toLowerCase();
+                const match = text.includes(term) || tags.includes(term);
+                group.style.display = (!term || match) ? '' : 'none';
+            }
         });
     }
 

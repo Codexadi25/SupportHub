@@ -5,28 +5,7 @@
         <h2 style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1.5rem; font-weight: 700; color: var(--clr-text-main, #1e293b);">
             <span>✨</span> AI Canned Responses
         </h2>
-        <% if (user.role === 'admin') { %>
-            <button id="btn-admin-prompt-toggle" class="btn" style="background: rgba(37,99,235,0.1); color: var(--clr-primary, #2563eb); border: 1px solid rgba(37,99,235,0.2); padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;">
-                ⚙️ Manage Prompt Template
-            </button>
-        <% } %>
     </div>
-
-    <!-- Admin Prompt Config Panel (Toggled, hidden by default) -->
-    <% if (user.role === 'admin') { %>
-        <div id="admin-prompt-panel" style="display: none; background: rgba(37, 99, 235, 0.03); border: 1px solid rgba(37, 99, 235, 0.15); border-radius: 12px; padding: 16px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
-            <h3 style="margin: 0 0 10px; font-size: 1rem; font-weight: 700; color: var(--clr-primary, #2563eb);">System Prompt Configuration</h3>
-            <p style="margin: 0 0 12px; font-size: 0.8rem; color: var(--clr-text-muted, #64748b); line-height: 1.4;">
-                Define how the AI constructs responses. Use <strong>{{selectedTags}}</strong> for selected sentence chunks and <strong>{{extraContext}}</strong> for the free-text context.
-            </p>
-            <textarea id="admin-prompt-textarea" rows="8" style="width: 100%; padding: 10px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 8px; font-family: monospace; font-size: 0.85rem; margin-bottom: 12px; resize: vertical; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);"></textarea>
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button id="btn-admin-prompt-save" class="btn btn-primary" style="background: var(--clr-primary, #2563eb); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(37,99,235,0.15);">
-                    Save Changes
-                </button>
-            </div>
-        </div>
-    <% } %>
 
     <!-- Left & Right Main Section Grid -->
     <div class="ai-panel-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-height: 500px;">
@@ -41,26 +20,28 @@
             <div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <label style="font-weight: 600; font-size: 0.85rem; color: var(--clr-text-main, #1e293b);">Select Sentence Chunks (Tags)</label>
-                    <button id="btn-create-tag-trigger" class="btn" style="background: transparent; color: var(--clr-primary, #2563eb); border: none; padding: 0; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                        ➕ Add Custom Tag
-                    </button>
+                    <% if (user.role === 'admin') { %>
+                        <button id="btn-create-tag-trigger" class="btn" style="background: transparent; color: var(--clr-primary, #2563eb); border: none; padding: 0; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                            ➕ Add Custom Tag
+                        </button>
+                    <% } %>
                 </div>
 
                 <!-- Custom tag builder box (hidden by default) -->
-                <div id="create-tag-box" style="display: none; background: rgba(0,0,0,0.02); border: 1px dashed var(--clr-border, #cbd5e1); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="new-tag-input" placeholder="e.g. Traffic Delay" style="flex: 1; padding: 6px 10px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 6px; font-size: 0.85rem; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);">
-                        <% if (user.role === 'admin') { %>
+                <% if (user.role === 'admin') { %>
+                    <div id="create-tag-box" style="display: none; background: rgba(0,0,0,0.02); border: 1px dashed var(--clr-border, #cbd5e1); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="new-tag-input" placeholder="e.g. Traffic Delay" style="flex: 1; padding: 6px 10px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 6px; font-size: 0.85rem; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);">
                             <select id="new-tag-visibility" style="padding: 6px; border: 1px solid var(--clr-border, #cbd5e1); border-radius: 6px; font-size: 0.85rem; background: var(--clr-bg-card, #ffffff); color: var(--clr-text-main, #1e293b);">
                                 <option value="public">Public</option>
                                 <option value="private">Private</option>
                             </select>
-                        <% } %>
-                        <button id="btn-save-tag" class="btn btn-primary" style="background: var(--clr-primary, #2563eb); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
-                            Save
-                        </button>
+                            <button id="btn-save-tag" class="btn btn-primary" style="background: var(--clr-primary, #2563eb); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                                Save
+                            </button>
+                        </div>
                     </div>
-                </div>
+                <% } %>
 
                 <!-- Tag List Chips Group -->
                 <div id="ai-generator-tags-list" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 150px; overflow-y: auto; padding: 4px; border: 1px solid var(--clr-border, #e2e8f0); border-radius: 8px; background: rgba(0,0,0,0.01);">

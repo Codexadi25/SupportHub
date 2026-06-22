@@ -97,12 +97,7 @@ async function exportEmployeeData() {
    NEW: SECURE ENCRYPTED PUBLIC API
    ───────────────────────────────────────────────────────── */
 async function generateSecureApiLink() {
-    const empId = document.getElementById('empSelector')?.value;
-    if (!empId) { 
-        toast('Please select an employee first', 'warning'); 
-        return; 
-    }
-
+    const empId = document.getElementById('empSelector')?.value || window.APP.filters?.userId || null;
     const duration = document.getElementById('secureApiDuration')?.value || 60;
     const oneTime = document.getElementById('secureApiOneTime')?.checked || false;
     const filters = window.APP.filters || {};

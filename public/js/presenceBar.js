@@ -35,17 +35,22 @@ class PresenceBar {
    * Initialize Firebase connection and presence tracking
    */
   async init() {
+    this.updateLiveStatus('pending');
     try {
       // Fetch Firebase config from server
       const response = await fetch('/api/user-activity/firebase-config');
       if (!response.ok) {
         console.warn('[PresenceBar] Firebase config not available');
+        this.updateLiveStatus('pending');
         return;
       }
 
       const { config } = await response.json();
       if (!config.databaseURL) {
-        console.warn('[PresenceBar] Firebase database URL not configured');
+        console.warn('[PresenceBar] Firebase database URL not configured — running in local mode');
+        // Still populate the You chip and show a sensible status
+        this.updateYouChip();
+        this.updateLiveStatus('localonly');
         return;
       }
 
@@ -69,6 +74,7 @@ class PresenceBar {
       // console.log('[PresenceBar] Initialized successfully');
     } catch (error) {
       console.error('[PresenceBar] Initialization failed:', error);
+      this.updateLiveStatus('offline');
     }
   }
 
@@ -118,6 +124,16 @@ class PresenceBar {
 
     // Remove presence on disconnect
     this.presenceRef.onDisconnect().remove();
+
+    // Connection state monitoring
+    const connectedRef = this.db.ref('.info/connected');
+    connectedRef.on('value', (snap) => {
+      const isConnected = snap.val() === true;
+      this.updateLiveStatus(isConnected ? 'online' : 'offline');
+    });
+
+    // Populate "You" chip if it exists
+    this.updateYouChip();
 
     // Update heartbeat and check for idleness
     setInterval(() => {
@@ -190,9 +206,27 @@ class PresenceBar {
     const hidden = peers.slice(this.MAX_VISIBLE);
 
     // Render visible avatars
-    visible.forEach((user) => {
-      this.createAvatarElement(user, this.avatarsEl);
+    visible.forEach((user, i) => {
+      this.createAvatarElement(user, this.avatarsEl, i);
     });
+
+    // Update viewer count label if it exists
+    const countEl = document.getElementById('pbCountLabel');
+    if (countEl) {
+      if (peers.length === 0) {
+        countEl.innerHTML = "";
+      } else if (peers.length === 1) {
+        countEl.innerHTML = `<span style="color:#24963F;font-weight:800;">Only you</span>`;
+      } else {
+        countEl.innerHTML = `<span style="font-weight:800;color:#2D2D2D">${peers.length} viewing now</span>`;
+      }
+    }
+
+    const vpCountChip = document.getElementById('vpCountChip');
+    if (vpCountChip) vpCountChip.textContent = peers.length;
+
+    // Render viewers panel list if it exists
+    this.renderViewersPanelList(peers);
 
     // Handle overflow
     if (hidden.length > 0) {
@@ -209,48 +243,168 @@ class PresenceBar {
       });
 
       if (this.overflowEl) this.overflowEl.style.display = '';
+      if (this.avatarsEl.id === 'pbAvatars') {
+        let pbOverflow = this.avatarsEl.querySelector('.pb-overflow');
+        if (!pbOverflow) {
+          pbOverflow = document.createElement('div');
+          pbOverflow.className = 'pb-overflow';
+          pbOverflow.addEventListener('click', () => {
+            if (typeof toggleViewersPanel === 'function') toggleViewersPanel();
+          });
+          this.avatarsEl.appendChild(pbOverflow);
+        }
+        pbOverflow.style.display = '';
+        pbOverflow.textContent = `+${hidden.length}`;
+        pbOverflow.title = `${hidden.length} more people viewing`;
+      }
     } else {
       if (this.overflowEl) this.overflowEl.style.display = 'none';
+      if (this.avatarsEl.id === 'pbAvatars') {
+        const pbOverflow = this.avatarsEl.querySelector('.pb-overflow');
+        if (pbOverflow) pbOverflow.style.display = 'none';
+      }
     }
   }
 
   /**
    * Create an avatar element for a user
    */
-  createAvatarElement(user, container) {
+  createAvatarElement(user, container, index = 0) {
     const av = document.createElement('div');
-    av.className = 'au-avatar';
-    if (user.image || user.profilePic) {
-      av.innerHTML = user.image || user.profilePic;
+    // Support both styles
+    av.className = container.id === 'pbAvatars' ? 'pb-avatar' : 'au-avatar';
+    
+    const isMe = user.username === this.username;
+    if (isMe) av.classList.add('is-you');
+
+    const displayName = user.displayName || user.profileName || user.username || '?';
+    const initials = displayName.split(/\s+/).map(p => p[0]).join('').substring(0, 2).toUpperCase();
+    const avatarContent = user.image || user.profilePic || initials;
+
+    av.innerHTML = avatarContent;
+    
+    if (container.id === 'pbAvatars') {
+      av.style.background = user.bgColor || this.stringToColor(user.username || '');
+      av.style.zIndex = 50 - index;
     } else {
-      av.textContent = (user.displayName || user.profileName || user.username || '?').charAt(0).toUpperCase();
+      av.style.setProperty('--au-hue', this.stringToHue(user.username || ''));
     }
-    av.style.setProperty('--au-hue', this.stringToHue(user.username || ''));
 
     // Create tooltip
     const tooltip = document.createElement('div');
-    tooltip.className = 'au-tooltip';
+    tooltip.className = container.id === 'pbAvatars' ? 'pb-avatar-tip' : 'au-tooltip';
 
     const lastSeenTime = user.ts ? new Date(user.ts).toLocaleTimeString() : 'Just now';
-    const statusLabel = user.status === 'on_break' ? 'On Break' : (user.status === 'idle' ? 'Idle' : 'Online');
+    const statusLabel = user.status === 'on_break' ? 'On Break' : (user.status === 'idle' ? 'Idle' : 'Active');
     const statusColor =
-      user.status === 'on_break' ? '#ffc107' : user.status === 'idle' ? '#dc3545' : '#28a745';
+      user.status === 'on_break' ? '#ffc107' : user.status === 'idle' ? '#dc3545' : '#24963F';
 
-    const tooltipName = user.displayName || user.username || '';
-
-    tooltip.innerHTML = `
-      <div class="aut-header">
-        <span class="aut-dot" style="background-color: ${statusColor}"></span>
-        <strong class="aut-name">${tooltipName}</strong>
-      </div>
-      <div class="aut-dept">🏢 ${user.dept || user.department || 'General'}</div>
-      <div class="aut-role">🛡️ ${(user.role || 'user').toUpperCase()}</div>
-      <div class="aut-status">Status: ${statusLabel}</div>
-      <div class="aut-seen">Last Seen: ${lastSeenTime}</div>
-    `;
+    if (container.id === 'pbAvatars') {
+      tooltip.innerHTML = `
+        ${this.escapeHtml(displayName)}${isMe ? ' <span style="color:#ff9090">(You)</span>' : ''}<br>
+        <span style="opacity:.75;font-size:.6rem">${this.mapRoleName(user.role)} (${statusLabel})</span>
+      `;
+    } else {
+      tooltip.innerHTML = `
+        <div class="aut-header">
+          <span class="aut-dot" style="background-color: ${statusColor}"></span>
+          <strong class="aut-name">${this.escapeHtml(displayName)}</strong>
+        </div>
+        <div class="aut-dept">🏢 ${user.dept || 'General'}</div>
+        <div class="aut-role">🛡️ ${(user.role || 'user').toUpperCase()}</div>
+        <div class="aut-status">Status: ${statusLabel}</div>
+        <div class="aut-seen">Last Seen: ${lastSeenTime}</div>
+      `;
+    }
 
     av.appendChild(tooltip);
     container.appendChild(av);
+  }
+
+  /**
+   * Render viewers panel dropdown list
+   */
+  renderViewersPanelList(viewers) {
+    const list = document.getElementById('vpList');
+    if (!list) return;
+
+    const roleColors = {
+      "Admin": "#CB202D",
+      "QA Analyst": "#1565C0",
+      "Team Leader": "#2E7D32",
+      "Vendor": "#6A1B9A",
+      "Agent": "#37474F",
+      "Editor": "#e65100"
+    };
+
+    list.innerHTML = viewers.map(v => {
+      const isMe = v.username === this.username;
+      const roleName = this.mapRoleName(v.role);
+      const rc = roleColors[roleName] || "#555";
+      const statusLabel = v.status === 'on_break' ? 'On Break' : (v.status === 'idle' ? 'Idle' : 'Online');
+      const statusColor = v.status === 'on_break' ? '#ffc107' : (v.status === 'idle' ? '#dc3545' : '#24963F');
+      const pulseAnim = v.status === 'idle' ? 'none' : 'liveGlow 2s infinite';
+      const displayName = v.displayName || v.profileName || v.username || '';
+      const initials = displayName.split(/\s+/).map(p => p[0]).join('').substring(0, 2).toUpperCase();
+      const avatarContent = v.image || v.profilePic || initials;
+      const color = v.bgColor || this.stringToColor(v.username || '');
+
+      return `
+        <div class="vp-item">
+          <div class="vp-avatar" style="background:${color}">${avatarContent}</div>
+          <div class="vp-info">
+            <div class="vp-name">${this.escapeHtml(displayName)}</div>
+            <div class="vp-role" style="color:${rc}">${roleName}</div>
+          </div>
+          <div class="vp-active-dot" title="${statusLabel}" style="background-color: ${statusColor}; animation: ${pulseAnim};"></div>
+          ${isMe ? `<span class="vp-badge-you">You</span>` : `<span class="vp-joined-time">Active</span>`}
+        </div>
+      `;
+    }).join("") || `<div style="padding:16px;text-align:center;font-size:.8rem;color:#bbb;">No viewers yet</div>`;
+  }
+
+  /**
+   * Populate/Update You chip
+   */
+  updateYouChip() {
+    const chip  = document.getElementById("pbYouChip");
+    const av    = document.getElementById("pbYouAvatar");
+    const name  = document.getElementById("pbYouName");
+    const role  = document.getElementById("pbYouRole");
+    if (!chip) return;
+
+    const displayName = window.currentUserDisplayName || this.username || '';
+    const initials = displayName.split(/\s+/).map(p => p[0]).join('').substring(0, 2).toUpperCase();
+    const avatarContent = window.currentUserProfilePic || initials;
+
+    if (av) {
+      av.innerHTML = avatarContent;
+      av.style.background = window.currentUserBgColor || this.stringToColor(this.username || '');
+    }
+    if (name) name.textContent = displayName;
+    if (role) role.textContent = this.mapRoleName(this.role);
+    chip.classList.add("visible");
+  }
+
+  /**
+   * Update live status text/dot
+   */
+  updateLiveStatus(state) {
+    const dot = document.getElementById('pbLiveDot');
+    const text = document.getElementById('pbLiveText');
+    if (!dot || !text) return;
+
+    const map = {
+      online:    { dotCls: "online",  color: "#24963F", label: "Live"         },
+      localonly: { dotCls: "online",  color: "#24963F", label: "Live"         },
+      pending:   { dotCls: "pending", color: "#F5A623", label: "Connecting…"  },
+      offline:   { dotCls: "offline", color: "#ccc",    label: "Disconnected" }
+    };
+    const s = map[state] || map.pending;
+    dot.className = "pb-live-dot " + s.dotCls;
+    text.textContent = s.label;
+    text.style.color = s.color;
+    text.className = "pb-live-text " + s.dotCls;
   }
 
   /**
@@ -262,6 +416,48 @@ class PresenceBar {
       h = (h * 31 + str.charCodeAt(i)) % 360;
     }
     return h;
+  }
+
+  /**
+   * Convert string to consistent hex color
+   */
+  stringToColor(str) {
+    const palette = [
+      "#CB202D","#1565C0","#2E7D32","#6A1B9A",
+      "#C62828","#00695C","#E65100","#283593",
+      "#4E342E","#37474F"
+    ];
+    if (!str) return palette[0];
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+    return palette[Math.abs(h) % palette.length];
+  }
+
+  /**
+   * Map database roles to friendly display roles
+   */
+  mapRoleName(role) {
+    if (!role) return 'Agent';
+    const map = {
+      'admin': 'Admin',
+      'quality_analyst': 'QA Analyst',
+      'qa_analyst': 'QA Analyst',
+      'team_lead': 'Team Leader',
+      'teamlead': 'Team Leader',
+      'vendor': 'Vendor',
+      'user': 'Agent',
+      'editor': 'Editor'
+    };
+    return map[role.toLowerCase()] || role;
+  }
+
+  /**
+   * Helper to escape HTML characters
+   */
+  escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
   /**
@@ -303,7 +499,17 @@ class PresenceBar {
 
     this.deptRef.once('value', (snap) => {
       const val = snap.val() || {};
-      const peers = Object.values(val);
+      const peers = [];
+      Object.keys(val).forEach(deptKey => {
+        const deptData = val[deptKey];
+        if (deptData && typeof deptData === 'object') {
+          Object.values(deptData).forEach(user => {
+            if (user && user.username) {
+              peers.push(user);
+            }
+          });
+        }
+      });
       if (callback) callback(peers);
     });
   }

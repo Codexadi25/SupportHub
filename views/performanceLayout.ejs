@@ -21,6 +21,13 @@
 </head>
 <body>
 
+<script>
+    (function() {
+        const savedTheme = localStorage.getItem('pulsetrack_theme') || 'midnight';
+        document.body.classList.add('theme-' + savedTheme);
+    })();
+</script>
+
 <div class="app-shell">
 
     <!-- ── Sidebar ────────────────────────────────────────── -->

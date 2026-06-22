@@ -4,7 +4,7 @@ async function loadDashboardData() {
     const q = buildQuery();
 
     // Parallel fetch
-    const [summary, trend, performance, tickets, breaks, weekOff, punctuality, errors, leaderboard, swaps, behavior] = await Promise.all([
+    const [summary, trend, performance, tickets, breaks, weekOff, punctuality, errors, leaderboard, swaps, behavior, heatmap, ahtDist] = await Promise.all([
         api(`/api/performance/summary${q}`),
         api(`/api/performance/trend${q}`),
         api(`/api/performance/performance-trend${q}`),
@@ -15,7 +15,9 @@ async function loadDashboardData() {
         api(`/api/performance/errors${q}`),
         api(`/api/performance/leaderboard${q}`),
         api(`/api/performance/shift-swaps${q}`),
-        api(`/api/performance/behavior-issues${q}`)
+        api(`/api/performance/behavior-issues${q}`),
+        api(`/api/performance/heatmap${q}`),
+        api(`/api/performance/aht-distribution${q}`)
     ]);
 
     // ── KPIs ──────────────────────────────────────────────
@@ -72,9 +74,9 @@ async function loadDashboardData() {
     }
 
     // ── Login Heatmap ─────────────────────────────────────
-    // placeholder until API returns data
-    const heatData = Array.from({length:7}, () => Array.from({length:24}, () => Math.floor(Math.random()*10)));
-    buildLoginHeatmap('loginHeatmap', heatData);
+    if (heatmap) {
+        buildLoginHeatmap('loginHeatmap', heatmap);
+    }
 
     // ── Break Pattern ─────────────────────────────────────
     if (breaks) {
@@ -94,6 +96,11 @@ async function loadDashboardData() {
     // ── Error Pattern ─────────────────────────────────────
     if (errors) {
         buildErrorPattern(errors.categories, errors.counts);
+    }
+
+    // ── AHT Distribution ──────────────────────────────────
+    if (ahtDist) {
+        buildAHT(ahtDist.agents, ahtDist.ahtData, ahtDist.teamAvg);
     }
 
     // ── Leaderboard ───────────────────────────────────────
@@ -148,9 +155,15 @@ function renderLeaderboard(agents) {
             <td style="color:var(--clr-text-muted);font-family:var(--font-mono);">${i+1}</td>
             <td>
                 <div class="emp-cell">
-                    <div class="emp-avatar">${(a.agentName||'?').charAt(0).toUpperCase()}</div>
+                    <div class="emp-avatar" style="position:relative;">
+                        ${(a.agentName||'?').charAt(0).toUpperCase()}
+                        <span style="position:absolute;bottom:-4px;right:-4px;font-size:12px;" title="${a.league}">${a.medal}</span>
+                    </div>
                     <div>
-                        <div class="emp-name">${a.agentName}</div>
+                        <div class="emp-name">
+                            ${a.agentName}
+                            <span class="league-badge" style="background:${a.leagueColor}20;color:${a.leagueColor};border:1px solid ${a.leagueColor}40;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;">${a.league}</span>
+                        </div>
                         <div class="emp-id">${a.employeeId}</div>
                     </div>
                 </div>

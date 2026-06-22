@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SupportHub Autocomplete</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      width: 330px;
+      margin: 0;
+      padding: 15px;
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .subtitle {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: -8px;
+      line-height: 1.3;
+    }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+    }
+    .status-active .status-indicator {
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #475569;
+    }
+    textarea {
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      background: #ffffff;
+      color: #1e293b;
+      outline: none;
+      resize: none;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    textarea:focus {
+      border-color: #2563eb;
+    }
+    
+    .predictions-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 6px;
+      min-height: 110px;
+      max-height: 150px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .prediction-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      font-size: 0.78rem;
+      cursor: pointer;
+      line-height: 1.35;
+      transition: all 0.15s;
+      word-break: break-word;
+    }
+    .prediction-item:hover {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      transform: translateY(-1px);
+    }
+    .prediction-item.active {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
+    .prediction-item .completed-part {
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .prediction-item .predictive-part {
+      color: #2563eb;
+    }
+    .prediction-item .trained-badge {
+      font-size: 0.6rem;
+      background: #e0e7ff;
+      color: #4f46e5;
+      padding: 1px 4px;
+      border-radius: 4px;
+      float: right;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    
+    .placeholder-text {
+      color: #94a3b8;
+      font-style: italic;
+      font-size: 0.75rem;
+      text-align: center;
+      padding-top: 30px;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .btn-action {
+      background: #2563eb;
+      color: white;
+      box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    }
+    .btn-action:hover:not(:disabled) {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+    .btn-action:disabled {
+      background: #cbd5e1;
+      color: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    
+    /* Suggestions Switch Style */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+    }
+    .switch-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 22px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e1;
+      transition: .3s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    input:checked + .slider {
+      background-color: #10b981; /* Emerald Green */
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Auto update styles */
+    .update-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 12px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.75rem;
+    }
+    .update-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      color: #475569;
+    }
+    .update-btn {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+      outline: none;
+    }
+    .update-btn:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    .error-msg {
+      color: #ef4444;
+      font-size: 0.75rem;
+      margin-top: 4px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>
+      
+      SupportHub Autocomplete
+    </h2>
+    <div class="subtitle">Write canned response cands faster using predictive local AI text completion.</div>
+    
+    <input type="hidden" id="host-url" value="http://localhost:3000">
+    <input type="hidden" id="lob-select" value="zomato">
+
+    <div class="status-bar" id="status-container">
+      <span>Status: <span id="status-text">Disconnected</span></span>
+      <span class="status-indicator"></span>
+    </div>
+
+    <!-- Toggle Suggestions Switch -->
+    <div class="switch-container">
+      <span class="switch-label">✨ Inline Autocomplete</span>
+      <label class="switch">
+        <input type="checkbox" id="extension-toggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <!-- Custom Percentage Setting -->
+    <div class="switch-container" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px;">
+      <span class="switch-label">🎯 Custom Percentage</span>
+      <input type="text" id="custom-percentage" value="35%" style="width: 60px; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.75rem; text-align: center; font-weight: 700; color: #1e293b; outline: none;">
+    </div>
+
+    <!-- Compose & autocomplete field -->
+    <div class="form-group">
+      <label for="compose-box">Type response shortcut or sentence:</label>
+      <textarea id="compose-box" rows="3" placeholder="Type here (e.g. rain, delay, customer)..."></textarea>
+    </div>
+
+    <!-- Live Predictions List -->
+    <div class="form-group">
+      <label>Predictions (Upcoming Set of Tokens):</label>
+      <div id="predictions-list" class="predictions-box">
+        <div class="placeholder-text">Start typing in the box above to see predictions...</div>
+      </div>
+    </div>
+
+    <button id="btn-copy-insert" class="btn-action" disabled>📋 Copy & Fill Active Textarea</button>
+
+    <!-- Extension Updates Section -->
+    <div class="update-section">
+      <div class="update-header">
+        <span>Version: <span id="extension-version">1.0</span></span>
+        <span id="update-msg" style="color: #059669; font-weight: 700;">Up to date</span>
+      </div>
+      <button id="btn-check-update" class="update-btn" type="button">Check for Updates</button>
+    </div>
+
+    <div id="error-container" class="error-msg"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 const { Sop, Audit } = require('../models/Sop');
 const Notification = require('../models/Notification');
+const Logger = require('../utils/logger');
 
 /**
  * Handles the Approval/Publishing Workflow
@@ -39,6 +40,7 @@ exports.approveDraft = async (req, res) => {
                 });
             } catch (notifErr) {
                 console.error('[Notification Trigger] Failed to create SOP approval notification:', notifErr);
+                await Logger.logError('[SopController] Failed to create SOP approval notification', notifErr, { action: 'approve_draft_notification', resource: 'sop', sopId: id });
             }
         } else {
             sop.status = 'Draft'; // Or 'Rejected'
@@ -48,6 +50,7 @@ exports.approveDraft = async (req, res) => {
         res.json({ success: true, status: sop.status });
     } catch (err) {
         console.error('approveDraft error:', err);
+        await Logger.logError('[SopController] approveDraft failed', err, { action: 'approve_draft', resource: 'sop', sopId: id });
         res.status(500).json({ error: err.message });
     }
 };
@@ -83,6 +86,7 @@ exports.createBlock = async (req, res) => {
         res.redirect(`/${lob}/sop/drafts`);
     } catch (err) {
         console.error('createBlock error:', err);
+        await Logger.logError('[SopController] createBlock failed', err, { action: 'create_block', resource: 'sop' });
         res.status(500).send(err.message);
     }
 };

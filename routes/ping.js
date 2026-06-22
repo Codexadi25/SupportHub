@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { isAuthenticated } = require('../middleware/authMiddleware');
+const { isAuthenticated, isNotNew } = require('../middleware/authMiddleware');
 const { getOnlineUsers } = require('../utils/webSocketServer');
 const firebaseService = require('../services/firebaseService');
 
@@ -66,7 +66,14 @@ router.get('/ping', isAuthenticated, (req, res) => {
   return res.json({ 
     ok: true, 
     timestamp: new Date().toISOString(),
-    heartbeat: true 
+    heartbeat: true,
+    user: req.session && req.session.user ? {
+      _id: req.session.user._id,
+      username: req.session.user.username,
+      role: req.session.user.role,
+      department: req.session.user.department,
+      lob: req.session.user.department
+    } : null
   });
 });
 
@@ -182,6 +189,120 @@ router.get('/active-users', (req, res) => {
   } catch (error) {
     console.error('Error in /api/active-users:', error);
     res.status(500).json({ error: 'Failed to fetch active users' });
+  }
+});
+
+
+// GET /api/extension/check-update
+// Server-driven silent auto-updater mapping
+router.get('/extension/check-update', (req, res) => {
+  try {
+    const clientVersion = req.query.version || '1.0';
+    const fs = require('fs');
+    const path = require('path');
+    const os = require('os');
+    
+    const manifestPath = path.join(__dirname, '../public/extension/manifest.json');
+    if (!fs.existsSync(manifestPath)) {
+      return res.json({ success: false, message: 'Manifest not found on server' });
+    }
+    
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const serverVersion = manifest.version || '1.0';
+    
+    if (clientVersion !== serverVersion) {
+      console.log(`[Auto-Update] Version mismatch: Client is ${clientVersion}, Server is ${serverVersion}. Updating...`);
+      
+      const targetDir = path.join(os.homedir(), 'SupportHub-Extension');
+      const sourceDir = path.join(__dirname, '../public/extension');
+      
+      let copied = false;
+      if (fs.existsSync(targetDir) && fs.existsSync(sourceDir)) {
+        const copyRecursive = (src, dest) => {
+          const exists = fs.existsSync(src);
+          const stats = exists && fs.statSync(src);
+          const isDirectory = exists && stats.isDirectory();
+          if (isDirectory) {
+            if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+            fs.readdirSync(src).forEach((childItemName) => {
+              copyRecursive(path.join(src, childItemName), path.join(dest, childItemName));
+            });
+          } else {
+            fs.copyFileSync(src, dest);
+          }
+        };
+        
+        copyRecursive(sourceDir, targetDir);
+        console.log('[Auto-Update] Successfully copied new extension version to user directory.');
+        copied = true;
+      }
+      return res.json({ success: true, updated: true, newVersion: serverVersion, copied });
+    }
+    
+    res.json({ success: true, updated: false });
+  } catch (err) {
+    console.error('[Auto-Update Error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/extension/train-sentence
+// Receives a custom typed sentence, checks if it is different from existing templates,
+// and saves it under the "Trained Predictions" category for this LOB.
+router.post('/extension/train-sentence', async (req, res) => {
+  try {
+    const Category = require('../models/Category');
+    const { sentence, lob } = req.body;
+    
+    if (!sentence || !sentence.trim()) {
+      return res.status(400).json({ success: false, message: 'Sentence text is required' });
+    }
+    
+    const cleanSentence = sentence.trim();
+    const cleanLob = (lob || 'zomato').toLowerCase().trim();
+
+    // 1. Find all categories and templates for this LOB to check if the sentence already exists
+    const categories = await Category.find({ lob: cleanLob });
+    let exists = false;
+    
+    for (const cat of categories) {
+      for (const tpl of cat.templates) {
+        if (tpl.text.toLowerCase().trim() === cleanSentence.toLowerCase()) {
+          exists = true;
+          break;
+        }
+      }
+      if (exists) break;
+    }
+
+    if (exists) {
+      return res.json({ success: true, message: 'Sentence already exists in templates database', newlyTrained: false });
+    }
+
+    // 2. Add to "Trained Predictions" category
+    let category = await Category.findOne({ title: 'Trained Predictions', lob: cleanLob });
+    if (!category) {
+      category = await Category.create({ title: 'Trained Predictions', lob: cleanLob });
+    }
+
+    const now = new Date();
+    category.templates.push({
+      text: cleanSentence,
+      tags: ['trained_prediction'],
+      isAi: true,
+      meta: {
+        createdAt: now,
+        updatedAt: now
+      }
+    });
+
+    await category.save();
+    console.log(`[AI Learning] Successfully trained new sentence for LOB "${cleanLob}": "${cleanSentence}"`);
+
+    return res.json({ success: true, message: 'New sentence trained successfully', newlyTrained: true });
+  } catch (err) {
+    console.error('[AI Learning Error]', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

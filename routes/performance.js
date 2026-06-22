@@ -18,25 +18,31 @@ router.get('/employee',         guard, ctrl.viewEmployee);
 router.get('/trends',           guard, ctrl.viewTrends);
 router.get('/upload',           guard, ctrl.viewUpload);
 router.get('/export',           guard, ctrl.viewExport);
+router.get('/leaderboard',      guard, ctrl.viewLeaderboard);
 router.get('/admin/teams',      guard, ctrl.viewTeams);
 router.get('/admin/settings',   guard, ctrl.viewSettings);
 router.get('/admin/breaks-recorder', guard, ctrl.viewBreaksRecorder);
 router.get('/sample.csv',       guard, ctrl.downloadSampleCSV);
 
+// ── PUBLIC: Shared Report Page (no login required) ────────
+router.get('/shared/:token', ctrl.viewSharedReportPage);
+
 // ── Data API ──────────────────────────────────────────────
 // Summary & KPIs
-router.get('/api/performance/summary',           guard, ctrl.apiSummary);
-router.get('/api/performance/trend',             guard, ctrl.apiTrend);
-router.get('/api/performance/performance-trend', guard, ctrl.apiPerformanceTrend);
-router.get('/api/performance/tickets',           guard, ctrl.apiTickets);
-router.get('/api/performance/breaks',            guard, ctrl.apiBreaks);
-router.get('/api/performance/week-off',          guard, ctrl.apiWeekOff);
-router.get('/api/performance/punctuality',       guard, ctrl.apiPunctuality);
-router.get('/api/performance/errors',            guard, ctrl.apiErrors);
-router.get('/api/performance/leaderboard',       guard, ctrl.apiLeaderboard);
-router.get('/api/performance/shift-swaps',       guard, ctrl.apiShiftSwaps);
-router.get('/api/performance/behavior-issues',   guard, ctrl.apiBehaviorIssues);
-router.get('/api/performance/records',           guard, ctrl.apiRecords);
+router.get('/api/performance/summary',            guard, ctrl.apiSummary);
+router.get('/api/performance/trend',              guard, ctrl.apiTrend);
+router.get('/api/performance/performance-trend',  guard, ctrl.apiPerformanceTrend);
+router.get('/api/performance/tickets',            guard, ctrl.apiTickets);
+router.get('/api/performance/breaks',             guard, ctrl.apiBreaks);
+router.get('/api/performance/week-off',           guard, ctrl.apiWeekOff);
+router.get('/api/performance/heatmap',            guard, ctrl.apiLoginHeatmap);
+router.get('/api/performance/punctuality',        guard, ctrl.apiPunctuality);
+router.get('/api/performance/errors',             guard, ctrl.apiErrors);
+router.get('/api/performance/leaderboard',        guard, ctrl.apiLeaderboard);
+router.get('/api/performance/aht-distribution',   guard, ctrl.apiAhtDistribution);
+router.get('/api/performance/shift-swaps',        guard, ctrl.apiShiftSwaps);
+router.get('/api/performance/behavior-issues',    guard, ctrl.apiBehaviorIssues);
+router.get('/api/performance/records',            guard, ctrl.apiRecords);
 
 // Employee profile
 router.get('/api/performance/employee/:userId',          guard, ctrl.apiEmployeeProfile);
@@ -54,27 +60,33 @@ router.post('/api/performance/shift-swap/:id/reject',  guard, ctrl.rejectShiftSw
 // Bulk upload
 router.post('/api/performance/bulk-upload', guard, ctrl.bulkUpload);
 
+// Manual save/update performance record
+router.post('/api/performance/record', guard, ctrl.apiSaveRecord);
+
 // Settings API routes
-router.get('/api/performance/settings', guard, ctrl.apiGetSettings);
+router.get('/api/performance/settings',  guard, ctrl.apiGetSettings);
 router.post('/api/performance/settings', guard, ctrl.apiSaveSettings);
 
 // Break Recorder API routes
-router.get('/api/performance/break-recorder/users', guard, ctrl.apiGetBreakRecorderUsers);
-router.post('/api/performance/break-recorder/toggle', guard, ctrl.apiToggleAgentBreaks);
+router.get('/api/performance/break-recorder/users',    guard, ctrl.apiGetBreakRecorderUsers);
+router.post('/api/performance/break-recorder/toggle',  guard, ctrl.apiToggleAgentBreaks);
 
 // Demo Data Seeding & Purging
-router.post('/api/performance/demo/seed', guard, ctrl.seedDemo);
+router.post('/api/performance/demo/seed',  guard, ctrl.seedDemo);
 router.post('/api/performance/demo/clear', guard, ctrl.clearDemo);
 
 // Export & Share
-router.get('/api/performance/export/xlsx', guard, ctrl.exportXLSX);
-router.get('/api/performance/export/csv',  guard, ctrl.exportCSV);
-router.get('/api/performance/export/pdf',  guard, ctrl.exportPDF);
-router.post('/api/performance/share/link', guard, ctrl.generateShareLink);
-router.get('/api/performance/view/:token',       ctrl.viewSharedReport); // public — no guard
+router.get('/api/performance/export/xlsx',  guard, ctrl.exportXLSX);
+router.get('/api/performance/export/csv',   guard, ctrl.exportCSV);
+router.get('/api/performance/export/pdf',   guard, ctrl.exportPDF);
 
-// Encrypted Public Shared Reports (Auto-destruct TTL API)
+// Share link generation (DB-backed, requires auth)
+router.post('/api/performance/share/link',          guard, ctrl.generateShareLink);
+// Legacy view routes → redirect to unified /shared/:token
+router.get('/api/performance/view/:token',              ctrl.viewSharedReport);
+router.get('/api/performance/shared-report/:token',     ctrl.viewEncryptedSharedReport);
+
+// Encrypted share link generation
 router.post('/api/performance/share/encrypted-api', guard, ctrl.generateEncryptedApiLink);
-router.get('/api/performance/shared-report/:token',        ctrl.viewEncryptedSharedReport); // public — no guard
 
 module.exports = router;

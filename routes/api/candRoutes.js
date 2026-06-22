@@ -8,9 +8,13 @@ const {
     updateTemplate, 
     deleteTemplate,
     generateAiTemplate,
-    rephraseAiTemplate
+    rephraseAiTemplate,
+    getAllTemplates
 } = require('../../controllers/candController');
 const { isEditorOrAbove, isAuthenticated } = require('../../middleware/authMiddleware');
+
+router.get('/', isAuthenticated, getAllTemplates);
+router.get('/templates', isAuthenticated, getAllTemplates);
 
 router.post('/category', isEditorOrAbove, createCategory);
 router.put('/category/:id', isEditorOrAbove, updateCategory);

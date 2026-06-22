@@ -133,6 +133,59 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.clipboard.writeText(text).then(()=>showToast('Copied!'));
   });
 
+  // Map Employee ID form submit
+  const mapEmployeeForm = document.getElementById('map-employee-form');
+  if (mapEmployeeForm) {
+    mapEmployeeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userId = document.getElementById('map-user-select')?.value;
+      const employeeId = document.getElementById('map-employee-id')?.value?.trim();
+      if (!userId || !employeeId) {
+        return showToast('Please select a user and enter an Employee ID', 'error');
+      }
+      try {
+        await api('/api/admin/employee-mapping/map', 'POST', { userId, employeeId });
+        showToast('Employee ID mapped successfully!', 'success');
+        document.getElementById('map-employee-id').value = '';
+        renderUsersTable();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  // Provision Unknown dummy employee submit
+  const createUnknownForm = document.getElementById('create-unknown-form');
+  if (createUnknownForm) {
+    createUnknownForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const employeeId = document.getElementById('unknown-employee-id')?.value?.trim();
+      const displayName = document.getElementById('unknown-display-name')?.value?.trim();
+      const department = document.getElementById('unknown-department')?.value?.trim();
+      const teamId = document.getElementById('unknown-team-select')?.value;
+      
+      if (!employeeId || !displayName || !department) {
+        return showToast('Employee ID, Agent Name, and Department are required', 'error');
+      }
+      try {
+        await api('/api/admin/employee-mapping/create-unknown', 'POST', {
+          employeeId,
+          displayName,
+          department,
+          teamId: teamId === 'none' ? null : teamId
+        });
+        showToast('Unknown dummy employee provisioned successfully!', 'success');
+        document.getElementById('unknown-employee-id').value = '';
+        document.getElementById('unknown-display-name').value = '';
+        document.getElementById('unknown-department').value = '';
+        document.getElementById('unknown-team-select').value = 'none';
+        renderUsersTable();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
   // Logs
   const refreshLogsBtn = document.getElementById('refreshLogsBtn');
   if (refreshLogsBtn) refreshLogsBtn.addEventListener('click', async () => {
@@ -249,6 +302,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!usersTbody) return;
     try {
       const users = await fetchUsers();
+      
+      // Populate map-user-select dropdown reactively
+      const mapUserSelect = document.getElementById('map-user-select');
+      if (mapUserSelect) {
+        const currentSelected = mapUserSelect.value;
+        const activeUsers = users.filter(usr => usr && usr.isActive);
+        mapUserSelect.innerHTML = '<option value="">-- Select a User --</option>' + activeUsers.map(usr => 
+          `<option value="${usr._id}" ${currentSelected === usr._id ? 'selected' : ''}>${usr.username} (${usr.displayName || usr.profileName || 'No Display Name'})</option>`
+        ).join('');
+      }
+      
+      // Populate unknown-team-select dropdown reactively
+      const unknownTeamSelect = document.getElementById('unknown-team-select');
+      if (unknownTeamSelect) {
+        const currentSelected = unknownTeamSelect.value;
+        unknownTeamSelect.innerHTML = '<option value="none">None</option>' + (window.__teamsList || []).map(t => 
+          `<option value="${t._id}" ${currentSelected === t._id ? 'selected' : ''}>${t.name}</option>`
+        ).join('');
+      }
       const filter = (searchInput?.value || '').toLowerCase().trim();
       
       // Get all team leads in the system to resolve alignments
@@ -402,6 +474,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </td>
           <td style="padding:10px 8px">${statusHtml}</td>
+          <td style="padding:10px 8px">
+            <span style="font-weight:600;color:#334155;">${u.employeeId || '—'}</span>
+          </td>
           <td style="padding:10px 8px">
             <span class="masked-pass" data-user-id="${u._id}">••••••••</span>
           </td>

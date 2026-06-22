@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const uploadBatchSchema = new mongoose.Schema({
     batchId:      { type: String, required: true, unique: true },
     uploadedBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    organization: { type: String, lowercase: true, default: 'default' },
+    organization: { type: String, lowercase: true, default: 'startek india' },
     fileName:     { type: String, default: '' },
     dataType: {
         type: String,

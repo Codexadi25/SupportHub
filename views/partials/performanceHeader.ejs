@@ -57,7 +57,40 @@
             ↗ Share
         </button>
 
+        <!-- Theme Switcher -->
+        <div class="theme-switcher-wrap" style="position:relative;">
+            <button class="btn btn-ghost btn-icon" id="themeSwitcherBtn" title="Switch Theme" onclick="toggleThemeMenu()" style="font-size:16px;">🎨</button>
+            <div class="theme-menu" id="themeMenu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--clr-surface-2);border:1px solid var(--clr-border);border-radius:10px;padding:6px;z-index:999;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+                <div style="padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--clr-text-muted);">Theme</div>
+                <% [
+                    {id:'midnight', label:'🌑 Midnight', desc:'Deep blue-black'},
+                    {id:'ocean',    label:'🌊 Ocean',    desc:'Teal & navy'},
+                    {id:'forest',   label:'🌿 Forest',   desc:'Emerald & dark'},
+                    {id:'crimson',  label:'🔴 Crimson',  desc:'Red & charcoal'},
+                    {id:'amber',    label:'🟡 Amber',    desc:'Gold & warm dark'}
+                ].forEach(t => { %>
+                <button onclick="applyTheme('<%= t.id %>'); toggleThemeMenu();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:7px 10px;color:var(--clr-text-primary);font-size:12px;cursor:pointer;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--clr-surface-3)'" onmouseout="this.style.background='none'">
+                    <span style="font-weight:600;"><%= t.label %></span>
+                    <span style="display:block;font-size:10px;color:var(--clr-text-muted);margin-top:1px;"><%= t.desc %></span>
+                </button>
+                <% }) %>
+            </div>
+        </div>
+
         <button class="btn btn-ghost btn-icon" title="Refresh" onclick="refreshDashboard()">↺</button>
 
     </div>
 </header>
+
+<script>
+function toggleThemeMenu() {
+    const m = document.getElementById('themeMenu');
+    if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+// Close on outside click
+document.addEventListener('click', e => {
+    const wrap = document.querySelector('.theme-switcher-wrap');
+    const menu = document.getElementById('themeMenu');
+    if (menu && wrap && !wrap.contains(e.target)) menu.style.display = 'none';
+});
+</script>

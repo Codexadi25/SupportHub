@@ -10,8 +10,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <title>Zomato WIMO Smart-SOP 2025</title>
+    <title>Zomato WIMO SOP — <%= typeof mode !== 'undefined' ? (mode === 'edit' ? 'Edit Mode' : mode === 'preview' ? 'Preview' : 'View') : 'View' %></title>
     <link href="https://fonts.googleapis.com/css2?family=Okra:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/activeUsers.css">
+    <!-- Firebase Realtime Database (compat CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
     <style>
         /* ─── CORE VARIABLES ─────────────────────────────────────────── */
         :root {
@@ -32,6 +37,208 @@
             padding-top: 68px; /* room for presence bar */
             color: var(--z-dark);
         }
+
+        /* Edit mode toolbar */
+        #sop-edit-toolbar {
+            position: sticky; top: 0; z-index: 1000;
+            background: #1e293b; color: #f1f5f9;
+            display: flex; align-items: center; gap: 15px;
+            padding: 12px 24px; font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-bottom: 2px solid #7c3aed;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .sop-toolbar-btn {
+            padding: 8px 16px;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        .sop-toolbar-btn:active { transform: scale(0.97); }
+        .btn-purple { background: #7c3aed; }
+        .btn-purple:hover { background: #6d28d9; }
+        .btn-green { background: #16a34a; }
+        .btn-green:hover { background: #15803d; }
+        .btn-red { background: #dc2626; }
+        .btn-red:hover { background: #b91c1c; }
+        .btn-slate { background: #475569; }
+        .btn-slate:hover { background: #334155; }
+        .btn-secondary { background: #334155; border: 1px solid #475569; }
+        .btn-secondary:hover { background: #475569; }
+        .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Tabs & Toggles */
+        .sop-tab-group {
+            display: flex;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 8px;
+            gap: 4px;
+            margin-right: 15px;
+            border: 1px solid #e2e8f0;
+        }
+        .sop-tab-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .sop-tab-btn.active {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* AI Floating Sidebar */
+        .ai-sidebar {
+            position: fixed;
+            top: 68px;
+            right: -380px;
+            width: 360px;
+            height: calc(100vh - 68px);
+            background: #ffffff;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.12);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #e2e8f0;
+            font-family: inherit;
+        }
+        .ai-sidebar.open { right: 0; }
+        .ai-sidebar-toggle {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #CB202D;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(203, 32, 45, 0.4);
+            transition: transform 0.2s, background 0.2s;
+            z-index: 1001;
+        }
+        .ai-sidebar-toggle:hover { transform: scale(1.06); background: #b21c27; }
+        
+        .ai-header {
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .ai-title { font-weight: 700; font-size: 0.95rem; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+        .ai-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b; }
+        .ai-close:hover { color: #0f172a; }
+        
+        .ai-chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #fafafb;
+        }
+        .ai-msg {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            line-height: 1.45;
+        }
+        .ai-msg.user {
+            align-self: flex-end;
+            background: #CB202D;
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+        .ai-msg.bot {
+            align-self: flex-start;
+            background: #f1f5f9;
+            color: #1e293b;
+            border-bottom-left-radius: 2px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .ai-input-container {
+            padding: 15px;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 8px;
+        }
+        .ai-input {
+            flex-grow: 1;
+            padding: 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+            resize: none;
+            height: 38px;
+            font-family: inherit;
+        }
+        .ai-input:focus { border-color: #CB202D; }
+        .ai-send-btn {
+            background: #CB202D;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 16px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .ai-send-btn:hover { background: #b21c27; }
+
+        /* G-Sheet Reconciliation overlays */
+        .sop-card.sync-match { border: 2.5px solid #22c55e !important; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15); }
+        .sop-card.sync-mismatch { border: 2.5px solid #ef4444 !important; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15); }
+        .sop-card.sync-missing { border: 2.5px solid #f97316 !important; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15); }
+        
+        .sync-badge {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            z-index: 10;
+        }
+        .sync-badge-match { background: #dcfce7; color: #15803d; border: 0.5px solid #86efac; }
+        .sync-badge-mismatch { background: #fee2e2; color: #b91c1c; border: 0.5px solid #fca5a5; }
+        .sync-badge-missing { background: #ffedd5; color: #c2410c; border: 0.5px solid #fdba74; }
+
+        /* History Diff borders */
+        .sop-card.diff-added { border: 2.5px solid #22c55e !important; }
+        .sop-card.diff-removed { border: 2.5px solid #ef4444 !important; opacity: 0.65; text-decoration: line-through; }
+        .sop-card.diff-minor { border: 2.5px solid #3b82f6 !important; }
+        .sop-card.diff-major { border: 2.5px solid #f97316 !important; }
 
         /* ─── LAYOUT ─────────────────────────────────────────────────── */
         .layout {
@@ -318,6 +525,10 @@
             0%,100% { box-shadow: 0 0 0 0   rgba(36,150,63,0);   }
             50%     { box-shadow: 0 0 0 5px rgba(36,150,63,0.18); }
         }
+        @keyframes fadeIn {
+            from { opacity:0; backdrop-filter:blur(0px); }
+            to   { opacity:1; backdrop-filter:blur(3px); }
+        }
 
         .pb-live-text {
             font-size: 0.7rem;
@@ -438,9 +649,9 @@
             margin-left: auto;
         }
 
-        /* "You" chip */
+        /* "You" chip — pre-populated server-side, always visible for authenticated users */
         .pb-you-chip {
-            display: none;
+            display: flex;
             align-items: center;
             gap: 6px;
             background: #f7f7f7;
@@ -1138,10 +1349,31 @@
 
 <!-- Inject SupportHub session context so edit controls know current user -->
 <script>
+    window.currentUserId = '<%= user && user._id ? user._id : "" %>';
+    window.currentUserRole = '<%= user && user.role ? user.role : "" %>';
+    window.currentUsername = '<%= user && user.username ? user.username : "" %>';
+    window.currentUserDept = '<%= user && user.department ? user.department.toLowerCase().trim() : (lob || "zomato").toLowerCase().trim() %>';
+    window.currentUserDisplayName = '<%= user && (user.displayName || user.profileName || user.username) ? (user.displayName || user.profileName || user.username) : "" %>';
+    window.currentUserProfilePic = `<%- user && (user.image || user.profilePic) ? (user.image || user.profilePic) : "" %>`;
+    window.currentUserBgColor = '<%= user && user.bgColor ? user.bgColor : "" %>';
+    
+    // Legacy support variables
     window.__sopUserRole = '<%= user && user.role ? user.role : "" %>';
     window.__sopUserId   = '<%= user && user._id ? user._id : "" %>';
     window.__sopUsername = '<%= user && user.username ? user.username : "" %>';
     window.__sopLob      = '<%= lob || "zomato" %>';
+</script>
+<script src="/js/presenceBar.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize modular Presence Bar
+        window.presenceBar = new PresenceBar({
+            username: window.currentUsername,
+            department: window.currentUserDept,
+            role: window.currentUserRole,
+            avatarsElementId: 'pbAvatars'
+        });
+    });
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -1172,11 +1404,13 @@
 
     <!-- Right: your chip + see-all + G-Sheet source -->
     <div class="pb-right">
-        <div class="pb-you-chip" id="pbYouChip" onclick="toggleViewersPanel()">
-            <div class="pb-you-avatar" id="pbYouAvatar"></div>
+        <div class="pb-you-chip" id="pbYouChip" onclick="toggleViewersPanel()" style="visibility:visible;">
+            <div class="pb-you-avatar" id="pbYouAvatar" style="background:<%= user && user.bgColor ? user.bgColor : '#CB202D' %>">
+                <%= user && (user.displayName || user.profileName || user.username) ? (user.displayName || user.profileName || user.username).split(' ').map(p => p[0]).join('').substring(0,2).toUpperCase() : '?' %>
+            </div>
             <div>
-                <div class="pb-you-name" id="pbYouName"></div>
-                <div class="pb-you-role" id="pbYouRole"></div>
+                <div class="pb-you-name" id="pbYouName"><%= user && (user.displayName || user.profileName || user.username) || '' %></div>
+                <div class="pb-you-role" id="pbYouRole"><%= user && user.role ? (user.role === 'admin' ? 'Admin' : user.role === 'quality_analyst' ? 'QA Analyst' : user.role === 'team_lead' ? 'Team Leader' : user.role) : '' %></div>
             </div>
         </div>
         <button class="pb-see-all" onclick="toggleViewersPanel()">
@@ -1345,581 +1579,82 @@
       <a href="/"><i class="fa fa-home" style="font-size:36px; color:white;"></i></a>
    </header>
 
-   <main class="sop-container">
 
-      <!-- ═══ CATEGORY 1: PRE-PICKUP / FOOD NOT READY ═══════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">01. PRE-PICKUP CONCERNS <span>(Phase: Restaurant / Assigning)</span></div>
-         <div class="sop-grid">
 
-            <!-- 1 -->
-            <div class="sop-card" data-tags="restaurant unresponsive delay cancellation food not ready dp mx 40 mins" onclick="openModal(this)">
-               <div class="card-header">Restaurant Unresponsive (Food Not Ready)</div>
-               <div class="card-cond">DP at restaurant, food not ready, MX not answering</div>
-               <span class="action-tag tag-cancel">Cancel if Delay &gt;40m</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Check if the DP is at the restaurant and try connecting with MX through the DP.
-• If delay &gt;40 mins, food still not ready, and both DP &amp; MX are unresponsive → Proceed with Cancellation.
-• If DP responds and confirms food is being prepared → Compensate the customer and explain the delay reason.
-• If food is ready → Provide compensation based on delay duration.
-• If delay &gt;40 mins and food not ready, MX UR, but DP confirms he is on the way to pickup → Set status: Arrival at Restaurant, time as confirmed by DP.
-Note: In food not ready case — call MX. If MX unresponsive, it is mandatory to check with DP for reason of delay. Ask DP to pass call to MX.
-               </div>
-            </div>
-
-            <!-- 2 -->
-            <div class="sop-card" data-tags="no delivery partner available area valet bot prompt less moderate high" onclick="openModal(this)">
-               <div class="card-header">No DP Available in Area</div>
-               <div class="card-cond">Less/moderate/high DP availability status</div>
-               <span class="action-tag tag-cancel">Cancel if Delay &gt;30m</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Check the Delivery Partner's availability status (less / moderate / high) and create a prompt for the bot.
-• Prompt example: Due to less availability of the delivery partners, it is taking longer than usual to assign a partner.
-• In case valet not assigned, if delay &gt;25–30 mins → Send prompt for waiting.
-• Cancel if delay is &gt;30 mins.
-               </div>
-            </div>
-
-            <!-- 3 -->
-            <div class="sop-card" data-tags="valet not assigned food not ready mx unresponsive prep end 30 mins" onclick="openModal(this)">
-               <div class="card-header">Valet Not Assigned Case</div>
-               <div class="card-cond">DP not assigned, food not ready, MX unresponsive</div>
-               <span class="action-tag tag-esc">Check &amp; Set Status</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If DP is not assigned and food not ready → Call MX.
-• If MX unresponsive → Set expected time: 10 mins → Order status: "Prep End" (only for less than 30 mins case).
-• Call MX → MX unresponsive → food not ready → 10 mins time → prep end (from 17-Apr-26 update).
-               </div>
-            </div>
-
-            <!-- 4 -->
-            <div class="sop-card" data-tags="device issues merchant restaurant unable see order prompt cancel" onclick="openModal(this)">
-               <div class="card-header">Restaurant Device Issues</div>
-               <div class="card-cond">Restaurant can't see or process the order</div>
-               <span class="action-tag tag-cancel">Send Prompt &amp; Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Send prompt and select cancellation.
-• Prompt example: Upon checking, the restaurant informed that they are facing device issues due to which they are unable to process your order.
-               </div>
-            </div>
-
-            <!-- 5 -->
-            <div class="sop-card" data-tags="device issues delivery partner unable see order details reassign cancel" onclick="openModal(this)">
-               <div class="card-header">DP Device Issues</div>
-               <div class="card-cond">DP can't see order details on their device</div>
-               <span class="action-tag tag-cancel">Reassign or Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Try to reassign first.
-• If driver not available → Cancel.
-• Prompt example: The delivery partner is facing device issues due to which he is unable to see your order at the moment.
-               </div>
-            </div>
-
-            <!-- 6 -->
-            <div class="sop-card" data-tags="out of stock missing partial prepaid cod alternate item escalate cancel" onclick="openModal(this)">
-               <div class="card-header">Out of Stock / Missing Items</div>
-               <div class="card-cond">Restaurant confirms items unavailable or partial</div>
-               <span class="action-tag tag-esc">Escalate to Agent</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-1. If MX confirms items are partially missing (some items in the order are missing) → Escalate to agent.
-   Example: If a customer ordered two items and only one can be prepared, the case must be escalated.
-
-2. If COD order → Select cancellation.
-   If prepaid order → Check with the restaurant partner if an alternate item can be prepared.
-   • If NO → Cancel.
-   • If YES (alternate item can be prepared) → Escalate to agent.
-
-Note: If DP stated that the item is out of stock, agent must confirm this from MX.
-• If restaurant unresponsive → Select cancellation.
-• If MX said CX denied to accept alternate of the order → Select Cancellation.
-               </div>
-            </div>
-
-            <!-- 7 -->
-            <div class="sop-card" data-tags="marked ready early by mistake restaurant priority prompt" onclick="openModal(this)">
-               <div class="card-header">Marked Ready Early (by Mistake)</div>
-               <div class="card-cond">Restaurant marked order ready prematurely</div>
-               <span class="action-tag tag-wait">Send Prompt</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Ask the restaurant to prepare the order on priority and ask how much time it will take.
-• Create a prompt and mention the delay reason.
-• Prompt example: The restaurant has marked the order ready before time by mistake but we have asked them to speed up the process for you.
-               </div>
-            </div>
-
-            <!-- 8 -->
-            <div class="sop-card" data-tags="outlet closed restaurant cancelled dp voc unresponsive" onclick="openModal(this)">
-               <div class="card-header">Outlet Closed</div>
-               <div class="card-cond">Restaurant confirmed closed or unresponsive</div>
-               <span class="action-tag tag-cancel">Select Cancellation</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If confirmed (with restaurant) → Select cancellation.
-• If restaurant is unresponsive → Go with the DP VOC and select cancellation.
-               </div>
-            </div>
-
-            <!-- 9 -->
-            <div class="sop-card" data-tags="wrong restaurant address cancel dp voc unresponsive confirmed" onclick="openModal(this)">
-               <div class="card-header">Wrong Restaurant Address</div>
-               <div class="card-cond">Restaurant address is incorrect or mismatched</div>
-               <span class="action-tag tag-cancel">Select Cancellation</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If confirmed (with restaurant) → Select cancellation.
-• If restaurant is unresponsive → Go with the DP VOC and select cancellation.
-               </div>
-            </div>
-
-            <!-- 10 -->
-            <div class="sop-card" data-tags="mall order inside premises gate delivery partner waiting food ready prep end 5 mins" onclick="openModal(this)">
-               <div class="card-header">Mall Orders</div>
-               <div class="card-cond">Order falls inside a mall / restricted premises</div>
-               <span class="action-tag tag-wait">Prompt &amp; Compensate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Call the restaurant. If they don't respond, call the Delivery Partner.
-• Ask the DP for the estimation and create a prompt. Compensate according to the delay.
-• Prompt example: Since the order falls inside a mall's premises, the delivery partner is not allowed to enter the gate. Trying our best to expedite the order for you.
-• In case DP is waiting outside the mall, food is ready but DP is waiting outside → Set status: Prep End, expected time: 5 mins (from 17-Apr-26: Mall order food waiting = Expected 5 mins).
-               </div>
-            </div>
-
+      <% if (typeof mode !== 'undefined' && mode === 'edit') { %>
+      <div id="sop-edit-toolbar">
+         <span style="font-weight:800;letter-spacing:.5px;color:#cbd5e1;">✏️ EDIT MODE</span>
+         <span style="opacity:.6;font-size:11px;">Drag cards to reorder · Click ✏️ to edit a block</span>
+         <span id="draft-status-msg" style="margin-left:20px;opacity:.8;font-size:11px;color:#a7f3d0;">Draft up-to-date</span>
+         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;position:relative;">
+             <button id="sop-undo-btn" class="sop-toolbar-btn btn-secondary" onclick="undo()" disabled title="Undo last change"><i class="fa fa-undo"></i></button>
+             <button id="sop-redo-btn" class="sop-toolbar-btn btn-secondary" onclick="redo()" disabled title="Redo last change"><i class="fa fa-repeat"></i></button>
+             <button id="sop-add-cat-btn" class="sop-toolbar-btn btn-purple" onclick="openCategoryModal()">＋ Add Category</button>
+             <button id="sop-save-layout-btn" class="sop-toolbar-btn btn-slate">💾 Save Draft</button>
+             <a href="/<%= lob %>/sop/preview" target="_blank" class="sop-toolbar-btn btn-slate" style="text-decoration:none;"><i class="fa fa-external-link"></i> Live Preview</a>
+             <button id="sop-publish-btn" class="sop-toolbar-btn btn-green">🚀 Publish Draft</button>
+             <button id="sop-options-btn" class="sop-toolbar-btn btn-secondary" title="Options"><i class="fa fa-ellipsis-v"></i></button>
+             <div id="sop-options-dropdown" style="display:none;position:absolute;top:100%;right:0px;background:#1e293b;border:1px solid #475569;border-radius:8px;padding:5px 0;width:170px;box-shadow:0 10px 25px rgba(0,0,0,0.3);z-index:2000;">
+                 <button onclick="openVersionHistoryModal()" style="display:block;width:100%;text-align:left;padding:8px 15px;background:none;border:none;color:#f1f5f9;font-family:inherit;font-size:12px;cursor:pointer;font-weight:600;">
+                     📜 View Update History
+                 </button>
+                 <button onclick="openMonacoCodeView()" style="display:block;width:100%;text-align:left;padding:8px 15px;background:none;border:none;color:#f1f5f9;font-family:inherit;font-size:12px;cursor:pointer;font-weight:600;">
+                     💻 Code Custom SOP
+                 </button>
+             </div>
          </div>
       </div>
+   <% } %>
 
-      <!-- ═══ CATEGORY 2: AWAITING PICKUP ═══════════════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">02. AWAITING PICK UP <span>(Phase: Pre-Transit)</span></div>
-         <div class="sop-grid">
-
-            <!-- 11 -->
-            <div class="sop-card" data-tags="awaiting pickup restaurant confirms picked up status 30 mins wait escalate reassign" onclick="openModal(this)">
-               <div class="card-header">Awaiting Pickup — Order Picked but Status Not Updated</div>
-               <div class="card-cond">Restaurant says order picked, status still shows Awaiting Pickup</div>
-               <span class="action-tag tag-wait">Wait or Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-Scenario 1: Restaurant confirms order already picked up but status shows "Awaiting Pickup":
-• If less than 30 minutes → Send wait prompt.
-• If more than 30 minutes → Escalate the case.
-
-Scenario 2: Both DP &amp; MX unresponsive (Status: Awaiting Pickup):
-• If delay &gt;30 mins → Reassign the order.
-• If no rider available for reassignment → Escalate the case.
-
-Scenario 3: Delay &gt;37 mins, status still "Waiting for Pickup", DP en route to restaurant:
-• Contact both DP and MX. Reassign the order to another available DP.
-
-Scenario 4: DP &amp; MX unresponsive but DP was just assigned a few minutes ago:
-• Call the DP. If still unresponsive → Mention in PN: "DP recently assigned by backend and is on the way to the restaurant; hence escalated" (only if delay &gt;30 mins).
-
-Case 1 – DP denies delivery (vehicle / accident / rain):
-• Try to reassign. If DP unavailable → Cancel the order (applies pre &amp; post pickup; time does not matter).
-• Note: In rain, another DP can pick if available.
-
-Case 2 – DP says no longer working with Zomato:
-• Try to reassign. If DP unavailable → Escalate the case.
-
-Case 3 – Mismatch in DP &amp; MX response (Delay &gt;30 mins):
-• DP: Food not ready / MX: Food is ready → Reconnect with DP and confirm order is ready for pickup.
-
-Case 4 – DP says "just reached the restaurant":
-• Expected time: 2–3 minutes. Order status: Arrived at restaurant.
-
-Case 5 – Delay &lt;30 mins, DP &amp; MX unresponsive, food ready &amp; DP waiting at restaurant:
-• Set order status: Preparation End. Set expected time: 5–10 minutes.
-
-Case 6 – DP cannot see order on device:
-• Ask DP to refresh the app. If still not visible → Reassign. If fails → Cancel.
-
-If MX unresponsive and DP unsure about prep time and delay reason:
-• If delay &gt;40 mins → Escalate the case.
-
-Scenario: DP &amp; MX both unresponsive, delay &lt;30 mins:
-• Set order status: Preparation End. Expected time: up to 5 mins.
-• Note: Do not add expected time less or more than 5 mins.
-
-Scenario: Delay &gt;30 mins, DP says caught by police (Status: Awaiting Pickup):
-• First reassign. If no DP available → Escalate.
-
-Scenario: DP confirms will reach restaurant and gives time (e.g., 20 mins):
-• Give waiting prompt. Compensate as per delay.
+   <main class="sop-container" id="sopDynamicContainer">
+      <% if (categories && categories.length > 0) { %>
+         <% categories.forEach(cat => { %>
+            <div class="category-block" data-category="<%= cat.title %>">
+               <div class="category-title">
+                  <%= cat.title %>
+                  <% if (cat.phase) { %>
+                     <span>(Phase: <%= cat.phase %>)</span>
+                  <% } %>
+               </div>
+               <div class="sop-grid">
+                  <% if (cat.items && cat.items.length > 0) { %>
+                     <% cat.items.forEach(card => { %>
+                        <div class="sop-card" 
+                             data-sop-id="<%= card._id %>" 
+                             data-tags="<%= (card.tags || []).join(' ') %>" 
+                             onclick="openModal(this)">
+                           <div class="card-header"><%= card.title %></div>
+                           <div class="card-cond"><%= card.condition %></div>
+                           <% 
+                              let actionClass = 'tag-wait';
+                              const actLower = (card.action || '').toLowerCase();
+                              if (actLower.includes('cancel')) actionClass = 'tag-cancel';
+                              else if (actLower.includes('escalate') || actLower.includes('check')) actionClass = 'tag-esc';
+                           %>
+                           <span class="action-tag <%= actionClass %>"><%= card.action %></span>
+                           <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+                           <div class="card-detail-data" style="display:none"><%= card.details %></div>
+                        </div>
+                     <% }) %>
+                  <% } else { %>
+                     <div style="padding:15px;color:#999;font-style:italic;font-size:0.8rem;">No blocks in this category</div>
+                  <% } %>
                </div>
             </div>
-
-            <!-- 12 -->
-            <div class="sop-card" data-tags="picked another dp awaiting pickup mx prepare again cancel prompt" onclick="openModal(this)">
-               <div class="card-header">Picked by Another DP</div>
-               <div class="card-cond">Current DP says another DP already picked the order</div>
-               <span class="action-tag tag-cancel">Check MX — Cancel if Needed</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-If the current DP says another delivery partner has already picked up the order:
-• Call MX and confirm if the order can be prepared again.
-• If MX confirms YES (can prepare again) → Provide waiting prompt. Compensate as per delay.
-• If MX confirms NO (cannot prepare again) → Cancel the order.
-• Cancellation Prompt: The order was picked up by a different delivery partner, which caused a delay. Unfortunately, the restaurant is unable to prepare it again, so the order has been cancelled.
-• If MX is unresponsive → Check with the DP for confirmation.
-               </div>
-            </div>
-
-         </div>
-      </div>
-
-      <!-- ═══ CATEGORY 3: POST-PICKUP CONCERNS ══════════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">03. POST-PICKUP CONCERNS <span>(Phase: In-Transit)</span></div>
-         <div class="sop-grid">
-
-            <!-- 13 -->
-            <div class="sop-card" data-tags="dp not responding calls tracking movement map double tracking pn compensate escalate 30 mins ur" onclick="openModal(this)">
-               <div class="card-header">DP Not Responding to Calls</div>
-               <div class="card-cond">Post-pickup, DP unreachable but order in transit</div>
-               <span class="action-tag tag-esc">Track &amp; Escalate if &gt;30m</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Track the DP's location from the map and see if he is moving. Include double tracking details in PN.
-• Prompt: The delivery partner is not responding to our calls at the moment but we can track his movement and he is getting closer to your location.
-• Compensate according to the delay. Mention delay time and tracking details in private notes (PN).
-
-If DP is not moving (order is Picked Up):
-• If delay &lt;30 mins → Ask customer to wait.
-• If delay &gt;30 mins → Escalate.
-
-In DP UR case: Time doesn't matter — if KMs are not reducing, escalate above 30 mins delay.
-               </div>
-            </div>
-
-            <!-- 14 -->
-            <div class="sop-card" data-tags="dp unable deliver after pickup vehicle mobile app issue reassign cancel" onclick="openModal(this)">
-               <div class="card-header">DP Unable to Deliver After Pickup</div>
-               <div class="card-cond">DP says cannot deliver — vehicle, mobile, or app issue</div>
-               <span class="action-tag tag-cancel">Reassign or Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• DP says order is picked up but unable to deliver (reasons: vehicle issue, mobile issue, app issue, etc.).
-• Check with reassignment first.
-• If reassignment not happening → Proceed with cancellation.
-               </div>
-            </div>
-
-            <!-- 15 -->
-            <div class="sop-card" data-tags="dp unable find customer location map real time update prompt escalate" onclick="openModal(this)">
-               <div class="card-header">DP Unable to Find Customer Location</div>
-               <div class="card-cond">DP struggling to locate delivery address</div>
-               <span class="action-tag tag-esc">Assist or Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Ask the DP to call the customer and get a real-time update.
-• Prompt: The delivery partner is facing difficulty to locate your location as per the map. He should be reaching you anytime now. You can also try calling him.
-• If the DP needs assistance → Escalate the case to an agent.
-               </div>
-            </div>
-
-            <!-- 16 -->
-            <div class="sop-card" data-tags="traffic festive delay cancellation deliver prompt compensate" onclick="openModal(this)">
-               <div class="card-header">Traffic / Festive Delay</div>
-               <div class="card-cond">DP delayed due to traffic or festive conditions</div>
-               <span class="action-tag tag-wait">Prompt &amp; Compensate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-Case 1 – If order can be delivered:
-• Prompt: Due to a festive occasion, the delivery partner is taking longer than usual to reach your location.
-• Compensate according to the delay.
-
-Case 2 – If the order cannot be delivered:
-• Prompt: Due to a festive occasion, the delivery partner is taking longer than usual and is unable to move.
-• Select cancellation.
-               </div>
-            </div>
-
-            <!-- 17 -->
-            <div class="sop-card" data-tags="post pickup order transfer previous dp unresponsive reassign new dp switched off escalate cancel" onclick="openModal(this)">
-               <div class="card-header">Post-Pickup Order Transfer — Old DP Unresponsive</div>
-               <div class="card-cond">New DP assigned but old DP unresponsive / unavailable</div>
-               <span class="action-tag tag-cancel">Reassign / Cancel / Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-Prompt: The primary delivery partner is not responding due to which the new assigned partner is unable to collect the order. Select cancellation.
-
-Case 1 – New DP says no old DP available, number is switched off:
-• Agent must attempt call from his/her end. If old DP number is switched off → Cancel.
-
-Case 2 – New DP says no old DP available, number is unresponsive but calls connecting:
-• Escalate the ticket.
-
-Case 3 – Both DPs not responding to calls:
-• Escalate the ticket.
-               </div>
-            </div>
-
-            <!-- 18 -->
-            <div class="sop-card" data-tags="customer address mismatch dp deliver updated whatsapp location long distance cancel escalate" onclick="openModal(this)">
-               <div class="card-header">Customer Address Mismatch</div>
-               <div class="card-cond">DP cannot deliver due to incorrect address</div>
-               <span class="action-tag tag-cancel">Resolve or Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Try to request the DP to deliver to the updated address or take the location on WhatsApp and get the order delivered.
-• If DP is unable to connect with the customer but still needs assistance → Escalate to agent.
-• If DP says distance is long → Select cancellation.
-• Prompt: The delivery partner confirmed that the location is incorrect due to which he is unable to deliver the order.
-               </div>
-            </div>
-
-            <!-- 19 -->
-            <div class="sop-card" data-tags="cx unresponsive dp reached location prompt calls attend escalate agent" onclick="openModal(this)">
-               <div class="card-header">Customer Unresponsive — DP at Location</div>
-               <div class="card-cond">DP at delivery location, CX not answering calls</div>
-               <span class="action-tag tag-esc">Prompt CX or Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Prompt: The delivery partner has reached your location and is trying to connect with you. Kindly attend the call so that the order can be delivered.
-• If DP says customer not responding to calls and he needs help → Escalate to agent.
-               </div>
-            </div>
-
-            <!-- 20 -->
-            <div class="sop-card" data-tags="spillage damaged order minor major cancel prompt delivery partner" onclick="openModal(this)">
-               <div class="card-header">Spillage / Damaged Order</div>
-               <div class="card-cond">DP reports order is damaged or spilled</div>
-               <span class="action-tag tag-cancel">Minor: Prompt | Major: Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Check with the delivery partner.
-• Minor damaged: Send prompt — As confirmed by the delivery partner, there is a minor spillage but the order can be handed over.
-• Major / Fully damaged: Delay does not matter — Select cancellation.
-               </div>
-            </div>
-
-            <!-- 21 -->
-            <div class="sop-card" data-tags="language barrier smartplugs 30 mins wait escalate tracking" onclick="openModal(this)">
-               <div class="card-header">Language Barrier</div>
-               <div class="card-cond">Communication issue with DP due to language</div>
-               <span class="action-tag tag-esc">Smartplugs / Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• Check with Smartplugs.
-• If delay &lt;30 mins → Send waiting prompt as per tracking and close the ticket.
-• If delay &gt;30 mins → Escalate.
-               </div>
-            </div>
-
-            <!-- 22 -->
-            <div class="sop-card" data-tags="awaiting pickup post transit dp mx unresponsive reassign escalate 30 mins" onclick="openModal(this)">
-               <div class="card-header">Awaiting Pickup — Post-Transit Stuck</div>
-               <div class="card-cond">Order stuck at awaiting pickup, DP &amp; MX unreachable</div>
-               <span class="action-tag tag-esc">Reassign or Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-If DP &amp; MX are unresponsive and unable to track order status (Status: Awaiting Pick Up):
-• If delay &gt;30 mins → Reassign. If not possible → Escalate to agent.
-
-If MX is responsive and stating order is ready but DP is unresponsive (Status: Awaiting Pick Up):
-• If delay &lt;30 mins → Ask to wait.
-• If delay &gt;30 mins → Reassign. If not possible → Escalate to agent.
-               </div>
-            </div>
-
-            <!-- 23 -->
-            <div class="sop-card" data-tags="cx asked dp cancel escalate agent" onclick="openModal(this)">
-               <div class="card-header">CX Asked DP to Cancel</div>
-               <div class="card-cond">Customer requests cancellation directly to DP</div>
-               <span class="action-tag tag-esc">Escalate to Agent</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If CX asks DP to cancel the order → Escalate to the agent.
-               </div>
-            </div>
-
-            <!-- 24 -->
-            <div class="sop-card" data-tags="dp updated delivered but didnt give order damage stolen escalate post pickup" onclick="openModal(this)">
-               <div class="card-header">DP Marked Delivered but Didn't Hand Over Order</div>
-               <div class="card-cond">DP updated status as delivered but order not given (damage/stolen)</div>
-               <span class="action-tag tag-esc">Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If DP says he has updated the status as delivered but didn't give order to customer since it is damaged / stolen → Escalate the ticket.
-               </div>
-            </div>
-
-            <!-- 25 -->
-            <div class="sop-card" data-tags="partial items missing customer denied accept escalate post pickup" onclick="openModal(this)">
-               <div class="card-header">Partial Items Missing — CX Denied Order</div>
-               <div class="card-cond">DP says partial items missing, customer refuses to accept</div>
-               <span class="action-tag tag-esc">Escalate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If delivery partner says partial items are missing and customer denied to accept the order → Escalate the ticket.
-               </div>
-            </div>
-
-            <!-- 26 -->
-            <div class="sop-card" data-tags="dp caught police post pickup cancel delay 30 mins order picked" onclick="openModal(this)">
-               <div class="card-header">DP Caught by Police (Post-Pickup)</div>
-               <div class="card-cond">DP detained by police after picking up order</div>
-               <span class="action-tag tag-cancel">Cancel</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If delay is more than 30 minutes and the DP says they are caught by the police and cannot deliver the order, and the order is already picked up → Cancel the order.
-               </div>
-            </div>
-
-            <!-- 27 -->
-            <div class="sop-card" data-tags="post pickup dp reassigned ppc primary second eta arrival cx location 10 mins 5 mins smartplug" onclick="openModal(this)">
-               <div class="card-header">Post-Pickup DP Reassigned Case (PPC)</div>
-               <div class="card-cond">Primary DP has initiated or completed reassignment</div>
-               <span class="action-tag tag-wait">Set Status &amp; ETA</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-1. If Primary DP confirms reassignment is already initiated and waiting for second DP:
-   → Order status: "Arrival at CX Location"
-   → Expected time: "10 mins + ETA" (if DP not yet assigned)
-
-2. If Primary DP has reassigned and second DP details are visible, and second DP confirms on the way to collect from primary DP:
-   → Expected time: "5 mins + ETA" (if time not confirmed)
-   → If time confirmed → Mention exact as per DP's VOC.
-
-3. In PPC:
-   → No need to ask reason for delay (order already assigned to another DP with delay from previous).
-   → Verify the delay through Smart Plug and mention accordingly.
-               </div>
-            </div>
-
-            <!-- 28 -->
-            <div class="sop-card" data-tags="cancellation scenario unable deliver reassign misplaced multi-order train order cod prepaid mx" onclick="openModal(this)">
-               <div class="card-header">Cancellation Scenarios</div>
-               <div class="card-cond">When to select cancellation — all applicable scenarios</div>
-               <span class="action-tag tag-cancel">Select Cancellation</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-Select Cancellation when:
-• DP is unable to deliver the order (after trying to reassign first).
-• MX is unable to cancel the order.
-• MX is unable to prepare the order.
-• Food is not ready and delay &gt;40 mins (DP &amp; MX unresponsive).
-• Order is misplaced by DP (e.g., multi-order assignment).
-• DP says customer asked to cancel order as it's a train order and train has left.
-               </div>
-            </div>
-
-            <!-- 29 -->
-            <div class="sop-card" data-tags="private note mandatory pn reason assign delay tracking details ticket" onclick="openModal(this)">
-               <div class="card-header">Private Note — Mandatory Rules</div>
-               <div class="card-cond">PN must be filled on every ticket</div>
-               <span class="action-tag tag-esc">Mandatory on Every Ticket</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If an agent wants to remove their assigned ticket, they must mention the reason in PN before assigning it to someone else.
-• On each ticket it is mandatory to mention delay and tracking details in PN.
-               </div>
-            </div>
-
-         </div>
-      </div>
-
-      <!-- ═══ CATEGORY 4: GROUPED / MULTI-ORDER ═════════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">04. GROUPED ORDER SCENARIOS <span>(Phase: Multi-Order)</span></div>
-         <div class="sop-grid">
-
-            <!-- 30 -->
-            <div class="sop-card" data-tags="grouped order multi dp support different cx order number lifeline eta buffer 5 mins prompt" onclick="openModal(this)">
-               <div class="card-header">Grouped / Multi-Order Delay</div>
-               <div class="card-cond">DP carrying multiple orders causing delay</div>
-               <span class="action-tag tag-wait">Prompt &amp; Compensate</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If DP says they need support for another order from a different CX → Do NOT escalate. Ask them to contact DP Support for that specific order.
-• Ask DP for delivery details of the specific order (order number). If DP provides the details → Give appropriate prompt. If not → Check Lifeline ETA.
-• If DP not confirming time → Agents can add buffer time of 5 mins to ETA.
-• If DP unresponsive → Add 5 mins to ETA.
-• If DP informed waiting for second order delivery (CX getting change, not home, coming down, etc.) → Buffer time (5 mins) + ETA and add expected time.
-
-Case 1 – DP at another restaurant:
-• Prompt: The delivery partner is currently picking up another order from a different restaurant, which is causing a delay. Your order is being prioritized and will be delivered as soon as possible.
-
-Case 2 – DP on another drop:
-• Prompt: The delivery partner is currently completing another delivery and will reach your location shortly.
-• Note: Compensation should be provided as per the delay.
-
-If DP is on the way and not responding (delay &lt;30 mins):
-• Check the order series. If first order = assigned ticket's order → Give ETA.
-• If second order = assigned ticket's order → ETA + 5 mins.
-               </div>
-            </div>
-
-         </div>
-      </div>
-
-      <!-- ═══ CATEGORY 5: ORDER STATUS EXPECTED TIME ═════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">05. ORDER STATUS &amp; EXPECTED TIME <span>(Quick Reference)</span></div>
-         <div class="sop-grid">
-
-            <!-- 31 -->
-            <div class="sop-card" data-tags="order status expected time mx voc dp voc preparation end arrival restaurant cx location eta" onclick="openModal(this)">
-               <div class="card-header">Order Status &amp; Expected Time — Reference</div>
-               <div class="card-cond">What status and time to set based on VOC</div>
-               <span class="action-tag tag-wait">Set Correct Status</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-MX VOC: Packing food / Preparing food / Giving food → Set Status: Preparation End
-
-Arriving soon (order picked up, on way to deliver):
-• Expected time: Less than 5 mins (if ETA not showing)
-
-Reassigned case (order picked up by 1st DP):
-• If DP says he is on the way to collect order from 2nd DP → Status: Arrival at CX Location
-• Expected time: Pickup time + ETA
-
-From 17-Apr-26 update (expected times):
-• Post pick-up case: 10 mins (5 mins for search + 5 mins for pickup)
-• Valet not assigned: 10 mins
-• Food not ready: 10 mins
-• Mall order (food waiting): 5 mins
-• Multi-order case: 5 mins
-• Arriving soon status: 5 mins
-• DP waiting at restaurant, DP UR, MX confirmed food ready → Status: Arrival at Restaurant, Time: 5 mins
-               </div>
-            </div>
-
-         </div>
-      </div>
-
-      <!-- ═══ CATEGORY 6: COMPENSATION POLICY ═══════════════════════════════ -->
-      <div class="category-block">
-         <div class="category-title">06. COMPENSATION POLICY <span>(Delay-Based)</span></div>
-         <div class="sop-grid">
-
-            <div class="sop-card" data-tags="compensation policy delay 30 45 minutes ov order value min max" onclick="openModal(this)">
-               <div class="card-header">New Compensation Policy</div>
-               <div class="card-cond">Delay-based compensation slabs (effective Apr 2026)</div>
-               <span class="action-tag tag-wait">Apply Per Slab</span>
-               <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
-               <div class="card-detail-data" style="display:none">
-• If delay is &lt;30 mins → No compensation should be given.
-• If delay is 30–45 minutes → 35% of OV (Min. ₹50, Max ₹100).
-• If delay is 45+ minutes → 100% of OV (Max ₹500).
-               </div>
-            </div>
-
-         </div>
-      </div>
-
+         <% }) %>
+      <% } else { %>
+         <div style="padding:40px;text-align:center;color:#999;font-style:italic;">No SOP categories found. Click "Add Category" or link a spreadsheet.</div>
+      <% } %>
    </main>
 
-   <aside class="sidebar">
+   <!-- Monaco Container -->
+   <div id="monaco-code-container" style="display:none; height: calc(100vh - 160px); border: 1.5px solid #cbd5e1; border-radius: 12px; overflow: hidden; background:#1e1e1e; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 20px;"></div>
 
+   <%# Sidebar - in view mode, rendered by EJS from template data; in edit/preview mode, JS renderSidebar() populates it %>
+   <aside class="sidebar" id="sopSidebarContainer">
+      <% if (typeof mode === 'undefined' || mode === 'view') { %>
       <!-- Compensation Calculator -->
+      <% if (template && template.sidebarConfig && template.sidebarConfig.calculator !== false) { %>
       <div class="widget">
          <div class="widget-title">🧮 Compensation Calculator</div>
          <div class="comp-calc">
@@ -1931,41 +1666,46 @@ From 17-Apr-26 update (expected times):
             </div>
          </div>
       </div>
+      <% } %>
 
       <!-- Calling Script -->
+      <% if (template && template.sidebarConfig && template.sidebarConfig.callingScript) { %>
       <div class="widget">
          <div class="widget-title">📞 Calling Script</div>
-         <div class="script-box" onclick="copyScript()">
-            "Hi, Good Morning Sir, My name is XYZ from Zomato. May I know the reason for the delay and by when the order will be delivered?"
+         <div class="script-box" onclick="copyScript(this)">
+            <%= template.sidebarConfig.callingScript %>
          </div>
          <p class="tooltip">Click to copy script</p>
       </div>
+      <% } %>
 
       <!-- Quick Prompts -->
+      <% if (template && template.sidebarConfig && template.sidebarConfig.quickPrompts && template.sidebarConfig.quickPrompts.length > 0) { %>
       <div class="widget">
          <div class="widget-title">💬 Quick Prompts</div>
          <ul class="updates-list">
-            <li><strong>Personal issue (tea/lunch/washroom):</strong> The delivery partner encountered an operational issue, so your order has been delayed. It will be delivered soon.</li>
-            <li><strong>Delay from MX, DP on way:</strong> Order is delayed due to _____ issue at the restaurant and will be delivered shortly.</li>
-            <li><strong>Delay from DP, on way to deliver:</strong> Order delayed by delivery partner due to _____; it will be delivered soon.</li>
-            <li><strong>Delay from MX, DP waiting at restaurant:</strong> Order is delayed due to _____ issue at the restaurant. Delivery partner will pickup your order shortly.</li>
+            <% template.sidebarConfig.quickPrompts.forEach(p => { %>
+               <li onclick="copyPromptText(this)" title="Click to copy prompt" style="cursor:pointer; padding: 6px 10px; border-bottom: 1px solid #f1f5f9;">
+                  <strong><%= p.label %>:</strong> <span class="prompt-text"><%= p.text %></span>
+               </li>
+            <% }) %>
          </ul>
       </div>
+      <% } %>
 
-      <!-- Recent Updates -->
+      <!-- Recent Updates - from database template config -->
+      <% if (template && template.sidebarConfig && template.sidebarConfig.recentUpdates && template.sidebarConfig.recentUpdates.length > 0) { %>
       <div class="widget">
          <div class="widget-title">🔔 Recent Updates</div>
          <ul class="updates-list">
-            <li><strong>17-Apr-26:</strong> Expected time guidelines updated — Post pickup: 10 mins, Valet not assigned: 10 mins, Food not ready: 10 mins, Mall order: 5 mins, Multi-order: 5 mins, Arriving soon: 5 mins. Scheduled orders: verify status matches current time; escalate if unclear. Non-logged-in DP delivery — escalate immediately.</li>
-            <li><strong>14-Apr-26:</strong> Post-Pickup DP Reassigned (PPC) case added: Primary DP waiting = Arrival at CX + 10 mins ETA. Second DP on way = 5 mins + ETA. No need to ask delay reason in PPC.</li>
-            <li><strong>10-Apr-26:</strong> Spillage policy confirmed — Minor: prompt only; Major/fully damaged: cancel regardless of delay. New compensation slabs effective: &lt;30m = no comp; 30–45m = 35% OV (₹50–₹100); 45m+ = 100% OV (max ₹500).</li>
-            <li><strong>Feb 20 (46073):</strong> Transfer tickets — check call logs first, listen to recordings, follow tracking details. No need to call again if recording available. If agent did not get info from call, next agent should call stakeholder to gather info.</li>
-            <li><strong>Feb 14 (46064):</strong> Valet not assigned — must mention time &amp; status. Expected Time: ETA as per LL or up to 10 mins if not visible. Order Status Expected Time: Arrival at restaurant.</li>
-            <li><strong>Feb 8 (46063):</strong> Mandatory: mention order status, tracking details, and delay time in every ticket. In DP UR case — mention two tracking details (before &amp; after calling DP).</li>
-            <li><strong>Dec 27 (46057):</strong> Always mention expected time as per DP/MX VOC. Buffer up to 10 mins if food not ready and pickup waiting on Lifeline. PN must include: delay timing, tracking status, call connection status, any unusual observations. Prep End status if order under preparation.</li>
+            <% template.sidebarConfig.recentUpdates.forEach(up => { %>
+               <li><strong><%= up.date %>:</strong> <%= up.text %></li>
+            <% }) %>
          </ul>
       </div>
-
+      <% } %>
+      <% } %>
+      <%# In edit/preview mode: JS renderSidebar() injects widgets here %>
    </aside>
 </div>
 <!-- MODAL -->
@@ -2159,14 +1899,8 @@ From 17-Apr-26 update (expected times):
         clearBtn.classList.toggle('show', hasVal && !!localStorage.getItem(SHEET_KEY));
     }
 
-    function saveSheetUrl() {
-        const val = document.getElementById('smUrlInput').value.trim();
-        if (!isValidSheetUrl(val)) return;
-        localStorage.setItem(SHEET_KEY, val);
-        applySheetUrl(val, true);
-        closeSheetModal();
-        showToast('Source sheet linked! 🔗', 'success');
-    }
+    // NOTE: saveSheetUrl is defined further below (API version that also saves to server)
+
 
     function clearSheetUrl() {
         if (!confirm('Remove the linked source sheet?')) return;
@@ -2260,658 +1994,421 @@ From 17-Apr-26 update (expected times):
     }
 </script>
 
-<script type="module">
-const HEARTBEAT_MS   = 18000;
-const STALE_THRESHOLD = 40000;
-
-const PALETTE = [
-    "#CB202D","#1565C0","#2E7D32","#6A1B9A",
-    "#C62828","#00695C","#E65100","#283593",
-    "#4E342E","#37474F"
-];
-
-const ROLE_COLOR = {
-    "Agent":       "#37474F",
-    "QA Analyst":  "#1565C0",
-    "Team Leader": "#2E7D32",
-    "Vendor":      "#6A1B9A",
-    "Admin":       "#CB202D",
-    "Editor":      "#e65100"
-};
-
-function mapRole(role) {
-    if (!role) return 'Agent';
-    const map = {
-        'admin': 'Admin',
-        'quality_analyst': 'QA Analyst',
-        'qa_analyst': 'QA Analyst',
-        'team_lead': 'Team Leader',
-        'teamlead': 'Team Leader',
-        'vendor': 'Vendor',
-        'user': 'Agent',
-        'editor': 'Editor'
+<script>
+    let panelOpen = false;
+    window.toggleViewersPanel = function() {
+        panelOpen = !panelOpen;
+        document.getElementById("viewersPanel").classList.toggle("open", panelOpen);
     };
-    return map[role.toLowerCase()] || role;
-}
 
-let myProfile    = null;
-let firebaseMode = false;
-let fbRefs       = null;
-let localMap     = {};
-let panelOpen    = false;
+    function closeViewersPanel() {
+        panelOpen = false;
+        document.getElementById("viewersPanel").classList.remove("open");
+    }
 
-(async function boot() {
-    let config = null;
-    try {
-        const res = await fetch('/api/user-activity/firebase-config');
-        if (res.ok) {
-            const data = await res.json();
-            config = data.config;
+    document.addEventListener("click", e => {
+        if (!e.target.closest("#viewersPanel") &&
+            !e.target.closest("[onclick='toggleViewersPanel()']") &&
+            !e.target.closest(".pb-see-all") &&
+            !e.target.closest(".pb-you-chip") &&
+            !e.target.closest(".pb-overflow")) {
+            closeViewersPanel();
         }
-    } catch(err) {
-        console.warn("[WIMO] Failed to fetch Firebase config from API:", err);
-    }
-
-    if (config && config.databaseURL) {
-        try {
-            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-            const { getDatabase, ref, set, onValue, remove, onDisconnect }
-                = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-            const app = initializeApp(config);
-            const db  = getDatabase(app);
-            fbRefs = { db, ref, set, onValue, remove, onDisconnect };
-            firebaseMode = true;
-            setLiveStatus("online");
-        } catch(err) {
-            console.warn("[WIMO] Firebase init failed:", err.message);
-            setLiveStatus("offline");
-        }
-    } else {
-        setLiveStatus("pending");
-        const setupEl = document.getElementById("vpFirebaseSetup");
-        if (setupEl) setupEl.classList.add("show");
-    }
-
-    if (window.__sopUsername) {
-        myProfile = buildProfile({
-            name: window.__sopUsername,
-            role: window.__sopUserRole,
-            id: window.__sopUserId,
-            _fromServer: true
-        });
-        localStorage.setItem("wimo_viewer_v2", JSON.stringify(myProfile));
-        closeNameModal();
-        startPresence();
-        applySheetUrl(localStorage.getItem(SHEET_KEY) || null, false);
-        console.info("[WIMO] Auto-auth from EJS session:", myProfile.name, "/", myProfile.role);
-        return;
-    }
-
-    try {
-        const r = await fetch("/api/wimo/me", {
-            credentials: "include",
-            headers: { "Accept": "application/json" }
-        });
-        if (r.ok) {
-            const d = await r.json();
-            if (d.authenticated && d.name) {
-                myProfile = buildProfile(d);
-                localStorage.setItem("wimo_viewer_v2", JSON.stringify(myProfile));
-                closeNameModal();
-                startPresence();
-                applySheetUrl(localStorage.getItem(SHEET_KEY) || null, false);
-                return;
-            }
-        }
-    } catch(_) {}
-
-    const saved = localStorage.getItem("wimo_viewer_v2");
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            if (parsed._fromServer) {
-                localStorage.removeItem("wimo_viewer_v2");
-            } else {
-                myProfile = parsed;
-                myProfile.joinedAt = Date.now();
-                closeNameModal();
-                startPresence();
-                applySheetUrl(localStorage.getItem(SHEET_KEY) || null, false);
-                return;
-            }
-        } catch(_) {}
-    }
-
-    openNameModal();
-})();
-
-function buildProfile(src) {
-    const name = src.name     || src.username || "<%= user && user.username ? user.username : 'Guest' %>";
-    const role = mapRole(src.role || "<%= user && user.role ? user.role : 'user' %>");
-    const color    = src.color    || nameToColor(name);
-    const initials = src.initials || getInitials(name);
-    return {
-        id:          src.id || src._id || genId(),
-        name, role, color, initials,
-        joinedAt:    Date.now(),
-        _fromServer: !!(src._fromServer || src.fromServer),
-        image:       src.image || src.profilePic || "<%= user && (user.image || user.profilePic) ? user.image || user.profilePic : '' %>",
-        displayName: src.displayName || src.profileName || "<%= user && (user.displayName || user.profileName) ? user.displayName || user.profileName : '' %>"
-    };
-}
-
-window.nmSelectRole = function(btn, role) {
-    document.querySelectorAll(".nm-role-pill").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    nmSelectedRole = role;
-};
-
-window.nmOnInput = function() {
-    const val = document.getElementById("nmNameInput").value.trim();
-    document.getElementById("nmSubmitBtn").disabled = val.length < 2;
-    const av = document.getElementById("nmAvatar");
-    if (val.length >= 1) {
-        av.textContent = getInitials(val);
-        av.style.background = nameToColor(val);
-        av.style.borderColor = nameToColor(val) + "33";
-        av.classList.add("has-name");
-    } else {
-        av.textContent = "?";
-        av.style.background = "#e0e0e0";
-        av.style.borderColor = "#f0f0f0";
-        av.classList.remove("has-name");
-    }
-};
-
-window.nmSubmit = function() {
-    const name = document.getElementById("nmNameInput").value.trim();
-    if (name.length < 2) return;
-    myProfile = {
-        id:       genId(),
-        name,
-        role:     nmSelectedRole,
-        color:    nameToColor(name),
-        initials: getInitials(name),
-        joinedAt: Date.now()
-    };
-    localStorage.setItem("wimo_viewer_v2", JSON.stringify(myProfile));
-    closeNameModal();
-    startPresence();
-    applySheetUrl(localStorage.getItem(SHEET_KEY) || null, false);
-    showToast("Welcome, " + name + "! 👋", "success");
-};
-
-function openNameModal()  { document.getElementById("nameModalBackdrop").classList.add("open"); }
-function closeNameModal() { document.getElementById("nameModalBackdrop").classList.remove("open"); }
-
-function startPresence() {
-    updateYouChip(myProfile);
-    if (firebaseMode && fbRefs) {
-        startFirebase();
-    } else {
-        startDemoMode();
-    }
-}
-
-function startFirebase() {
-    const { db, ref, set, onValue, remove, onDisconnect } = fbRefs;
-    const department = (window.__sopLob || 'zomato').toLowerCase().trim();
-    const myRef  = ref(db, `presence/${department}/${myProfile.name}`);
-    const allRef = ref(db, `presence`);
-
-    let currentStatus = 'online';
-    let lastActivityTime = Date.now();
-    const IDLE_TIME_LIMIT = 3 * 60 * 1000;
-
-    const payload = () => ({
-        username:  myProfile.name,
-        role:      window.__sopUserRole || myProfile.role || 'user',
-        dept:      department,
-        status:    currentStatus,
-        ts:        Date.now(),
-        image:     myProfile.image || '',
-        displayName: myProfile.displayName || ''
     });
 
-    const updateFirebaseStatus = (newStatus) => {
-        if (currentStatus === newStatus) return;
-        currentStatus = newStatus;
-        set(myRef, payload());
-    };
-
-    const resetIdleTimer = () => {
-        lastActivityTime = Date.now();
-        if (currentStatus === 'idle') {
-            updateFirebaseStatus('online');
-        }
-    };
-
-    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
-    activityEvents.forEach(ev => {
-        document.addEventListener(ev, resetIdleTimer, { passive: true });
-    });
-
-    set(myRef, payload());
-    onDisconnect(myRef).remove();
-
-    const hb = setInterval(() => {
-        const idleDuration = Date.now() - lastActivityTime;
-        if (idleDuration >= IDLE_TIME_LIMIT) {
-            currentStatus = 'idle';
-        } else {
-            currentStatus = 'online';
-        }
-        set(myRef, payload());
-    }, HEARTBEAT_MS);
-
-    onValue(allRef, snap => {
-        const root = snap.val() || {};
-        const raw = {};
-        Object.keys(root).forEach(deptKey => {
-            const deptData = root[deptKey];
-            if (deptData && typeof deptData === 'object') {
-                Object.values(deptData).forEach(u => {
-                    if (u && u.username) {
-                        raw[u.username] = u;
-                    }
-                });
-            }
-        });
-        const now = Date.now();
-        const viewers = Object.entries(raw)
-            .filter(([, v]) => v && v.username && (firebaseMode || (now - (v.ts || v.lastSeen || 0)) < STALE_THRESHOLD))
-            .map(([key, v]) => {
-                const uName = v.username || key;
-                return {
-                    id:       uName,
-                    name:     uName,
-                    role:     mapRole(v.role),
-                    color:    v.color || nameToColor(uName),
-                    initials: v.initials || getInitials(uName),
-                    joinedAt: v.ts || v.lastSeen || now,
-                    lastSeen: v.ts || v.lastSeen || now,
-                    status:   v.status || 'online',
-                    image:    v.image || v.profilePic || '',
-                    profilePic: v.profilePic || '',
-                    displayName: v.displayName || ''
-                };
-            });
-        renderAll(viewers);
-    });
-
-    window.addEventListener("beforeunload", () => {
-        remove(myRef);
-        clearInterval(hb);
-    });
-}
-
-function startDemoMode() {
-    localMap = {};
-    localMap[myProfile.id] = { ...myProfile, lastSeen: Date.now(), status: 'online' };
-    renderAll(Object.values(localMap));
-
-    setInterval(() => {
-        localMap[myProfile.id].lastSeen = Date.now();
-        renderAll(Object.values(localMap));
-    }, HEARTBEAT_MS);
-}
-
-function renderAll(viewers) {
-    viewers.sort((a, b) => {
-        if (a.id === myProfile.name || a.id === myProfile.id) return -1;
-        if (b.id === myProfile.name || b.id === myProfile.id) return  1;
-        return (a.joinedAt || 0) - (b.joinedAt || 0);
-    });
-
-    renderAvatarStrip(viewers);
-    renderCountLabel(viewers.length);
-    renderViewersPanel(viewers);
-}
-
-function renderAvatarStrip(viewers) {
-    const container = document.getElementById("pbAvatars");
-    const MAX = 7;
-    const shown    = viewers.slice(0, MAX);
-    const overflow = viewers.length - MAX;
-
-    container.innerHTML = shown.map((v, i) => {
-        const isMe = v.id === myProfile.name || v.id === myProfile.id;
-        const statusText = v.status === 'idle' ? 'Idle' : 'Active';
-        const nameToDisplay = v.displayName || v.name || '';
-        const avatarContent = (v.image || v.profilePic)
-            ? v.image || v.profilePic
-            : (v.initials || "?");
-        return `<div class="pb-avatar ${isMe ? "is-you" : ""}"
-                     style="background:${v.color||"#999"}; z-index:${50-i}"
-                     tabindex="0">
-                    ${avatarContent}
-                    <div class="pb-avatar-tip">
-                        ${esc(nameToDisplay)}${isMe ? " <span style=\"color:#ff9090\">(You)</span>" : ""}<br>
-                        <span style="opacity:.75;font-size:.6rem">${v.role || "Viewer"} (${statusText})</span>
-                    </div>
-                </div>`;
-    }).join("");
-
-    if (overflow > 0) {
-        container.innerHTML += `<div class="pb-overflow" title="${overflow} more people viewing" onclick="toggleViewersPanel()">+${overflow}</div>`;
+    function getInitials(name) {
+        if (!name?.trim()) return "?";
+        const p = name.trim().split(/\s+/);
+        return p.length === 1
+            ? p[0].substring(0, 2).toUpperCase()
+            : (p[0][0] + p[p.length - 1][0]).toUpperCase();
     }
-}
 
-function renderCountLabel(count) {
-    const el = document.getElementById("pbCountLabel");
-    if (count === 0) {
-        el.innerHTML = "";
-    } else if (count === 1) {
-        el.innerHTML = `<span style="color:#24963F;font-weight:800;">Only you</span>`;
-    } else {
-        el.innerHTML = `<span style="font-weight:800;color:#2D2D2D">${count} viewing now</span>`;
+    const PALETTE = [
+        "#CB202D","#1565C0","#2E7D32","#6A1B9A",
+        "#C62828","#00695C","#E65100","#283593",
+        "#4E342E","#37474F"
+    ];
+
+    function nameToColor(name) {
+        if (!name) return PALETTE[0];
+        let h = 0;
+        for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+        return PALETTE[Math.abs(h) % PALETTE.length];
     }
-    document.getElementById("vpCountChip").textContent = count;
-}
 
-function renderViewersPanel(viewers) {
-    const list = document.getElementById("vpList");
-    list.innerHTML = viewers.map(v => {
-        const isMe  = v.id === myProfile.name || v.id === myProfile.id;
-        const rc    = ROLE_COLOR[v.role] || "#555";
-        const since = timeSince(v.joinedAt);
-        const statusLabel = v.status === 'on_break' ? 'On Break' : (v.status === 'idle' ? 'Idle' : 'Online');
-        const statusColor = v.status === 'on_break' ? '#ffc107' : (v.status === 'idle' ? '#dc3545' : '#24963F');
-        const pulseAnim = v.status === 'idle' ? 'none' : 'liveGlow 2s infinite';
-        const nameToDisplay = v.displayName || v.name || '';
-        const avatarContent = (v.image || v.profilePic)
-            ? v.image || v.profilePic
-            : (v.initials || "?");
-        
-        return `<div class="vp-item">
-            <div class="vp-avatar" style="background:${v.color||"#999"}">${avatarContent}</div>
-            <div class="vp-info">
-                <div class="vp-name">${esc(nameToDisplay)}</div>
-                <div class="vp-role" style="color:${rc}">${v.role||"Viewer"}</div>
-            </div>
-            <div class="vp-active-dot" title="${statusLabel}" style="background-color: ${statusColor}; animation: ${pulseAnim};"></div>
-            ${isMe
-                ? `<span class="vp-badge-you">You</span>`
-                : `<span class="vp-joined-time">${since}</span>`}
-        </div>`;
-    }).join("") || `<div style="padding:16px;text-align:center;font-size:.8rem;color:#bbb;">No viewers yet</div>`;
-}
-
-// ─── YOUR CHIP ────────────────────────────────────────────────────────
-function updateYouChip(p) {
-    const chip  = document.getElementById("pbYouChip");
-    const av    = document.getElementById("pbYouAvatar");
-    const name  = document.getElementById("pbYouName");
-    const role  = document.getElementById("pbYouRole");
-
-    const avatarContent = (p.image || p.profilePic)
-        ? p.image || p.profilePic
-        : (p.initials || "?");
-
-    av.innerHTML    = avatarContent;
-    av.style.background = p.color || "#999";
-    name.textContent  = p.displayName || p.name;
-    role.textContent  = p.role || "Viewer";
-    chip.classList.add("visible");
-}
-
-// ─── LIVE STATUS DOT ─────────────────────────────────────────────────
-function setLiveStatus(state) {
-    const dot  = document.getElementById("pbLiveDot");
-    const text = document.getElementById("pbLiveText");
-    const map  = {
-        online:  { dotCls: "online",  color: "#24963F", label: "Live"         },
-        pending: { dotCls: "pending", color: "#F5A623", label: "Demo mode"    },
-        offline: { dotCls: "offline", color: "#ccc",    label: "Disconnected" }
-    };
-    const s = map[state] || map.pending;
-    dot.className  = "pb-live-dot " + s.dotCls;
-    text.textContent = s.label;
-    text.style.color = s.color;
-    text.className = "pb-live-text " + s.dotCls;
-}
-
-// ─── PANEL TOGGLE ─────────────────────────────────────────────────────
-window.toggleViewersPanel = function() {
-    panelOpen = !panelOpen;
-    document.getElementById("viewersPanel").classList.toggle("open", panelOpen);
-};
-
-function closeViewersPanel() {
-    panelOpen = false;
-    document.getElementById("viewersPanel").classList.remove("open");
-}
-
-document.addEventListener("click", e => {
-    if (!e.target.closest("#viewersPanel") &&
-        !e.target.closest("[onclick='toggleViewersPanel()']") &&
-        !e.target.closest(".pb-see-all") &&
-        !e.target.closest(".pb-you-chip") &&
-        !e.target.closest(".pb-overflow")) {
-        closeViewersPanel();
+    function genId() {
+        return "u_" + Math.random().toString(36).slice(2, 9) + "_" + Date.now().toString(36);
     }
-});
 
-// ─── UTILITIES ────────────────────────────────────────────────────────
-function getInitials(name) {
-    if (!name?.trim()) return "?";
-    const p = name.trim().split(/\s+/);
-    return p.length === 1
-        ? p[0].substring(0, 2).toUpperCase()
-        : (p[0][0] + p[p.length - 1][0]).toUpperCase();
-}
+    function timeSince(ts) {
+        if (!ts) return "";
+        const s = Math.floor((Date.now() - ts) / 1000);
+        if (s < 10)   return "just now";
+        if (s < 60)   return s + "s ago";
+        if (s < 3600) return Math.floor(s / 60) + "m ago";
+        return Math.floor(s / 3600) + "h ago";
+    }
 
-function nameToColor(name) {
-    if (!name) return PALETTE[0];
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-    return PALETTE[Math.abs(h) % PALETTE.length];
-}
+    function esc(str) {
+        return String(str || "")
+            .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+            .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+</script>
 
-function genId() {
-    return "u_" + Math.random().toString(36).slice(2, 9) + "_" + Date.now().toString(36);
-}
-
-function timeSince(ts) {
-    if (!ts) return "";
-    const s = Math.floor((Date.now() - ts) / 1000);
-    if (s < 10)   return "just now";
-    if (s < 60)   return s + "s ago";
-    if (s < 3600) return Math.floor(s / 60) + "m ago";
-    return Math.floor(s / 3600) + "h ago";
-}
-
-function esc(str) {
-    return String(str || "")
-        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-
+<script>
 // ─────────────────────────────────────────────────────────────────────
-// SOP EDITOR — only active when server renders mode='edit'
-// The view route (/zomato/sop/view) passes mode:'view' → no edit UI.
-// The edit route (/zomato/sop/edit) passes mode:'edit' → full editor.
+// SOP EDITOR & DRAFT SYSTEM
 // ─────────────────────────────────────────────────────────────────────
 const SOP_MODE = '<%= typeof mode !== "undefined" ? mode : "view" %>';
 const SOP_LOB  = window.__sopLob || 'zomato';
 
-if (SOP_MODE === 'edit') {
-    // Load SortableJS for drag-to-reorder (CDN, async)
-    (function loadSortable(cb) {
-        if (window.Sortable) { cb(); return; }
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js';
-        s.onload = cb;
-        document.head.appendChild(s);
-    })(initEditMode);
-} else {
-    // VIEW MODE — nothing to do; all edit controls are EJS-gated
+// Initialize Draft State
+window.SopDraftState = {
+    template: <%- JSON.stringify(template || { sidebarConfig: {}, categories: [] }) %>,
+    cards: <%- JSON.stringify((categories || []).reduce((acc, cat) => {
+        const items = (cat.items || []).map(card => ({
+            _id: card._id ? card._id.toString() : 'new_' + Math.random().toString(36).substring(2, 9),
+            category: card.category || cat.title,
+            title: card.title || '',
+            condition: card.condition || '',
+            action: card.action || 'Wait',
+            details: card.details || '',
+            tags: card.tags || [],
+            order: card.order || 0
+        }));
+        return acc.concat(items);
+    }, [])) %>
+};
+
+// Undo/Redo Stacks
+window.undoStack = [];
+window.redoStack = [];
+
+function pushState() {
+    window.undoStack.push(JSON.stringify(window.SopDraftState));
+    window.redoStack = [];
+    updateUndoRedoButtons();
 }
 
-function initEditMode() {
-    showEditToolbar();
-    enableDragSort();
-    injectBlockEditButtons();
+function undo() {
+    if (window.undoStack.length === 0) return;
+    window.redoStack.push(JSON.stringify(window.SopDraftState));
+    window.SopDraftState = JSON.parse(window.undoStack.pop());
+    renderSopLayout();
+    renderSidebar();
+    updateUndoRedoButtons();
+    triggerAutoSave();
 }
 
-/* ─── Edit Toolbar ──────────────────────────────────────── */
-function showEditToolbar() {
-    const toolbar = document.createElement('div');
-    toolbar.id = 'sop-edit-toolbar';
-    toolbar.style.cssText = `
-        position: sticky; top: 0; z-index: 200;
-        background: #1e293b; color: #f1f5f9;
-        display: flex; align-items: center; gap: 12px;
-        padding: 10px 20px; font-size: 13px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.25);
-    `;
-    toolbar.innerHTML = `
-        <span style="font-weight:800;letter-spacing:.5px;">✏️ EDIT MODE</span>
-        <span style="opacity:.5;font-size:11px;">Drag cards to reorder · Click ✏️ to edit a block</span>
-        <div style="margin-left:auto;display:flex;gap:8px;">
-            <button id="sop-add-cat-btn" style="padding:7px 16px;background:#7c3aed;color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;">+ Add Category</button>
-            <button id="sop-save-layout-btn" style="padding:7px 16px;background:#16a34a;color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Save Layout</button>
-            <a href="/${SOP_LOB}/sop/view" style="padding:7px 14px;background:#475569;color:#fff;border-radius:7px;font-weight:700;text-decoration:none;font-size:13px;display:flex;align-items:center;">👁 View Mode</a>
-        </div>
-    `;
-    document.body.insertBefore(toolbar, document.body.firstChild);
-
-    document.getElementById('sop-add-cat-btn').addEventListener('click', () => openCategoryModal());
-    document.getElementById('sop-save-layout-btn').addEventListener('click', saveLayout);
+function redo() {
+    if (window.redoStack.length === 0) return;
+    window.undoStack.push(JSON.stringify(window.SopDraftState));
+    window.SopDraftState = JSON.parse(window.redoStack.pop());
+    renderSopLayout();
+    renderSidebar();
+    updateUndoRedoButtons();
+    triggerAutoSave();
 }
 
-/* ─── Drag to Reorder ───────────────────────────────────── */
-function enableDragSort() {
-    // Make each category section's card list sortable
-    document.querySelectorAll('.sop-grid').forEach(grid => {
-        if (window.Sortable) {
-            new Sortable(grid, {
-                animation: 150,
-                handle: '.sop-card',
-                ghostClass: 'sop-drag-ghost',
-                onEnd() { highlightSaveBtn(); }
-            });
-        }
-    });
+function updateUndoRedoButtons() {
+    const uBtn = document.getElementById('sop-undo-btn');
+    const rBtn = document.getElementById('sop-redo-btn');
+    if (uBtn) uBtn.disabled = window.undoStack.length === 0;
+    if (rBtn) rBtn.disabled = window.redoStack.length === 0;
 }
 
-function highlightSaveBtn() {
-    const btn = document.getElementById('sop-save-layout-btn');
-    if (btn) { btn.style.background = '#dc2626'; btn.textContent = '💾 Save Changes!'; }
-}
+// Render Categories & Cards
+function renderSopLayout() {
+    const container = document.getElementById('sopDynamicContainer');
+    if (!container) return;
+    container.innerHTML = '';
 
-async function saveLayout() {
-    const order = [];
-    document.querySelectorAll('.sop-card[data-sop-id]').forEach(card => {
-        const section = card.closest('[data-category]');
-        const category = section?.dataset.category || 'General';
-        order.push({ id: card.dataset.sopId, category });
-    });
-
-    if (!order.length) { showToast('Nothing to save', 'warning'); return; }
-
-    try {
-        const res = await fetch(`/${SOP_LOB}/sop/reorder`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order }),
-            credentials: 'same-origin'
+    const cards = [...(window.SopDraftState.cards || [])];
+    
+    // Inject Removed Placeholders for Diff View
+    if (window.diffSnapshotData) {
+        const snapCards = window.diffSnapshotData.cards || [];
+        snapCards.forEach(sc => {
+            const exists = cards.some(c => c.title.toLowerCase().trim() === sc.title.toLowerCase().trim());
+            if (!exists) {
+                cards.push({
+                    _id: 'removed_' + sc._id,
+                    category: sc.category,
+                    title: sc.title,
+                    condition: sc.condition,
+                    action: sc.action,
+                    details: sc.details,
+                    tags: sc.tags,
+                    isRemovedPlaceholder: true
+                });
+            }
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Save failed');
-        showToast('Layout saved ✓', 'success');
-        const btn = document.getElementById('sop-save-layout-btn');
-        if (btn) { btn.style.background = '#16a34a'; btn.textContent = '💾 Save Layout'; }
-    } catch (err) {
-        showToast('Error: ' + err.message, 'warning');
+    }
+
+    const categoriesMap = {};
+    cards.forEach(c => {
+        const cat = c.category || 'General';
+        if (!categoriesMap[cat]) categoriesMap[cat] = [];
+        categoriesMap[cat].push(c);
+    });
+
+    const tempCats = window.SopDraftState.template.categories || [];
+    const sortedCategories = Object.keys(categoriesMap).map(title => {
+        const config = tempCats.find(c => c.name.toLowerCase().trim() === title.toLowerCase().trim());
+        return {
+            title,
+            items: categoriesMap[title].sort((a,b) => (a.order || 0) - (b.order || 0)),
+            phase: config ? config.phase : '',
+            order: config ? config.order : 999
+        };
+    }).sort((a, b) => a.order - b.order);
+
+    if (sortedCategories.length === 0) {
+        container.innerHTML = `<div style="padding:40px;text-align:center;color:#999;font-style:italic;">No SOP categories found. Click "Add Category" or link a spreadsheet.</div>`;
+        return;
+    }
+
+    sortedCategories.forEach(cat => {
+        const block = document.createElement('div');
+        block.className = 'category-block';
+        block.setAttribute('data-category', cat.title);
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'category-title';
+        titleDiv.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="cat-name-span">${esc(cat.title)}</span>
+                ${cat.phase ? `<span style="font-size:0.8rem; font-weight:normal; color:#686B78;">(Phase: ${esc(cat.phase)})</span>` : ''}
+            </div>
+            ${SOP_MODE === 'edit' ? `
+                <div style="display:flex; gap:6px;">
+                    <button class="sop-toolbar-btn btn-slate" style="padding:2px 8px; font-size:10px;" onclick="editCategoryName('${esc(cat.title)}')">✏️ Rename</button>
+                    <button class="sop-toolbar-btn btn-red" style="padding:2px 8px; font-size:10px;" onclick="deleteCategory('${esc(cat.title)}')">🗑 Delete</button>
+                </div>
+            ` : ''}
+        `;
+        block.appendChild(titleDiv);
+
+        const grid = document.createElement('div');
+        grid.className = 'sop-grid';
+        grid.setAttribute('data-category-grid', cat.title);
+
+        if (cat.items && cat.items.length > 0) {
+            cat.items.forEach(card => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'sop-card';
+                cardDiv.setAttribute('data-sop-id', card._id);
+                cardDiv.setAttribute('data-tags', (card.tags || []).join(' '));
+
+                let badgeHtml = '';
+
+                // Reconciliation check
+                if (window.sheetReconciliationData) {
+                    const match = window.sheetReconciliationData.find(r => r.title.toLowerCase().trim() === card.title.toLowerCase().trim());
+                    if (match) {
+                        if (match.mismatch) {
+                            cardDiv.className += ' sync-mismatch';
+                            badgeHtml = `<span class="sync-badge sync-badge-mismatch">⚠️ Caution: Mismatch</span>`;
+                        } else {
+                            cardDiv.className += ' sync-match';
+                            badgeHtml = `<span class="sync-badge sync-badge-match">Sync Match</span>`;
+                        }
+                    } else {
+                        cardDiv.className += ' sync-missing';
+                        badgeHtml = `<span class="sync-badge sync-badge-missing">⚠️ Not in Sheet</span>`;
+                    }
+                }
+
+                // Diff check
+                if (window.diffSnapshotData) {
+                    if (card.isRemovedPlaceholder) {
+                        cardDiv.className += ' diff-removed';
+                        badgeHtml = `<span class="sync-badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #b91c1c">Removed</span>`;
+                    } else {
+                        const status = getCardDiffStatus(card);
+                        if (status) {
+                            cardDiv.className += ' ' + status.className;
+                            badgeHtml = `<span class="sync-badge" style="background:${status.bg}; color:${status.color}; border:1px solid ${status.color}">${status.label}</span>`;
+                        }
+                    }
+                }
+
+                let actionClass = 'tag-wait';
+                const actLower = (card.action || '').toLowerCase();
+                if (actLower.includes('cancel')) actionClass = 'tag-cancel';
+                else if (actLower.includes('escalate') || actLower.includes('check')) actionClass = 'tag-esc';
+
+                cardDiv.innerHTML = `
+                    ${badgeHtml}
+                    <div class="card-header">${esc(card.title)}</div>
+                    <div class="card-cond">${esc(card.condition)}</div>
+                    <span class="action-tag ${actionClass}">${esc(card.action)}</span>
+                    <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
+                    <div class="card-detail-data" style="display:none">${esc(card.details)}</div>
+                    ${SOP_MODE === 'edit' && !card.isRemovedPlaceholder ? `
+                        <div class="sop-card-controls" style="position:absolute; top:6px; right:6px; display:flex; gap:4px; z-index:10;">
+                            <button class="sop-edit-btn" title="Edit this SOP block" style="background:rgba(37,99,235,.1);border:1px solid #2563eb;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:12px;" onclick="event.stopPropagation(); openBlockEditModal('${card._id}')">✏️</button>
+                            <button class="sop-del-btn" title="Delete this SOP block" style="background:rgba(220,38,38,.1);border:1px solid #dc2626;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:12px;" onclick="event.stopPropagation(); deleteBlock('${card._id}')">🗑</button>
+                        </div>
+                    ` : ''}
+                `;
+
+                if (!card.isRemovedPlaceholder) {
+                    cardDiv.addEventListener('click', () => openModal(cardDiv));
+                }
+                grid.appendChild(cardDiv);
+            });
+        } else {
+            grid.innerHTML = `<div style="padding:15px;color:#999;font-style:italic;font-size:0.8rem;">No blocks in this category</div>`;
+        }
+
+        block.appendChild(grid);
+
+        if (SOP_MODE === 'edit') {
+            const addBlockBtn = document.createElement('button');
+            addBlockBtn.className = 'sop-add-block-btn';
+            addBlockBtn.textContent = '＋ Add Block';
+            addBlockBtn.style.cssText = 'display:block;width:100%;margin:8px 0 16px;padding:8px;background:#f0f7ff;border:1.5px dashed #2563eb;border-radius:8px;color:#2563eb;font-weight:700;cursor:pointer;font-size:13px;';
+            addBlockBtn.addEventListener('click', () => openBlockCreateModal(cat.title));
+            block.appendChild(addBlockBtn);
+        }
+
+        container.appendChild(block);
+    });
+
+    if (SOP_MODE === 'edit') {
+        enableDragSort();
     }
 }
 
-/* ─── Block Edit Buttons ────────────────────────────────── */
-function injectBlockEditButtons() {
-    document.querySelectorAll('.sop-card').forEach(card => {
-        if (card.querySelector('.sop-edit-btn')) return;
+// Render Sidebar Widgets
+function renderSidebar() {
+    const container = document.getElementById('sopSidebarContainer');
+    if (!container) return;
+    container.innerHTML = '';
 
-        const wrap = document.createElement('div');
-        wrap.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:10;';
+    const config = window.SopDraftState.template.sidebarConfig || {};
 
-        const editBtn = document.createElement('button');
-        editBtn.className = 'sop-edit-btn';
-        editBtn.title = 'Edit this SOP block';
-        editBtn.innerHTML = '✏️';
-        editBtn.style.cssText = 'background:rgba(37,99,235,.1);border:1px solid #2563eb;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:12px;';
-        editBtn.addEventListener('click', e => { e.stopPropagation(); openBlockEditModal(card); });
+    if (SOP_MODE === 'edit') {
+        const custBtn = document.createElement('button');
+        custBtn.className = 'sop-toolbar-btn btn-purple';
+        custBtn.style.cssText = 'width:100%; margin-bottom:12px; justify-content:center;';
+        custBtn.innerHTML = '⚙️ Customize Sidebar & Header';
+        custBtn.onclick = openCustomizeSidebarModal;
+        container.appendChild(custBtn);
+    }
 
-        const delBtn = document.createElement('button');
-        delBtn.className = 'sop-del-btn';
-        delBtn.title = 'Delete this SOP block';
-        delBtn.innerHTML = '🗑';
-        delBtn.style.cssText = 'background:rgba(220,38,38,.1);border:1px solid #dc2626;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:12px;';
-        delBtn.addEventListener('click', e => { e.stopPropagation(); deleteBlock(card); });
-
-        // Add Block button at category level
-        card.style.position = 'relative';
-        wrap.appendChild(editBtn);
-        wrap.appendChild(delBtn);
-        card.appendChild(wrap);
-    });
-
-    // Add "+ New Block" buttons after each category grid
-    document.querySelectorAll('[data-category]').forEach(section => {
-        if (section.querySelector('.sop-add-block-btn')) return;
-        const btn = document.createElement('button');
-        btn.className = 'sop-add-block-btn';
-        btn.textContent = '＋ Add Block';
-        btn.style.cssText = `
-            display:block;width:100%;margin:8px 0 16px;
-            padding:8px;background:#f0f7ff;border:1.5px dashed #2563eb;
-            border-radius:8px;color:#2563eb;font-weight:700;cursor:pointer;
-            font-size:13px;transition:background .15s;
+    if (config.calculator !== false) {
+        const calcWidget = document.createElement('div');
+        calcWidget.className = 'widget';
+        calcWidget.innerHTML = `
+            <div class="widget-title">🧮 Compensation Calculator</div>
+            <div class="comp-calc">
+                <input type="number" id="calcDelay" placeholder="Delay in minutes" oninput="runCalc()">
+                <input type="number" id="calcOV" placeholder="Order Value (₹)" oninput="runCalc()">
+                <div class="calc-result">
+                    <div style="font-size:0.8rem;color:#686B78;margin-bottom:5px;">Compensation Amount</div>
+                    <div id="finalComp">₹0</div>
+                </div>
+            </div>
         `;
-        btn.addEventListener('click', () => openBlockCreateModal(section.dataset.category));
-        section.appendChild(btn);
-    });
+        container.appendChild(calcWidget);
+    }
+
+    if (config.callingScript) {
+        const scriptWidget = document.createElement('div');
+        scriptWidget.className = 'widget';
+        scriptWidget.innerHTML = `
+            <div class="widget-title">📞 Calling Script</div>
+            <div class="script-box" onclick="copyScript(this)">${esc(config.callingScript)}</div>
+            <p class="tooltip">Click to copy script</p>
+        `;
+        container.appendChild(scriptWidget);
+    }
+
+    if (config.quickPrompts && config.quickPrompts.length > 0) {
+        const promptsWidget = document.createElement('div');
+        promptsWidget.className = 'widget';
+        promptsWidget.innerHTML = `<div class="widget-title">💬 Quick Prompts</div>`;
+        const ul = document.createElement('ul');
+        ul.className = 'updates-list';
+        config.quickPrompts.forEach(p => {
+            const li = document.createElement('li');
+            li.style.cssText = 'cursor:pointer; padding:6px 10px; border-bottom:1px solid #f1f5f9;';
+            li.innerHTML = `<strong>${esc(p.label)}:</strong> <span class="prompt-text">${esc(p.text)}</span>`;
+            li.onclick = () => {
+                navigator.clipboard.writeText(p.text).then(() => showToast("Prompt copied!", "success"));
+            };
+            ul.appendChild(li);
+        });
+        promptsWidget.appendChild(ul);
+        container.appendChild(promptsWidget);
+    }
+
+    if (config.recentUpdates && config.recentUpdates.length > 0) {
+        const updatesWidget = document.createElement('div');
+        updatesWidget.className = 'widget';
+        updatesWidget.innerHTML = `<div class="widget-title">🔔 Recent Updates</div>`;
+        const ul = document.createElement('ul');
+        ul.className = 'updates-list';
+        config.recentUpdates.forEach(up => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${esc(up.date)}:</strong> ${esc(up.text)}`;
+            ul.appendChild(li);
+        });
+        updatesWidget.appendChild(ul);
+        container.appendChild(updatesWidget);
+    }
 }
 
-/* ─── Category Modal ────────────────────────────────────── */
+function copyScript(el) {
+    navigator.clipboard.writeText(el.innerText.trim()).then(() => showToast("Script copied!", "success"));
+}
+
+// Category CRUD
+function editCategoryName(oldName) {
+    const newName = prompt(`Rename category "${oldName}" to:`, oldName);
+    if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+    pushState();
+    const tempCats = window.SopDraftState.template.categories || [];
+    const cat = tempCats.find(c => c.name.toLowerCase().trim() === oldName.toLowerCase().trim());
+    if (cat) cat.name = newName.trim();
+    window.SopDraftState.cards.forEach(c => {
+        if (c.category.toLowerCase().trim() === oldName.toLowerCase().trim()) c.category = newName.trim();
+    });
+    renderSopLayout();
+    showToast('Category renamed ✓', 'success');
+    triggerAutoSave();
+}
+
+function deleteCategory(catName) {
+    if (!confirm(`Delete category "${catName}" and all of its cards?`)) return;
+    pushState();
+    window.SopDraftState.template.categories = (window.SopDraftState.template.categories || []).filter(c => c.name.toLowerCase().trim() !== catName.toLowerCase().trim());
+    window.SopDraftState.cards = (window.SopDraftState.cards || []).filter(c => c.category.toLowerCase().trim() !== catName.toLowerCase().trim());
+    renderSopLayout();
+    showToast('Category deleted', 'success');
+    triggerAutoSave();
+}
+
 function openCategoryModal() {
-    const backdrop = buildBackdrop('sopCatBackdrop');
-    backdrop.innerHTML = `
-        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:420px;max-width:97%;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;">
-            <button onclick="document.getElementById('sopCatBackdrop').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
-            <h3 style="margin:0 0 16px;font-size:1rem;color:#7c3aed;">＋ New SOP Category</h3>
-            <label style="font-size:.78rem;font-weight:700;color:#64748b;display:block;margin-bottom:5px;">CATEGORY NAME</label>
-            <input id="newCatName" type="text" placeholder="e.g. 03. POST-DELIVERY"
-                style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:16px;">
-            <button id="saveCatBtn" style="width:100%;padding:11px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-weight:800;font-family:inherit;cursor:pointer;font-size:.9rem;">Create Category</button>
-        </div>
-    `;
-    document.body.appendChild(backdrop);
-    backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
-
-    document.getElementById('saveCatBtn').addEventListener('click', async () => {
-        const name = document.getElementById('newCatName').value.trim();
-        if (!name) { showToast('Name required', 'warning'); return; }
-        try {
-            const res = await fetch(`/${SOP_LOB}/sop/category`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name }),
-                credentials: 'same-origin'
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed');
-            showToast('Category created — reloading…', 'success');
-            setTimeout(() => location.reload(), 900);
-        } catch (err) { showToast('Error: ' + err.message, 'warning'); }
-    });
+    const name = prompt('New Category Name:');
+    if (!name || !name.trim()) return;
+    pushState();
+    const tempCats = window.SopDraftState.template.categories || [];
+    tempCats.push({ name: name.trim(), phase: '', order: tempCats.length });
+    renderSopLayout();
+    showToast('Category added ✓', 'success');
+    triggerAutoSave();
 }
 
-/* ─── Block Create Modal ────────────────────────────────── */
+// Card CRUD (Local)
 function openBlockCreateModal(category) {
     const backdrop = buildBackdrop('sopBlockBackdrop');
     backdrop.innerHTML = `
-        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:560px;max-width:97%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;">
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:560px;max-width:97%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative; font-family:inherit;">
             <button onclick="document.getElementById('sopBlockBackdrop').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
             <h3 style="margin:0 0 16px;font-size:1rem;color:#2563eb;">＋ New Block in "${esc(category)}"</h3>
             <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TITLE</label>
@@ -2919,131 +2416,971 @@ function openBlockCreateModal(category) {
             <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CONDITION / TRIGGER</label>
             <input id="nb-cond" type="text" placeholder="When does this apply?" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-family:inherit;font-size:.88rem;margin-bottom:12px;">
             <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">ACTION</label>
-            <select id="nb-action" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px;font-family:inherit;font-size:.88rem;margin-bottom:12px;">
-                <option value="Wait">Wait</option>
-                <option value="Cancel">Cancel</option>
-                <option value="Escalate">Escalate</option>
-            </select>
+            <input id="nb-action" type="text" placeholder="e.g. Wait, Cancel, Escalate" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-family:inherit;font-size:.88rem;margin-bottom:12px;">
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">FULL DETAILS</label>
+            <textarea id="nb-details" rows="5" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-family:inherit;font-size:.85rem;resize:vertical;margin-bottom:12px;"></textarea>
             <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TAGS (comma-separated)</label>
-            <input id="nb-tags" type="text" placeholder="e.g. delay, restaurant, mx" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-family:inherit;font-size:.88rem;margin-bottom:16px;">
+            <input id="nb-tags" type="text" placeholder="delay, restaurant" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-family:inherit;font-size:.88rem;margin-bottom:16px;">
             <button id="saveBlockBtn" style="width:100%;padding:11px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-weight:800;font-family:inherit;cursor:pointer;font-size:.9rem;">Create Block</button>
         </div>
     `;
     document.body.appendChild(backdrop);
     backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
 
-    document.getElementById('saveBlockBtn').addEventListener('click', async () => {
-        const title     = document.getElementById('nb-title').value.trim();
+    document.getElementById('saveBlockBtn').addEventListener('click', () => {
+        const title = document.getElementById('nb-title').value.trim();
         const condition = document.getElementById('nb-cond').value.trim();
-        const action    = document.getElementById('nb-action').value;
-        const tags      = document.getElementById('nb-tags').value;
+        const action = document.getElementById('nb-action').value.trim();
+        const details = document.getElementById('nb-details').value;
+        const tags = document.getElementById('nb-tags').value;
         if (!title) { showToast('Title required', 'warning'); return; }
-        try {
-            const res = await fetch(`/${SOP_LOB}/sop/block`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ category, title, condition, action, tags, status: 'Draft' }),
-                credentials: 'same-origin'
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed');
-            showToast('Block created — reloading…', 'success');
-            setTimeout(() => location.reload(), 900);
-        } catch (err) { showToast('Error: ' + err.message, 'warning'); }
+
+        pushState();
+        const newCard = {
+            _id: 'new_' + Math.random().toString(36).substring(2, 9),
+            category, title, condition, action: action || 'Wait', details,
+            tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+            order: (window.SopDraftState.cards || []).filter(c => c.category === category).length
+        };
+        window.SopDraftState.cards.push(newCard);
+        renderSopLayout();
+        backdrop.remove();
+        showToast('Block created ✓', 'success');
+        triggerAutoSave();
     });
 }
 
-/* ─── Block Edit Modal ──────────────────────────────────── */
-function openBlockEditModal(card) {
-    const sopId   = card.dataset.sopId || '';
-    if (!sopId) { showToast('No SOP ID on this card (static card — use SOP Builder)', 'warning'); return; }
-    const title   = card.querySelector('.card-header')?.innerText  || '';
-    const cond    = card.querySelector('.card-cond')?.innerText    || '';
-    const details = card.querySelector('.card-detail-data')?.innerText || '';
+function openBlockEditModal(cardId) {
+    const card = window.SopDraftState.cards.find(c => c._id === cardId);
+    if (!card) return;
 
     const backdrop = buildBackdrop('sopEditBackdrop');
     backdrop.innerHTML = `
-        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:580px;max-width:97%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;">
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:580px;max-width:97%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative; font-family:inherit;">
             <button onclick="document.getElementById('sopEditBackdrop').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
             <h3 style="margin:0 0 16px;font-size:1rem;color:#CB202D;">✏️ Edit SOP Block</h3>
             <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TITLE</label>
-            <input id="se-title" type="text" value="${esc(title)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;">
+            <input id="se-title" type="text" value="${esc(card.title)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;">
             <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CONDITION / TRIGGER</label>
-            <input id="se-cond" type="text" value="${esc(cond)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;">
-            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">FULL DETAILS</label>
-            <textarea id="se-details" rows="7" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.85rem;resize:vertical;margin-bottom:16px;">${esc(details)}</textarea>
+            <input id="se-cond" type="text" value="${esc(card.condition)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;">
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">ACTION</label>
+            <input id="se-action" type="text" value="${esc(card.action)}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:12px;">
+            <div style="margin-bottom:12px;">
+                <label style="font-size:.75rem;font-weight:700;color:#64748b;display:flex;justify-content:between;align-items:center;margin-bottom:4px;">
+                    FULL DETAILS
+                    <button class="sop-toolbar-btn btn-purple" style="padding:2px 8px; font-size:10px; margin-left:auto;" onclick="askAiToHelpDetails()">✨ Ask AI</button>
+                </label>
+                <textarea id="se-details" rows="7" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.85rem;resize:vertical;">${esc(card.details)}</textarea>
+            </div>
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TAGS</label>
+            <input id="se-tags" type="text" value="${esc((card.tags || []).join(', '))}" style="width:100%;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;font-family:inherit;font-size:.9rem;margin-bottom:16px;">
             <div style="display:flex;gap:10px;">
                 <button id="seSubmitBtn" style="flex:2;padding:11px;background:#CB202D;color:#fff;border:none;border-radius:8px;font-weight:800;font-family:inherit;cursor:pointer;font-size:.9rem;">Save Changes</button>
-                <button onclick="deleteBlock(null,'${sopId}',document.getElementById('sopEditBackdrop'))" style="flex:1;padding:11px;background:#ffefef;color:#b23a3a;border:1px solid #fca5a5;border-radius:8px;font-weight:700;font-family:inherit;cursor:pointer;font-size:.85rem;">Delete</button>
+                <button id="seDeleteBtn" style="flex:1;padding:11px;background:#ffefef;color:#b23a3a;border:1px solid #fca5a5;border-radius:8px;font-weight:700;font-family:inherit;cursor:pointer;font-size:.85rem;">Delete</button>
             </div>
         </div>
     `;
     document.body.appendChild(backdrop);
     backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
 
-    document.getElementById('seSubmitBtn').addEventListener('click', async () => {
-        const title   = document.getElementById('se-title').value.trim();
-        const cond    = document.getElementById('se-cond').value.trim();
+    document.getElementById('seSubmitBtn').addEventListener('click', () => {
+        const title = document.getElementById('se-title').value.trim();
+        const cond = document.getElementById('se-cond').value.trim();
+        const action = document.getElementById('se-action').value.trim();
         const details = document.getElementById('se-details').value;
+        const tags = document.getElementById('se-tags').value;
         if (!title) { showToast('Title required', 'warning'); return; }
-        try {
-            const res = await fetch(`/${SOP_LOB}/sop/update/${sopId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, condition: cond, action: details }),
-                credentials: 'same-origin'
+
+        pushState();
+        card.title = title;
+        card.condition = cond;
+        card.action = action;
+        card.details = details;
+        card.tags = tags.split(',').map(t => t.trim()).filter(Boolean);
+        renderSopLayout();
+        backdrop.remove();
+        showToast('Block updated ✓', 'success');
+        triggerAutoSave();
+    });
+
+    document.getElementById('seDeleteBtn').addEventListener('click', () => {
+        backdrop.remove();
+        deleteBlock(cardId);
+    });
+}
+
+function deleteBlock(cardId) {
+    if (!confirm('Delete this SOP block permanently?')) return;
+    pushState();
+    window.SopDraftState.cards = window.SopDraftState.cards.filter(c => c._id !== cardId);
+    renderSopLayout();
+    showToast('Block deleted', 'success');
+    triggerAutoSave();
+}
+
+async function askAiToHelpDetails() {
+    const title = document.getElementById('se-title').value.trim();
+    const cond = document.getElementById('se-cond').value.trim();
+    if (!title) { showToast('Title required first', 'warning'); return; }
+
+    const btn = document.querySelector('[onclick="askAiToHelpDetails()"]');
+    const oldHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Writing...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: `Generate detailed bullet points (start each bullet with '•') for a Zomato WIMO SOP card. Title: "${title}", Trigger/Condition: "${cond}". Give just the bullet points without any introductory or concluding text.`,
+                context: { title, condition: cond }
+            })
+        });
+        const data = await res.json();
+        if (data.success && data.reply) {
+            document.getElementById('se-details').value = data.reply;
+            showToast('AI suggestion generated!', 'success');
+        } else {
+            throw new Error(data.error || 'AI request failed');
+        }
+    } catch (err) {
+        showToast('AI Error: ' + err.message, 'warning');
+    } finally {
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+    }
+}
+
+// Drag sorting order sync
+function enableDragSort() {
+    document.querySelectorAll('.sop-grid').forEach(grid => {
+        if (window.Sortable) {
+            new Sortable(grid, {
+                animation: 150,
+                handle: '.sop-card',
+                ghostClass: 'sop-drag-ghost',
+                onEnd() {
+                    pushState();
+                    syncDragOrderToState();
+                    highlightSaveBtn();
+                    triggerAutoSave();
+                }
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Update failed');
-            showToast('SOP updated ✓', 'success');
-            document.getElementById('sopEditBackdrop')?.remove();
-            // Optimistic DOM update
-            const h = card.querySelector('.card-header'); if (h) h.innerText = title;
-            const c = card.querySelector('.card-cond');   if (c) c.innerText = cond;
-            const d = card.querySelector('.card-detail-data'); if (d) d.innerText = details;
-        } catch (err) {
-            showToast('Error: ' + err.message, 'warning');
         }
     });
 }
 
-async function deleteBlock(card, overrideId, backdrop) {
-    const sopId = overrideId || card?.dataset?.sopId;
-    if (!sopId) { showToast('No SOP ID — cannot delete static card', 'warning'); return; }
-    if (!confirm('Delete this SOP block permanently?')) return;
+function syncDragOrderToState() {
+    const updatedCards = [];
+    document.querySelectorAll('.category-block').forEach(section => {
+        const category = section.getAttribute('data-category');
+        let cardOrder = 0;
+        section.querySelectorAll('.sop-card').forEach(cardEl => {
+            const id = cardEl.getAttribute('data-sop-id');
+            const cardObj = window.SopDraftState.cards.find(c => c._id === id);
+            if (cardObj) {
+                cardObj.category = category;
+                cardObj.order = cardOrder++;
+                updatedCards.push(cardObj);
+            }
+        });
+    });
+    const processedIds = updatedCards.map(c => c._id);
+    const orphans = window.SopDraftState.cards.filter(c => !processedIds.includes(c._id));
+    window.SopDraftState.cards = updatedCards.concat(orphans);
+}
+
+function highlightSaveBtn() {
+    const btn = document.getElementById('sop-save-layout-btn');
+    if (btn) {
+        btn.style.background = '#dc2626';
+        btn.innerHTML = '💾 Save Changes!';
+    }
+}
+
+// Auto-Save
+let autoSaveTimer = null;
+function triggerAutoSave() {
+    const statusMsg = document.getElementById('draft-status-msg');
+    if (statusMsg) {
+        statusMsg.textContent = 'Saving draft...';
+        statusMsg.style.color = '#f5a623';
+    }
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(saveDraftToServer, 3000);
+}
+
+async function saveDraftToServer() {
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/delete/${sopId}`, { method: 'DELETE', credentials: 'same-origin' });
+        const res = await fetch(`/${SOP_LOB}/sop/draft`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                template: window.SopDraftState.template,
+                cards: window.SopDraftState.cards
+            })
+        });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Delete failed');
-        showToast('Block deleted');
-        backdrop?.remove();
-        (card || document.querySelector(`.sop-card[data-sop-id="${sopId}"]`))?.remove();
+        if (data.success) {
+            const statusMsg = document.getElementById('draft-status-msg');
+            if (statusMsg) {
+                statusMsg.textContent = 'Draft auto-saved ✓';
+                statusMsg.style.color = '#a7f3d0';
+            }
+            const btn = document.getElementById('sop-save-layout-btn');
+            if (btn) {
+                btn.style.background = '#475569';
+                btn.innerHTML = '💾 Save Draft';
+            }
+        }
+    } catch (err) {
+        console.error('Auto-save error:', err);
+        const statusMsg = document.getElementById('draft-status-msg');
+        if (statusMsg) {
+            statusMsg.textContent = 'Failed to auto-save';
+            statusMsg.style.color = '#fca5a5';
+        }
+    }
+}
+
+// Customize Sidebar Widgets Modal
+function openCustomizeSidebarModal() {
+    const config = window.SopDraftState.template.sidebarConfig || {};
+    const headerImage = window.SopDraftState.template.headerImage || '';
+    const backdrop = buildBackdrop('sopCustomizeSidebarBackdrop');
+
+    let promptsHtml = '';
+    (config.quickPrompts || []).forEach(p => {
+        promptsHtml += `
+            <div style="display:flex; gap:10px; margin-bottom:8px; align-items:center;" class="custom-prompt-row">
+                <input type="text" value="${esc(p.label)}" placeholder="Label" class="prompt-row-label" style="flex:1; border:1px solid #e2e8f0; padding:6px 10px; border-radius:6px; font-size:12px;">
+                <input type="text" value="${esc(p.text)}" placeholder="Text" class="prompt-row-text" style="flex:3; border:1px solid #e2e8f0; padding:6px 10px; border-radius:6px; font-size:12px;">
+                <button class="sop-toolbar-btn btn-red" style="padding:4px 8px; font-size:11px;" onclick="this.closest('.custom-prompt-row').remove()">🗑</button>
+            </div>
+        `;
+    });
+
+    let updatesHtml = '';
+    (config.recentUpdates || []).forEach(up => {
+        updatesHtml += `
+            <div style="display:flex; gap:10px; margin-bottom:8px; align-items:center;" class="custom-update-row">
+                <input type="text" value="${esc(up.date)}" placeholder="Date" class="update-row-date" style="flex:1; border:1px solid #e2e8f0; padding:6px 10px; border-radius:6px; font-size:12px;">
+                <input type="text" value="${esc(up.text)}" placeholder="Update Text" class="update-row-text" style="flex:3; border:1px solid #e2e8f0; padding:6px 10px; border-radius:6px; font-size:12px;">
+                <button class="sop-toolbar-btn btn-red" style="padding:4px 8px; font-size:11px;" onclick="this.closest('.custom-update-row').remove()">🗑</button>
+            </div>
+        `;
+    });
+
+    backdrop.innerHTML = `
+        <div style="background:#fff; border-radius:14px; padding:28px 32px; width:640px; max-width:97%; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.25); position:relative; font-family:inherit;">
+            <button onclick="document.getElementById('sopCustomizeSidebarBackdrop').remove()" style="position:absolute; top:10px; right:14px; background:none; border:none; font-size:1.3rem; cursor:pointer;">✕</button>
+            <h3 style="margin:0 0 16px; font-size:1.1rem; color:#7c3aed;">⚙️ Customize SOP Layout & Widgets</h3>
+            <label style="font-size:.75rem; font-weight:700; color:#64748b; display:block; margin-bottom:4px;">HEADER IMAGE URL</label>
+            <input id="cust-header-image" type="text" value="${esc(headerImage)}" placeholder="https://..." style="width:100%; border:1.5px solid #e2e8f0; border-radius:7px; padding:9px 12px; font-family:inherit; font-size:.88rem; margin-bottom:16px;">
+            <div style="margin-bottom:16px;">
+                <label style="font-size:.75rem; font-weight:700; color:#64748b; display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input id="cust-calc-enable" type="checkbox" ${config.calculator !== false ? 'checked' : ''} style="transform: scale(1.15);">
+                    ENABLE COMPENSATION CALCULATOR WIDGET
+                </label>
+            </div>
+            <label style="font-size:.75rem; font-weight:700; color:#64748b; display:block; margin-bottom:4px;">CALLING SCRIPT</label>
+            <textarea id="cust-calling-script" rows="3" style="width:100%; border:1.5px solid #e2e8f0; border-radius:7px; padding:9px 12px; font-family:inherit; font-size:.85rem; resize:vertical; margin-bottom:16px;">${esc(config.callingScript || '')}</textarea>
+            <div style="border-top:1px solid #f1f5f9; padding-top:14px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:between; align-items:center; margin-bottom:8px;">
+                    <label style="font-size:.75rem; font-weight:700; color:#64748b;">💬 QUICK PROMPTS</label>
+                    <button class="sop-toolbar-btn btn-purple" style="padding:4px 10px; font-size:11px; margin-left:auto;" onclick="addQuickPromptRow()">＋ Add Prompt</button>
+                </div>
+                <div id="cust-prompts-container">${promptsHtml}</div>
+            </div>
+            <div style="border-top:1px solid #f1f5f9; padding-top:14px; margin-bottom:20px;">
+                <div style="display:flex; justify-content:between; align-items:center; margin-bottom:8px;">
+                    <label style="font-size:.75rem; font-weight:700; color:#64748b;">🔔 RECENT UPDATES</label>
+                    <button class="sop-toolbar-btn btn-purple" style="padding:4px 10px; font-size:11px; margin-left:auto;" onclick="addRecentUpdateRow()">＋ Add Update</button>
+                </div>
+                <div id="cust-updates-container">${updatesHtml}</div>
+            </div>
+            <button id="saveSidebarBtn" style="width:100%; padding:11px; background:#7c3aed; color:#fff; border:none; border-radius:8px; font-weight:800; font-family:inherit; cursor:pointer; font-size:.9rem;">Save Layout & Widgets</button>
+        </div>
+    `;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
+
+    document.getElementById('saveSidebarBtn').addEventListener('click', () => {
+        pushState();
+        const header = document.getElementById('cust-header-image').value.trim();
+        const calc = document.getElementById('cust-calc-enable').checked;
+        const script = document.getElementById('cust-calling-script').value.trim();
+
+        const prompts = [];
+        document.querySelectorAll('#cust-prompts-container .custom-prompt-row').forEach(row => {
+            const label = row.querySelector('.prompt-row-label').value.trim();
+            const text = row.querySelector('.prompt-row-text').value.trim();
+            if (label && text) prompts.push({ label, text });
+        });
+
+        const updates = [];
+        document.querySelectorAll('#cust-updates-container .custom-update-row').forEach(row => {
+            const date = row.querySelector('.update-row-date').value.trim();
+            const text = row.querySelector('.update-row-text').value.trim();
+            if (date && text) updates.push({ date, text });
+        });
+
+        window.SopDraftState.template.headerImage = header;
+        window.SopDraftState.template.sidebarConfig = { calculator: calc, callingScript: script, quickPrompts: prompts, recentUpdates: updates };
+        renderSidebar();
+        backdrop.remove();
+        showToast('Sidebar configured locally ✓', 'success');
+        triggerAutoSave();
+    });
+}
+
+function addQuickPromptRow() {
+    const container = document.getElementById('cust-prompts-container');
+    const row = document.createElement('div');
+    row.className = 'custom-prompt-row';
+    row.style.cssText = 'display:flex; gap:10px; margin-bottom:8px; align-items:center;';
+    row.innerHTML = `
+        <input type="text" placeholder="Label" class="prompt-row-label" style="flex:1; border:1px solid #e2e8f0; padding:6px 10px; border-radius:6px; font-size:12px;">
+        <input type="text" placeholder="Text" class="prompt-row-text" style="flex:3; border:1px solid #e2e8f0; padding:6px 10px; border-radius:6px; font-size:12px;">
+        <button class="sop-toolbar-btn btn-red" style="padding:4px 8px; font-size:11px;" onclick="this.closest('.custom-prompt-row').remove()">🗑</button>
+    `;
+    container.appendChild(row);
+}
+
+function addRecentUpdateRow() {
+    const container = document.getElementById('cust-updates-container');
+    const row = document.createElement('div');
+    row.className = 'custom-update-row';
+    row.style.cssText = 'display:flex; gap:10px; margin-bottom:8px; align-items:center;';
+    row.innerHTML = `
+        <input type="text" placeholder="Date" class="update-row-date" style="flex:1; border:1px solid #e2e8f0; padding:6px 10px; border-radius:6px; font-size:12px;">
+        <input type="text" placeholder="Update Text" class="update-row-text" style="flex:3; border:1px solid #e2e8f0; padding:6px 10px; border-radius:6px; font-size:12px;">
+        <button class="sop-toolbar-btn btn-red" style="padding:4px 8px; font-size:11px;" onclick="this.closest('.custom-update-row').remove()">🗑</button>
+    `;
+    container.appendChild(row);
+}
+
+// Monaco Code View Toggle
+let monacoEditorInstance = null;
+function openMonacoCodeView() {
+    const container = document.getElementById('monaco-code-container');
+    const dynamicContainer = document.getElementById('sopDynamicContainer');
+    const sidebar = document.getElementById('sopSidebarContainer');
+    if (!container || !dynamicContainer || !sidebar) return;
+
+    dynamicContainer.style.display = 'none';
+    sidebar.style.display = 'none';
+    container.style.display = 'block';
+    document.getElementById('sop-options-dropdown').style.display = 'none';
+
+    let backBtn = document.getElementById('sop-monaco-back-btn');
+    if (!backBtn) {
+        backBtn = document.createElement('button');
+        backBtn.id = 'sop-monaco-back-btn';
+        backBtn.className = 'sop-toolbar-btn btn-purple';
+        backBtn.innerHTML = '← Return to GUI Editor';
+        backBtn.onclick = closeMonacoCodeView;
+        document.querySelector('#sop-edit-toolbar div').insertBefore(backBtn, document.getElementById('sop-save-layout-btn'));
+    }
+    backBtn.style.display = 'inline-flex';
+
+    if (!monacoEditorInstance) {
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' } });
+        require(['vs/editor/editor.main'], function () {
+            monacoEditorInstance = monaco.editor.create(container, {
+                value: JSON.stringify(window.SopDraftState, null, 4),
+                language: 'json',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: false }
+            });
+        });
+    } else {
+        monacoEditorInstance.setValue(JSON.stringify(window.SopDraftState, null, 4));
+    }
+}
+
+function closeMonacoCodeView() {
+    const container = document.getElementById('monaco-code-container');
+    const dynamicContainer = document.getElementById('sopDynamicContainer');
+    const sidebar = document.getElementById('sopSidebarContainer');
+    const backBtn = document.getElementById('sop-monaco-back-btn');
+    if (!container || !dynamicContainer || !sidebar || !monacoEditorInstance) return;
+
+    try {
+        const nextState = JSON.parse(monacoEditorInstance.getValue());
+        if (!nextState.template || !Array.isArray(nextState.cards)) {
+            throw new Error("Missing 'template' object or 'cards' array");
+        }
+        pushState();
+        window.SopDraftState = nextState;
+        renderSopLayout();
+        renderSidebar();
+
+        container.style.display = 'none';
+        dynamicContainer.style.display = '';
+        sidebar.style.display = '';
+        if (backBtn) backBtn.style.display = 'none';
+
+        showToast('JSON code modifications applied!', 'success');
+        triggerAutoSave();
+    } catch (err) {
+        alert('Invalid JSON structure: ' + err.message);
+    }
+}
+
+// History & Diff
+async function openVersionHistoryModal() {
+    document.getElementById('sop-options-dropdown').style.display = 'none';
+    const backdrop = buildBackdrop('sopHistoryBackdrop');
+    backdrop.innerHTML = `
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:560px;max-width:97%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative; font-family:inherit;">
+            <button onclick="document.getElementById('sopHistoryBackdrop').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+            <h3 style="margin:0 0 16px;font-size:1.15rem;color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:10px;">📜 SOP Version History</h3>
+            <div id="sop-history-list" style="display:flex; flex-direction:column; gap:12px;">
+                <div style="padding:20px; text-align:center; color:#64748b;"><i class="fa fa-spinner fa-spin"></i> Loading versions...</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
+
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/history`);
+        const data = await res.json();
+        if (data.success && data.history) {
+            const list = document.getElementById('sop-history-list');
+            if (data.history.length === 0) {
+                list.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b;">No version history found.</div>`;
+                return;
+            }
+            list.innerHTML = '';
+            data.history.forEach(h => {
+                const item = document.createElement('div');
+                item.style.cssText = 'border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; background:#f8fafc; display:flex; justify-content:space-between; align-items:center; gap: 15px;';
+                item.innerHTML = `
+                    <div style="flex:1;">
+                        <strong style="color:#1e293b;">Version v${h.version}</strong>
+                        <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                            Published by ${esc(h.publishedBy)} (${esc(h.publishedByRole)}) on ${new Date(h.publishedAt).toLocaleString()}
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="sop-toolbar-btn btn-slate" style="padding:5px 10px; font-size:11px;" onclick="compareHistoryVersion(${h.version})">🔍 Compare</button>
+                        <button class="sop-toolbar-btn btn-green" style="padding:5px 10px; font-size:11px;" onclick="rollbackToVersion(${h.version})">↩️ Rollback</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        } else {
+            throw new Error(data.error || 'Failed to fetch history');
+        }
+    } catch (err) {
+        document.getElementById('sop-history-list').innerHTML = `<div style="padding:20px; text-align:center; color:#ef4444;">Error: ${esc(err.message)}</div>`;
+    }
+}
+
+async function compareHistoryVersion(version) {
+    showToast(`Loading version v${version}...`, 'info');
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/history/${version}`);
+        const data = await res.json();
+        if (data.success && data.snapshot) {
+            window.diffSnapshotData = {
+                template: data.snapshot.templateSnapshot,
+                cards: data.snapshot.cardsSnapshot
+            };
+            renderSopLayout();
+            document.getElementById('sopHistoryBackdrop')?.remove();
+
+            let clearBtn = document.getElementById('sop-clear-diff-btn');
+            if (!clearBtn) {
+                clearBtn = document.createElement('button');
+                clearBtn.id = 'sop-clear-diff-btn';
+                clearBtn.className = 'sop-toolbar-btn btn-red';
+                clearBtn.style.cssText = 'position:fixed; bottom:25px; left:25px; z-index:9999; box-shadow:0 4px 15px rgba(0,0,0,0.2);';
+                clearBtn.innerHTML = '✕ Clear Comparison';
+                clearBtn.onclick = () => {
+                    window.diffSnapshotData = null;
+                    renderSopLayout();
+                    clearBtn.remove();
+                };
+                document.body.appendChild(clearBtn);
+            }
+            showToast(`Comparing with Version v${version} (Borders: Green=Added, Red=Removed, Blue=Minor Edit, Orange=Major Edit)`, 'success');
+        }
     } catch (err) {
         showToast('Error: ' + err.message, 'warning');
     }
 }
 
-function buildBackdrop(id) {
-    document.getElementById(id)?.remove();
-    const el = document.createElement('div');
-    el.id = id;
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);';
-    return el;
+async function rollbackToVersion(version) {
+    if (!confirm(`Rollback SOP WIMO to Version v${version}? This overrides the live version.`)) return;
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/rollback/${version}`, { method: 'POST', credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`SOP rolled back successfully to version v${version}!`, 'success');
+            document.getElementById('sopHistoryBackdrop')?.remove();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            throw new Error(data.error || 'Rollback failed');
+        }
+    } catch (err) {
+        showToast('Error: ' + err.message, 'warning');
+    }
 }
 
-/* ─── CSS for drag ghost ────────────────────────────────── */
-const editStyle = document.createElement('style');
-editStyle.textContent = `
-    .sop-drag-ghost { opacity:.4; transform:rotate(1.5deg); }
-    body[data-mode="edit"] .sop-card { cursor:grab; }
-    body[data-mode="edit"] .sop-card:active { cursor:grabbing; }
-`;
-if (SOP_MODE === 'edit') {
-    document.head.appendChild(editStyle);
-    document.body.setAttribute('data-mode', 'edit');
+function getCardDiffStatus(card) {
+    if (!window.diffSnapshotData) return null;
+    const snapCards = window.diffSnapshotData.cards || [];
+    const match = snapCards.find(c => c.title.toLowerCase().trim() === card.title.toLowerCase().trim());
+    if (!match) {
+        return { className: 'diff-added', bg: '#dcfce7', color: '#15803d', label: 'Added' };
+    }
+
+    const t1 = `${card.condition}\n${card.action}\n${card.details}`;
+    const t2 = `${match.condition}\n${match.action}\n${match.details}`;
+    const pct = getTextDiffPercentage(t1, t2);
+
+    if (pct === 0) return null;
+    if (pct < 20) {
+        return { className: 'diff-minor', bg: '#eff6ff', color: '#1d4ed8', label: 'Minor Edit' };
+    } else {
+        return { className: 'diff-major', bg: '#fff7ed', color: '#c2410c', label: 'Major Edit' };
+    }
 }
+
+function getTextDiffPercentage(s1, s2) {
+    s1 = s1 || ''; s2 = s2 || '';
+    const len = Math.max(s1.length, s2.length);
+    if (len === 0) return 0;
+    return (levenshteinDistance(s1, s2) / len) * 100;
+}
+
+function levenshteinDistance(a, b) {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+// Google Sheets Sync & Reconciliation
+async function fetchAndReconcileSheet() {
+    showToast('Fetching Google Sheet source...', 'info');
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/fetch-source`);
+        const data = await res.json();
+        if (data.success && data.data) {
+            const rows = data.data;
+            const reconciliation = [];
+            const cards = window.SopDraftState.cards || [];
+
+            rows.forEach(row => {
+                const title = row.title || row.scenario || '';
+                if (!title) return;
+                const match = cards.find(c => c.title.toLowerCase().trim() === title.toLowerCase().trim());
+                if (match) {
+                    const condMatch = (row.condition || row.trigger || '').toLowerCase().trim() === (match.condition || '').toLowerCase().trim();
+                    const actMatch = (row.action || '').toLowerCase().trim() === (match.action || '').toLowerCase().trim();
+                    const detailsMatch = (row.details || row.sop || '').toLowerCase().trim() === (match.details || '').toLowerCase().trim();
+
+                    if (condMatch && actMatch && detailsMatch) {
+                        reconciliation.push({ title, mismatch: false });
+                    } else {
+                        reconciliation.push({ title, mismatch: true });
+                    }
+                }
+            });
+
+            window.sheetReconciliationData = reconciliation;
+            renderSopLayout();
+            closeSheetModal();
+
+            let clearBtn = document.getElementById('sop-clear-reconcile-btn');
+            if (!clearBtn) {
+                clearBtn = document.createElement('button');
+                clearBtn.id = 'sop-clear-reconcile-btn';
+                clearBtn.className = 'sop-toolbar-btn btn-red';
+                clearBtn.style.cssText = 'position:fixed; bottom:25px; left:220px; z-index:9999; box-shadow:0 4px 15px rgba(0,0,0,0.2);';
+                clearBtn.innerHTML = '✕ Clear Sync Overlay';
+                clearBtn.onclick = () => {
+                    window.sheetReconciliationData = null;
+                    renderSopLayout();
+                    clearBtn.remove();
+                };
+                document.body.appendChild(clearBtn);
+            }
+            showToast('Sync Reconciliation check finished!', 'success');
+        } else {
+            throw new Error(data.error || 'Failed to fetch');
+        }
+    } catch (err) {
+        showToast('Sync Error: ' + err.message, 'warning');
+    }
+}
+
+// Save Sheet link URL via API
+async function saveSheetUrl() {
+    const url = document.getElementById('smUrlInput').value.trim();
+    if (!isValidSheetUrl(url)) return;
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/link-source`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+            credentials: 'same-origin'
+        });
+        const data = await res.json();
+        if (data.success) {
+            localStorage.setItem(SHEET_KEY, url);
+            applySheetUrl(url, true);
+            closeSheetModal();
+            showToast('Source sheet linked successfully ✓', 'success');
+        } else {
+            throw new Error(data.error || 'Save failed');
+        }
+    } catch (err) {
+        showToast('Error: ' + err.message, 'warning');
+    }
+}
+
+// AI Drawer Toggle & Chat
+function toggleAiSidebar() {
+    const sb = document.getElementById('aiSidebar');
+    if (sb) sb.classList.toggle('open');
+}
+
+async function sendAiChatMessage() {
+    const input = document.getElementById('aiInput');
+    const messages = document.getElementById('aiChatMessages');
+    const sendBtn = document.getElementById('aiSendBtn');
+    if (!input || !messages || !sendBtn) return;
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    const uMsg = document.createElement('div');
+    uMsg.className = 'ai-msg user';
+    uMsg.innerText = text;
+    messages.appendChild(uMsg);
+    input.value = '';
+    messages.scrollTop = messages.scrollHeight;
+
+    const bLoading = document.createElement('div');
+    bLoading.className = 'ai-msg bot';
+    bLoading.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Thinking...';
+    messages.appendChild(bLoading);
+    messages.scrollTop = messages.scrollHeight;
+
+    sendBtn.disabled = true;
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text, context: { draftState: window.SopDraftState } })
+        });
+        const data = await res.json();
+        if (data.success && data.reply) {
+            bLoading.innerText = data.reply;
+        } else {
+            throw new Error(data.error || 'Failed');
+        }
+    } catch (err) {
+        bLoading.innerText = 'AI Error: ' + err.message;
+    } finally {
+        sendBtn.disabled = false;
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+// ─── MISSING HELPER FUNCTIONS ────────────────────────────────────────
+
+/**
+ * Build a full-screen backdrop div for modals.
+ * Removes any existing backdrop with the same id first.
+ */
+function buildBackdrop(id) {
+    const existing = document.getElementById(id);
+    if (existing) existing.remove();
+    const backdrop = document.createElement('div');
+    backdrop.id = id;
+    backdrop.style.cssText = [
+        'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.55)',
+        'z-index:8000', 'display:flex', 'align-items:center',
+        'justify-content:center', 'backdrop-filter:blur(3px)',
+        'animation:fadeIn .15s ease'
+    ].join(';');
+    return backdrop;
+}
+
+/**
+ * Copy the text of a quick-prompt item to clipboard.
+ */
+function copyPromptText(el) {
+    const textEl = el.querySelector('.prompt-text');
+    const text = textEl ? textEl.innerText : el.innerText;
+    navigator.clipboard.writeText(text)
+        .then(() => showToast('Prompt copied!', 'success'))
+        .catch(() => showToast('Copy failed', 'warning'));
+}
+
+/**
+ * Open a publish validation/confirmation modal that shows a diff summary
+ * before finally calling the publish API.
+ */
+async function openPublishValidationModal() {
+    const backdrop = buildBackdrop('sopPublishBackdrop');
+
+    // Build placeholder modal first so user sees it immediately
+    backdrop.innerHTML = `
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:560px;max-width:97%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative;font-family:inherit;">
+            <button onclick="document.getElementById('sopPublishBackdrop').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#64748b;">✕</button>
+            <h3 style="margin:0 0 8px;font-size:1.1rem;color:#1e293b;display:flex;align-items:center;gap:8px;">
+                🚀 Publish SOP Draft
+            </h3>
+            <p style="font-size:0.82rem;color:#64748b;margin:0 0 18px;line-height:1.5;">
+                Publishing will replace the <strong>live SOP</strong> with your current draft.
+                This action will be logged in version history and <strong>cannot be undone</strong> (but can be rolled back).
+            </p>
+            <div id="pub-diff-area" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:0.82rem;max-height:280px;overflow-y:auto;margin-bottom:18px;">
+                <i class="fa fa-spinner fa-spin"></i> Loading change summary…
+            </div>
+            <div style="display:flex;gap:10px;margin-top:4px;">
+                <button onclick="document.getElementById('sopPublishBackdrop').remove()" style="flex:1;padding:11px;background:#f5f5f5;border:1px solid #e0e0e0;border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer;color:#64748b;">Cancel</button>
+                <button id="pub-confirm-btn" disabled style="flex:2;padding:11px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:800;font-family:inherit;cursor:not-allowed;opacity:0.5;display:flex;align-items:center;justify-content:center;gap:7px;">
+                    🚀 Confirm Publish
+                </button>
+            </div>
+            <p id="pub-policy-warn" style="margin:10px 0 0;font-size:0.72rem;color:#e65100;text-align:center;display:none;">
+                ⚠️ Ensure all changes comply with company policies before publishing.
+            </p>
+        </div>
+    `;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
+
+    // Fetch live data to compute diff
+    try {
+        const res = await fetch(`/${SOP_LOB}/sop/live`);
+        const data = await res.json();
+        const diffArea = document.getElementById('pub-diff-area');
+        const confirmBtn = document.getElementById('pub-confirm-btn');
+        const policyWarn = document.getElementById('pub-policy-warn');
+
+        if (!data.success) throw new Error(data.error || 'Failed to load live SOP');
+
+        const liveCards = data.cards || [];
+        const draftCards = window.SopDraftState.cards || [];
+
+        // Compute changes
+        const added = [];
+        const removed = [];
+        const modified = [];
+
+        draftCards.forEach(dc => {
+            const match = liveCards.find(lc => lc._id && dc._id && String(lc._id) === String(dc._id));
+            if (!match) {
+                const titleMatch = liveCards.find(lc => lc.title?.toLowerCase() === dc.title?.toLowerCase());
+                if (!titleMatch) added.push(dc.title);
+                else {
+                    if (titleMatch.condition !== dc.condition || titleMatch.action !== dc.action || titleMatch.details !== dc.details)
+                        modified.push(dc.title);
+                }
+            } else {
+                if (match.title !== dc.title || match.condition !== dc.condition || match.action !== dc.action || match.details !== dc.details)
+                    modified.push(dc.title || match.title);
+            }
+        });
+
+        liveCards.forEach(lc => {
+            const stillExists = draftCards.find(dc =>
+                (dc._id && lc._id && String(dc._id) === String(lc._id)) ||
+                dc.title?.toLowerCase() === lc.title?.toLowerCase()
+            );
+            if (!stillExists) removed.push(lc.title);
+        });
+
+        const total = added.length + removed.length + modified.length;
+
+        if (total === 0) {
+            diffArea.innerHTML = `<span style="color:#16a34a;">✓ No content changes detected. Template/sidebar config may have changed.</span>`;
+        } else {
+            let html = `<strong style="color:#1e293b;">${total} change${total > 1 ? 's' : ''} detected:</strong><ul style="margin:8px 0 0;padding-left:18px;line-height:1.8;">`;
+            added.forEach(t => { html += `<li style="color:#15803d;">➕ Added: <em>${esc(t)}</em></li>`; });
+            modified.forEach(t => { html += `<li style="color:#1d4ed8;">✏️ Modified: <em>${esc(t)}</em></li>`; });
+            removed.forEach(t => { html += `<li style="color:#b91c1c;text-decoration:line-through;">🗑 Removed: <em>${esc(t)}</em></li>`; });
+            html += '</ul>';
+            diffArea.innerHTML = html;
+        }
+
+        // Enable confirm button
+        confirmBtn.disabled = false;
+        confirmBtn.style.cursor = 'pointer';
+        confirmBtn.style.opacity = '1';
+        if (policyWarn) policyWarn.style.display = 'block';
+
+        confirmBtn.addEventListener('click', async () => {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Publishing…';
+            try {
+                // First save the latest draft state
+                await saveDraftToServer();
+
+                const pubRes = await fetch(`/${SOP_LOB}/sop/publish`, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                const pubData = await pubRes.json();
+                if (pubData.success) {
+                    backdrop.remove();
+                    showToast(`SOP published successfully as v${pubData.version}! 🎉`, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(pubData.error || 'Publish failed');
+                }
+            } catch (err) {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '🚀 Confirm Publish';
+                showToast('Publish error: ' + err.message, 'warning');
+            }
+        });
+
+    } catch (err) {
+        const diffArea = document.getElementById('pub-diff-area');
+        if (diffArea) diffArea.innerHTML = `<span style="color:#ef4444;">⚠️ Could not load diff: ${esc(err.message)}</span>`;
+        const confirmBtn = document.getElementById('pub-confirm-btn');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.style.cursor = 'pointer';
+            confirmBtn.style.opacity = '1';
+            confirmBtn.addEventListener('click', async () => {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Publishing…';
+                try {
+                    await saveDraftToServer();
+                    const pubRes = await fetch(`/${SOP_LOB}/sop/publish`, { method: 'POST', credentials: 'same-origin' });
+                    const pubData = await pubRes.json();
+                    if (pubData.success) {
+                        backdrop.remove();
+                        showToast(`SOP published as v${pubData.version}! 🎉`, 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else throw new Error(pubData.error || 'Publish failed');
+                } catch (e) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = '🚀 Confirm Publish';
+                    showToast('Error: ' + e.message, 'warning');
+                }
+            });
+        }
+    }
+}
+
+// Initialization and DOM wireup
+function initEditMode() {
+    renderSopLayout();
+    renderSidebar();
+
+    document.getElementById('sop-undo-btn')?.addEventListener('click', undo);
+    document.getElementById('sop-redo-btn')?.addEventListener('click', redo);
+    document.getElementById('sop-options-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const drop = document.getElementById('sop-options-dropdown');
+        if (drop) drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.getElementById('sop-save-layout-btn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('sop-save-layout-btn');
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
+        await saveDraftToServer();
+        btn.innerHTML = oldText;
+        showToast('Draft saved successfully', 'success');
+    });
+
+    document.getElementById('sop-publish-btn')?.addEventListener('click', openPublishValidationModal);
+
+    document.addEventListener('click', () => {
+        const drop = document.getElementById('sop-options-dropdown');
+        if (drop) drop.style.display = 'none';
+    });
+
+    // Wire up Enter key for AI Chat input
+    const aiInput = document.getElementById('aiInput');
+    if (aiInput) {
+        aiInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAiChatMessage();
+            }
+        });
+    }
+
+    // Set page data mode
+    document.body.setAttribute('data-mode', 'edit');
+    const style = document.createElement('style');
+    style.textContent = `
+        .sop-drag-ghost { opacity:.4; transform:rotate(1.5deg); }
+        body[data-mode="edit"] .sop-card { cursor:grab; }
+        body[data-mode="edit"] .sop-card:active { cursor:grabbing; }
+    `;
+    document.head.appendChild(style);
+}
+
+// Run boot operations
+document.addEventListener('DOMContentLoaded', () => {
+    if (SOP_MODE === 'edit') {
+        (function loadSortable(cb) {
+            if (window.Sortable) { cb(); return; }
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js';
+            s.onload = cb;
+            document.head.appendChild(s);
+        })(initEditMode);
+    } else if (SOP_MODE === 'preview') {
+        // Readonly dynamic render of draft state for preview mode
+        renderSopLayout();
+        renderSidebar();
+    }
+});
 
 </script>
+
+<% if (typeof mode !== 'undefined' && mode === 'edit') { %>
+<!-- AI Drawer Sidebar -->
+<div class="ai-sidebar" id="aiSidebar">
+    <div class="ai-header">
+        <div class="ai-title">✨ Zomato SOP AI Chatbot</div>
+        <button class="ai-close" onclick="toggleAiSidebar()">✕</button>
+    </div>
+    <div class="ai-chat-messages" id="aiChatMessages">
+        <div class="ai-msg bot">
+            Hi Aditya! I am your WIMO SOP assistant. You can ask me to draft a calling script, refine compensation guidelines, or suggest detailed actions for a particular case.
+        </div>
+    </div>
+    <div class="ai-input-container">
+        <textarea class="ai-input" id="aiInput" placeholder="Ask AI... (Press Shift+Enter to send)"></textarea>
+        <button class="ai-send-btn" id="aiSendBtn" onclick="sendAiChatMessage()">Send</button>
+    </div>
+</div>
+<div class="ai-sidebar-toggle" id="aiSidebarToggle" onclick="toggleAiSidebar()" title="Ask WIMO AI Assistant">
+    <i class="fa fa-android"></i>
+</div>
+<% } %>
 
 </body>
 </html>

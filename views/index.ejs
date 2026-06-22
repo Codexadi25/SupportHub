@@ -142,30 +142,126 @@
                   </div>
                 </div>
               <% } else { %>
+              <!-- SupportHub Extension Offline Sync Data -->
+              <div id="supporthub-extension-sync-data" style="display: none;" 
+                   data-user-lob="<%= (user.department || 'zomato').toLowerCase().trim() %>"
+                   data-user-name="<%= user.username %>"
+                   data-templates="<%= JSON.stringify(categories.map(cat => ({
+                       categoryTitle: cat.title,
+                       templates: (cat.templates || []).map(t => ({
+                           _id: t._id,
+                           text: t.text,
+                           tags: t.tags || [],
+                           isAi: t.isAi || false
+                       }))
+                   }))) %>">
+              </div>
+
               <div class="tabs">
+                <!-- Core Tabs -->
                 <button class="tab-link active" data-tab="Cands">Cands</button>
                 <button class="tab-link" data-tab="AICands">AI Cand</button>
                 <button class="tab-link" data-tab="PNs">Private Notes</button>
-                <button class="tab-link" data-tab="Feedback">Feedback</button>
-                <button class="tab-link" data-tab="Messages">
-                    <span class="tab-text">Messages</span>
-                    <span class="notification-bell" id="message-notification-bell" style="display: none;">
-                        🔔
-                        <span class="notification-count" id="unread-message-count">0</span>
-                    </span>
-                </button>
                 <button class="tab-link" data-tab="Briefings">Briefings &amp; SOPs</button>
                 <% if (user.role !== 'new') { %>
                   <a href="/<%= (user.department || 'zomato').toLowerCase().trim() %>/sop/edit" class="tab-link sop-btn" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;">Smart SOP</a>
                 <% } %>
-                <% if (user.role === 'vendor' || user.role === 'admin') { %>
-                  <button class="tab-link" data-tab="Logger">Logger</button>
-                <% } %>
-                  <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
-                       <button class="tab-link" data-tab="SendNotification">Send Notification</button>
-                       <button class="tab-link" data-tab="Admin">Admin Panel</button>
-                     <% } %>
+
+                <!-- Creative "More" Dropdown -->
+                <div class="tab-dropdown">
+                  <button class="tab-dropdown-toggle" id="tab-dropdown-btn" type="button">
+                    <span id="tab-dropdown-label">More</span> <span class="arrow">▾</span>
+                    <span class="notification-dot" id="dropdown-notification-dot"></span>
+                  </button>
+                  <div class="tab-dropdown-menu" id="tab-dropdown-menu">
+                    <button class="tab-link dropdown-item" data-tab="Feedback">Feedback</button>
+                    <button class="tab-link dropdown-item" data-tab="Messages">
+                        <span class="tab-text">Messages</span>
+                        <span class="notification-bell" id="message-notification-bell" style="display: none;">
+                            🔔
+                            <span class="notification-count" id="unread-message-count">0</span>
+                        </span>
+                    </button>
+                    <% if (user.role !== 'new') { %>
+                      <button class="tab-link dropdown-item" data-tab="AudioTranslate">Extensions</button>
+                    <% } %>
+                    <% if (user.role === 'admin' || user.role === 'vendor' || user.role === 'team_lead' || user.role === 'editor' || user.role === 'quality_analyst') { %>
+                      <button class="tab-link dropdown-item" data-tab="AIConfig">AI Config</button>
+                    <% } %>
+                    <% if (user.role === 'vendor' || user.role === 'admin') { %>
+                      <button class="tab-link dropdown-item" data-tab="Logger">Logger</button>
+                    <% } %>
+                    <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead' || user.hasAdminPanelAccess) { %>
+                      <button class="tab-link dropdown-item" data-tab="SendNotification">Send Notification</button>
+                      <button class="tab-link dropdown-item" data-tab="Admin">Admin Panel</button>
+                    <% } %>
+                  </div>
+                </div>
               </div>
+
+              <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                  const dropdownBtn = document.getElementById('tab-dropdown-btn');
+                  const dropdownLabel = document.getElementById('tab-dropdown-label');
+                  const dropdownMenu = document.getElementById('tab-dropdown-menu');
+                  const dropdownDot = document.getElementById('dropdown-notification-dot');
+
+                  // Toggle dropdown
+                  dropdownBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdownMenu.classList.toggle('show');
+                  });
+
+                  // Close dropdown on click outside
+                  document.addEventListener('click', (e) => {
+                    if (dropdownMenu.classList.contains('show') && !dropdownMenu.contains(e.target) && e.target !== dropdownBtn && !dropdownBtn.contains(e.target)) {
+                      dropdownMenu.classList.remove('show');
+                    }
+                  });
+
+                  // Listen for tab switching to highlight the "More" dropdown when appropriate
+                  const tabLinks = document.querySelectorAll('.tab-link');
+                  const coreTabs = ['Cands', 'AICands', 'PNs', 'Briefings'];
+
+                  tabLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                      const tabId = link.dataset.tab;
+                      if (!tabId) return; // SOP anchor button
+
+                      const isDropdownItem = link.classList.contains('dropdown-item');
+                      if (isDropdownItem) {
+                        // A tab inside the dropdown was clicked
+                        dropdownBtn.classList.add('active');
+                        dropdownLabel.textContent = `More: ${link.querySelector('.tab-text')?.textContent || link.textContent.trim().replace(/🔔\s*\d+/, '')}`;
+                        dropdownMenu.classList.remove('show');
+                      } else if (coreTabs.includes(tabId)) {
+                        // A core tab was clicked
+                        dropdownBtn.classList.remove('active');
+                        dropdownLabel.textContent = 'More';
+                        // Remove active class from any previously active dropdown items
+                        dropdownMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+                      }
+                    });
+                  });
+
+                  // Observe notification bell style to show red dot on dropdown toggle
+                  const bell = document.getElementById('message-notification-bell');
+                  if (bell) {
+                    const observer = new MutationObserver((mutations) => {
+                      if (bell.style.display !== 'none') {
+                        dropdownDot.style.display = 'inline-block';
+                      } else {
+                        dropdownDot.style.display = 'none';
+                      }
+                    });
+                    observer.observe(bell, { attributes: true, attributeFilter: ['style'] });
+                    // Initial check
+                    if (bell.style.display !== 'none') {
+                      dropdownDot.style.display = 'inline-block';
+                    }
+                  }
+                });
+              </script>
 
               <div id="Cands" class="tab-content active">
                   <%- include('partials/candPanel', { categories: categories, allTags: allTags }) %>
@@ -185,7 +281,17 @@
               <div id="Briefings" class="tab-content">
                   <%- include('partials/briefingsPanel') %>
               </div>
-                <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead') { %>
+              <% if (user.role !== 'new') { %>
+                <div id="AudioTranslate" class="tab-content">
+                    <%- include('partials/audioTranslatePanel') %>
+                </div>
+              <% } %>
+              <% if (user.role === 'admin' || user.role === 'vendor' || user.role === 'team_lead' || user.role === 'editor' || user.role === 'quality_analyst') { %>
+                <div id="AIConfig" class="tab-content">
+                    <%- include('partials/aiConfigPanel') %>
+                </div>
+              <% } %>
+                <% if (user.role === 'vendor' || user.role === 'admin' || user.role === 'team_lead' || user.hasAdminPanelAccess) { %>
                   <div id="SendNotification" class="tab-content">
                     <%- include('partials/sendNotificationPanel') %>
                   </div>
@@ -699,6 +805,9 @@
     <script src="/js/notifications.js"></script>
     <script src="/js/main.js"></script>
     <script src="/js/notices.js"></script>
+    <% if (user.role === 'admin' || user.role === 'vendor' || user.role === 'team_lead' || user.role === 'editor' || user.role === 'quality_analyst' || user.hasAdminPanelAccess) { %>
+        <script src="/js/admin.js"></script>
+    <% } %>
     <!-- Feature Guide — loads last so all UI elements are in DOM -->
     <script src="/js/guide.js"></script>
 </body>

@@ -69,8 +69,14 @@ Generate a concise, connected explanation phrase adhering to the rules above.`;
                 });
             }
             console.log('Successfully completed default AI Cands tag and prompt seeding.');
+
+            // Sync permitted words on boot to ensure vocabulary is populated/updated
+            console.log('[Boot Sync] Triggering permitted words synchronization...');
+            const wordManager = require('../utils/permittedWordManager');
+            const syncStats = await wordManager.syncWordsFromDatabase();
+            console.log(`[Boot Sync] Synchronized permitted words. Created: ${syncStats.created}, Updated: ${syncStats.updated}`);
         } catch (seedErr) {
-            console.error('Error during default AI Cands tag/prompt seeding:', seedErr.message);
+            console.error('Error during default AI Cands tag/prompt seeding/sync:', seedErr.message);
         }
     } catch (error) {
         console.error(`Error connecting to MongoDB: ${error.message}`);

@@ -108,6 +108,7 @@
           <button class="btn btn-ghost btn-sm" onclick="exportData('xlsx')">📊 Excel (.xlsx)</button>
           <button class="btn btn-ghost btn-sm" onclick="exportData('csv')">📄 CSV</button>
           <button class="btn btn-ghost btn-sm" onclick="exportData('pdf')">📑 PDF Report</button>
+          <button class="btn btn-ghost btn-sm" onclick="shareAsImage()">🖼️ Image Format</button>
         </div>
       </div>
 
@@ -254,5 +255,97 @@
         </div>
       </form>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ADD / EDIT PERFORMANCE RECORD MODAL (MANUAL UPSERT)
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="addRecordModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span style="font-size:22px;">➕</span>
+      <span class="modal-title" id="addRecordModalTitle">Add/Edit Performance Record</span>
+      <button class="modal-close" onclick="closeModal('addRecordModal')">✕</button>
+    </div>
+    <form id="addRecordForm" onsubmit="saveManualRecord(event)">
+      <div class="modal-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="manual-record-date">Date <span style="color:#ef4444">*</span></label>
+            <input type="date" class="form-input" id="manual-record-date" required style="width: 100%;" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="manual-record-employee">Employee <span style="color:#ef4444">*</span></label>
+            <select class="form-input" id="manual-record-employee" required style="width: 100%; height: 38px;">
+              <option value="">-- Select Employee --</option>
+              <!-- Populated dynamically: combination of mapped and dummy deactivated users -->
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="manual-record-status">Attendance Status</label>
+            <select class="form-input" id="manual-record-status" required style="width: 100%; height: 38px;">
+              <option value="present">Present</option>
+              <option value="absent">Absent</option>
+              <option value="half_day">Half Day</option>
+              <option value="leave">Leave</option>
+              <option value="work_from_home">Work From Home</option>
+              <option value="week_off">Week Off</option>
+              <option value="holiday">Holiday</option>
+              <option value="training">Training</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="manual-record-shift">Shift Type</label>
+            <select class="form-input" id="manual-record-shift" required style="width: 100%; height: 38px;">
+              <option value="general">General</option>
+              <option value="morning">Morning</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="night">Night</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="border-top: 1px dashed var(--clr-border, #374151); margin: 16px 0; padding-top: 14px;">
+          <h4 style="font-size: 13px; color: var(--clr-text-secondary); margin-bottom: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Performance Key Metrics (KPIs)</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="manual-record-tickets">Tickets Processed</label>
+              <input type="number" class="form-input" id="manual-record-tickets" min="0" value="0" style="width: 100%;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="manual-record-aht">AHT (Minutes)</label>
+              <input type="number" step="0.01" class="form-input" id="manual-record-aht" min="0" value="0" style="width: 100%;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="manual-record-quality">Quality Score (%)</label>
+              <input type="number" step="0.1" class="form-input" id="manual-record-quality" min="0" max="100" value="0" style="width: 100%;" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="manual-record-csat">CSAT (0 - 5)</label>
+              <input type="number" step="0.1" class="form-input" id="manual-record-csat" min="0" max="5" value="0" style="width: 100%;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="manual-record-fcr">FCR (%)</label>
+              <input type="number" step="0.1" class="form-input" id="manual-record-fcr" min="0" max="100" value="0" style="width: 100%;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="manual-record-loginhrs">Login Hours</label>
+              <input type="number" step="0.01" class="form-input" id="manual-record-loginhrs" min="0" value="0" style="width: 100%;" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('addRecordModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveManualRecordBtn">Save Record</button>
+      </div>
+    </form>
   </div>
 </div>

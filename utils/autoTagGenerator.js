@@ -219,4 +219,4 @@ const generateTags = (text) => {
     return [...new Set([...topTags, ...hashtagMatches])];
 };
 
-module.exports = { generateTags };
+module.exports = { generateTags, TAG_KEYWORDS };

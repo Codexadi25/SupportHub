@@ -1,7 +1,7 @@
 const Tag = require('../models/Tag');
 const Prompt = require('../models/Prompt');
 const AiCand = require('../models/AiCand');
-const { generateAiCannedResponse } = require('../services/aiService');
+const { generateAiCannedResponse } = require('../services/cannedAiService');
 const Logger = require('../utils/logger');
 const asyncHandler = require('express-async-handler');
 
@@ -181,7 +181,26 @@ exports.getAdminCands = asyncHandler(async (req, res) => {
         return orderA - orderB;
     });
 
-    res.json({ success: true, cands });
+    const Category = require('../models/Category');
+    const categories = await Category.find({ lob: lob.toLowerCase() });
+    const aiTemplates = [];
+    categories.forEach(cat => {
+        cat.templates.forEach(tpl => {
+            if (tpl.isAi) {
+                aiTemplates.push({
+                    _id: tpl._id,
+                    categoryId: cat._id,
+                    categoryTitle: cat.title,
+                    text: tpl.text,
+                    tags: tpl.tags,
+                    isAi: true,
+                    meta: tpl.meta
+                });
+            }
+        });
+    });
+
+    res.json({ success: true, cands, aiTemplates });
 });
 
 exports.createAdminCand = asyncHandler(async (req, res) => {
@@ -225,10 +244,11 @@ exports.updateAdminCand = asyncHandler(async (req, res) => {
         throw new Error('Canned response not found');
     }
 
-    // Only Admin can edit admin cands
-    if (req.session.user.role !== 'admin') {
+    // Only Admin/Editor can edit admin cands
+    const EDITOR_ROLES = ['admin', 'vendor', 'team_lead', 'quality_analyst', 'editor'];
+    if (!EDITOR_ROLES.includes(req.session.user.role)) {
         res.status(403);
-        throw new Error('Admin privileges required to edit this canned response');
+        throw new Error('Editor or Admin privileges required to edit this canned response');
     }
 
     const oldData = { text: cand.text, tags: cand.tags };
@@ -262,10 +282,11 @@ exports.deleteAdminCand = asyncHandler(async (req, res) => {
         throw new Error('Canned response not found');
     }
 
-    // Only Admin can delete admin cands
-    if (req.session.user.role !== 'admin') {
+    // Only Admin/Editor can delete admin cands
+    const EDITOR_ROLES = ['admin', 'vendor', 'team_lead', 'quality_analyst', 'editor'];
+    if (!EDITOR_ROLES.includes(req.session.user.role)) {
         res.status(403);
-        throw new Error('Admin privileges required to delete this canned response');
+        throw new Error('Editor or Admin privileges required to delete this canned response');
     }
 
     await AiCand.findByIdAndDelete(candId);

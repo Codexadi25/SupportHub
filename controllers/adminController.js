@@ -1,4 +1,4 @@
-const Category = require('../models/Category');
+                                                                                                                                                                                                                                                                 const Category = require('../models/Category');
 const Log = require('../models/Log');
 const User = require('../models/User');
 const Team = require('../models/Team');
@@ -9,6 +9,20 @@ const Logger = require('../utils/logger');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+
+// Helper: log and respond to errors consistently
+async function logAndError(res, statusCode, message, err, context = {}) {
+    if (err) {
+        console.error(`[AdminController] ${message}:`, err);
+        await Logger.logError(`[AdminController] ${message}`, err, {
+            action: context.action || 'admin_error',
+            resource: context.resource || 'admin',
+            username: context.username || '',
+            severity: 'high'
+        });
+    }
+    return res.status(statusCode).json({ error: message });
+}
 
 
 // @desc    Bulk upload canned responses from JSON file
@@ -303,15 +317,34 @@ async function deleteUser(req, res) {
             return res.status(404).json({ error: 'User not found' });
         }
         
-        if (user.role === 'admin') {
-            return res.status(400).json({ error: 'Cannot delete an admin account' });
+        // The 'admin' username is a protected system account and can NEVER be deleted
+        if (user.username === 'admin') {
+            await Logger.logWarning('[AdminController] Attempt to delete protected admin account blocked', {
+                action: 'delete_user_blocked',
+                resource: 'user',
+                resourceId: user._id.toString(),
+                username: req.session?.user?.username || 'unknown',
+                severity: 'high'
+            });
+            return res.status(403).json({ error: 'The system admin account cannot be deleted.' });
         }
         
         await user.deleteOne();
-        // User deleted
+        await Logger.logInfo(`[AdminController] User deleted: ${user.username}`, {
+            action: 'delete_user',
+            resource: 'user',
+            resourceId: user._id.toString(),
+            username: req.session?.user?.username || 'unknown'
+        });
         res.json({ message: 'User deleted successfully' });
     } catch (error) {
         console.error('Delete user error:', error);
+        await Logger.logError('[AdminController] Delete user error', error, {
+            action: 'delete_user',
+            resource: 'user',
+            resourceId: req.params.id,
+            username: req.session?.user?.username || 'unknown'
+        });
         res.status(500).json({ error: 'Failed to delete user' });
     }
 }
@@ -669,6 +702,82 @@ async function deletePermittedWord(req, res) {
     }
 }
 
+async function mapEmployeeId(req, res) {
+    try {
+        const { userId, employeeId } = req.body;
+        if (!userId || !employeeId) {
+            return res.status(400).json({ error: 'User ID and Employee ID are required.' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // Check if employeeId is already mapped to someone else
+        const cleanEmpId = String(employeeId).trim();
+        const existing = await User.findOne({ 
+            _id: { $ne: userId },
+            employeeId: cleanEmpId,
+            organization: user.organization
+        });
+        if (existing) {
+            return res.status(400).json({ error: `Employee ID "${cleanEmpId}" is already mapped to user "${existing.displayName || existing.username}".` });
+        }
+
+        user.employeeId = cleanEmpId;
+        await user.save();
+
+        res.json({ success: true, message: `Successfully mapped user to Employee ID "${cleanEmpId}".`, user });
+    } catch (error) {
+        console.error('Map Employee ID error:', error);
+        res.status(500).json({ error: 'Failed to map Employee ID.' });
+    }
+}
+
+async function createUnknownEmployee(req, res) {
+    try {
+        const { employeeId, displayName, department, teamId } = req.body;
+        const org = req.session?.user?.organization || 'startek india';
+
+        if (!employeeId || !displayName) {
+            return res.status(400).json({ error: 'Employee ID and Agent Name are required.' });
+        }
+
+        const cleanEmpId = String(employeeId).trim();
+        const existing = await User.findOne({
+            employeeId: cleanEmpId,
+            organization: org
+        });
+        if (existing) {
+            return res.status(400).json({ error: `An employee with ID "${cleanEmpId}" already exists.` });
+        }
+
+        const sanitizedEmpId = cleanEmpId.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        const suffix = crypto.randomBytes(3).toString('hex');
+        const dummyUsername = `dummy_${sanitizedEmpId}_${suffix}`;
+        const dummyPassword = crypto.randomBytes(16).toString('hex');
+
+        const newUser = new User({
+            username: dummyUsername,
+            password: dummyPassword,
+            role: 'user',
+            displayName: displayName.trim(),
+            employeeId: cleanEmpId,
+            organization: org,
+            department: (department || 'general').toLowerCase().trim(),
+            teamId: teamId && teamId !== 'none' && teamId !== 'null' ? teamId : null,
+            isActive: false
+        });
+
+        await newUser.save();
+        res.status(201).json({ success: true, message: `Successfully created unknown employee record.`, user: newUser });
+    } catch (error) {
+        console.error('Create unknown employee error:', error);
+        res.status(500).json({ error: 'Failed to create unknown employee record.' });
+    }
+}
+
 module.exports = {
     bulkUploadCands,
     getLogs,
@@ -690,4 +799,6 @@ module.exports = {
     getPermittedWords,
     addPermittedWord,
     deletePermittedWord,
+    mapEmployeeId,
+    createUnknownEmployee
 };

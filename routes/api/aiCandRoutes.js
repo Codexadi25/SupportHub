@@ -18,9 +18,9 @@ const {
 
 // Tag management
 router.get('/tags', isAuthenticated, getTags);
-router.post('/tags', isAuthenticated, createTag);
-router.put('/tags/:id', isAuthenticated, updateTag);
-router.delete('/tags/:id', isAuthenticated, deleteTag);
+router.post('/tags', isAdmin, createTag);
+router.put('/tags/:id', isAdmin, updateTag);
+router.delete('/tags/:id', isAdmin, deleteTag);
 
 // Prompt template management
 router.get('/prompt', isAuthenticated, getPrompt);

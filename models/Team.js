@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const teamSchema = new mongoose.Schema({
     name:         { type: String, required: true, trim: true },
-    organization: { type: String, lowercase: true, default: 'default' },
+    organization: { type: String, lowercase: true, default: 'startek india' },
     department:   { type: String, lowercase: true, default: 'none' },
     teamLeadId:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     members:      [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

@@ -1,18 +1,19 @@
-# SupportHub 🚀 (v2.5.1)
+# SupportHub 🚀 (v3.0.0)
 
 SupportHub is a premium, real-time collaboration and unified canned responses platform designed to boost support agent efficiency, streamline team workflow, and secure internal knowledge resources.
 
-## 🌟 What's New in v2.5.1
+## 🌟 What's New in v3.0.0 (PulseTrack Performance Suite)
 
-- **🔒 Strict Username Policy & Validation**:
-  - Direct alphanumeric and underscore-only validation (`/^[a-zA-Z0-9_]+$/`) is now strictly enforced at the database schema level (Mongoose), registration controllers, and profile update endpoints.
-  - Interactive live frontend sanitization automatically strips spaces, dots, dashes, and other special characters during typing to provide immediate feedback.
-- **🛡️ Login Security Interception**:
-  - Login attempts utilizing usernames with invalid formats are caught by a security interception layer, displaying an explicit guidelines warning prompting the user to create a fresh, clean account under the new rules.
-- **🔑 Two-Factor Admin Deletion Confirmation**:
-  - Administrative deletion of user accounts now requires a two-factor confirmation layer, prompt-verifying the exact username of the target account to prevent accidental database deletes.
-- **⚡ Seamless Inline Smart SOP Panel**:
-  - The "Smart SOP" feature is fully integrated directly into the dashboard tabs framework. Agents and admins can view and edit SOPs inline within the main dashboard without separate browser tab redirects.
+- **📊 Fusion of Power BI & MS Excel Features**:
+  - A premium dashboard to track, organize, and visualize employee attendance and performance KPIs.
+  - Supports compound data queries, attendance charts, breaks duration patterns, and error categorization.
+- **✉️ User-Email & Employee ID Mapping**:
+  - Automatically resolves and maps registered platform users to their corporate Employee IDs using spreadsheet email columns during bulk upload.
+- **🛡️ Custom Admin Panel & Roster Security**:
+  - Administrators can map any registered user to an Employee ID or create deactivated dummy accounts for unknown employees (not registered on the platform) to enable performance reports tracking.
+  - Granular role-based routing using the `hasAdminPanelAccess` override flag.
+- **➕ Manual Performance Record Upserts**:
+  - Authorized Team Leads/Admins can manually add or edit performance scorecard metrics (CSAT, Quality %, AHT, FCR %, and Tickets) for any mapped or dummy employee on any date.
 
 ## ⚙️ Key Technical Stack
 - **Backend**: Node.js, Express, MongoDB/Mongoose

@@ -3,7 +3,11 @@ const User = require('../models/User');
 const isAuthenticated = async (req, res, next) => {
     if (req.session && req.session.user) {
         try {
-            const user = await User.findById(req.session.user.id || req.session.user._id).select('currentSessionId isActive role');
+            const user = await User.findById(req.session.user.id || req.session.user._id).select('currentSessionId isActive role hasAdminPanelAccess');
+            
+            if (user) {
+                req.session.user.hasAdminPanelAccess = user.hasAdminPanelAccess || false;
+            }
             
             if (!user || user.isActive === false) {
                 req.session.destroy(() => {
@@ -106,7 +110,8 @@ const isBroadcaster = (req, res, next) => {
 
 const isVendorOrAdmin = (req, res, next) => {
     const role = req.session?.user?.role;
-    if (['vendor','admin'].includes(role)) return next();
+    const hasAdminPanelAccess = req.session?.user?.hasAdminPanelAccess;
+    if (['vendor','admin'].includes(role) || hasAdminPanelAccess === true) return next();
     return res.status(403).json({ message: 'Forbidden: Vendor or Admin required.' });
 };
 
@@ -118,7 +123,8 @@ const isNotNew = (req, res, next) => {
 
 const isUserManager = (req, res, next) => {
     const role = req.session?.user?.role;
-    if (['team_lead','quality_analyst','vendor','admin'].includes(role)) return next();
+    const hasAdminPanelAccess = req.session?.user?.hasAdminPanelAccess;
+    if (['team_lead','quality_analyst','vendor','admin'].includes(role) || hasAdminPanelAccess === true) return next();
     return res.status(403).json({ message: 'Forbidden: User Management access required.' });
 };
 
