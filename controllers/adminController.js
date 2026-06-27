@@ -126,11 +126,28 @@ async function updateUserRole(req, res) {
             return res.status(403).json({ error: 'Forbidden: Only Team Leaders, Admins, and Vendors can update departments or roles.' });
         }
 
-        const { role, department, teamId } = req.body;
+        const { role, department, teamId, organization } = req.body;
         const user = await User.findById(req.params.id);
         
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Restrict team_lead to only modifying users in their team, or aligning them to their team
+        const reqUserId = req.session?.user?._id || req.session?.user?.id || req.user?._id || req.user?.id;
+        if (reqRole === 'team_lead') {
+            const tlTeam = await Team.findOne({ teamLeadId: reqUserId, isActive: true });
+            const isCurrentlyInTeam = user.teamId && tlTeam && String(user.teamId) === String(tlTeam._id);
+            let isTargetingOwnTeam = false;
+            if (teamId && teamId !== 'none' && teamId !== 'null') {
+                const targetTeam = await Team.findById(teamId);
+                if (targetTeam && String(targetTeam.teamLeadId) === String(reqUserId)) {
+                    isTargetingOwnTeam = true;
+                }
+            }
+            if (!isCurrentlyInTeam && !isTargetingOwnTeam) {
+                return res.status(403).json({ error: 'Forbidden: You can only modify users aligned under your team.' });
+            }
         }
 
         // Handle team alignment
@@ -195,6 +212,9 @@ async function updateUserRole(req, res) {
             } else {
                 await Team.updateMany({ teamLeadId: user._id }, { isActive: false });
             }
+        }
+        if (organization !== undefined) {
+            user.organization = organization.trim().toLowerCase() || 'startek india';
         }
         if (department !== undefined && teamId === undefined) {
             user.department = department.trim().toLowerCase() || 'general';
@@ -599,6 +619,32 @@ async function createDepartment(req, res) {
 // @access  UserManager roles
 async function getTeams(req, res) {
     try {
+        // Sync active team leads to ensure they have active teams
+        const teamLeads = await User.find({ role: 'team_lead', isActive: true });
+        for (const tl of teamLeads) {
+            let teamObj = await Team.findOne({ teamLeadId: tl._id, organization: tl.organization });
+            if (!teamObj) {
+                teamObj = new Team({
+                    name: (tl.displayName || tl.username) + ' Team',
+                    teamLeadId: tl._id,
+                    organization: tl.organization || 'general',
+                    department: tl.department || 'general',
+                    isActive: true
+                });
+                await teamObj.save();
+            } else if (!teamObj.isActive) {
+                teamObj.isActive = true;
+                await teamObj.save();
+            }
+        }
+        
+        // Deactivate teams whose TL is no longer team_lead or active
+        const activeTlIds = teamLeads.map(tl => tl._id);
+        await Team.updateMany(
+            { teamLeadId: { $nin: activeTlIds, $ne: null }, isActive: true },
+            { isActive: false }
+        );
+
         const teams = await Team.find({ isActive: true })
             .populate('teamLeadId', 'username profileName displayName')
             .sort({ name: 1 })

@@ -81,6 +81,25 @@ try {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+const AdmZip = require('adm-zip');
+app.get('/extension.zip', (req, res) => {
+  try {
+    const zip = new AdmZip();
+    zip.addLocalFolder(path.join(__dirname, 'public/extension'));
+    const buffer = zip.toBuffer();
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': 'attachment; filename="SupportHubExtension.zip"',
+      'Content-Length': buffer.length
+    });
+    res.send(buffer);
+  } catch (err) {
+    console.error('Error generating extension.zip:', err);
+    res.status(500).send('Failed to generate extension zip file');
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 // Ensure session is initialized before requestLogger so user info is available for logs
 app.use(session({
@@ -105,17 +124,26 @@ app.use((req, res, next) => {
 });
 
 // Dev-only quick-login (non-production) to set a test user in session
-if (process.env.NODE_ENV !== 'production') {
-  app.get('/dev/login', (req, res) => {
+  app.get('/dev/login', async (req, res) => {
     // Only allow dev login when explicitly enabled
     if (process.env.DEV_LOGIN !== 'true') return res.status(403).send('Dev login disabled');
     const role = req.query.role || 'admin';
     const username = req.query.username || 'devuser';
     const lob = req.query.lob || 'zomato';
-    req.session.user = { username, role, lob };
-    res.send(`Dev login set: ${username} (${role}) for lob=${lob}`);
+    const id = req.query.id || req.query._id;
+
+    if (id) {
+      try {
+        const User = require('./models/User');
+        await User.updateOne({ _id: id }, { $set: { currentSessionId: req.sessionID } });
+      } catch (err) {
+        console.error('Failed to update dev login session ID:', err.message);
+      }
+    }
+
+    req.session.user = { id, _id: id, username, role, lob, department: req.query.department || req.query.lob || lob };
+    res.send(`Dev login set: ${username} (${role}) for lob=${lob} with id=${id}`);
   });
-}
 
 // mount ping endpoint (keep it under /api so client fetch('/api/ping') works)
 app.use('/api', require('./routes/ping'));
@@ -133,20 +161,33 @@ app.use('/performance', require('./routes/performance'));
 
 // SOP Routes
 const sopRoutes = require('./routes/sopRoutes');
-app.use('/:lob/sop', sopRoutes);
+app.use('/:department/:lob/sop', sopRoutes);
+
+// Legacy SOP URL Redirection
+app.use('/:lob/sop', async (req, res, next) => {
+  try {
+    const { lob } = req.params;
+    const { SopTemplate } = require('./models/Sop');
+    const template = await SopTemplate.findOne({ lob: new RegExp(`^${lob}$`, 'i') });
+    const department = template?.department || 'zomato';
+    res.redirect(`/${department}/${lob}/sop${req.url}`);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // --- Dynamic Zomato WIMO-AI-Handover SOP and Editor Routes ---
 const zomatoSopController = require('./controllers/zomatoSopController');
-const { isAuthenticated } = require('./middleware/authMiddleware');
+const { isAuthenticated, isNotNew } = require('./middleware/authMiddleware');
 
-app.get('/zomato/WIMO-AI-Handover', isAuthenticated, zomatoSopController.getWimoSop);
-app.post('/api/sop/category', isAuthenticated, zomatoSopController.createCategory);
-app.put('/api/sop/category', isAuthenticated, zomatoSopController.updateCategory);
-app.delete('/api/sop/category', isAuthenticated, zomatoSopController.deleteCategory);
-app.post('/api/sop/card', isAuthenticated, zomatoSopController.createCard);
-app.put('/api/sop/card/:id', isAuthenticated, zomatoSopController.updateCard);
-app.delete('/api/sop/card/:id', isAuthenticated, zomatoSopController.deleteCard);
-app.post('/api/sop/reorder', isAuthenticated, zomatoSopController.reorderCard);
+app.get('/zomato/WIMO-AI-Handover', isAuthenticated, isNotNew, zomatoSopController.getWimoSop);
+app.post('/api/sop/category', isAuthenticated, isNotNew, zomatoSopController.createCategory);
+app.put('/api/sop/category', isAuthenticated, isNotNew, zomatoSopController.updateCategory);
+app.delete('/api/sop/category', isAuthenticated, isNotNew, zomatoSopController.deleteCategory);
+app.post('/api/sop/card', isAuthenticated, isNotNew, zomatoSopController.createCard);
+app.put('/api/sop/card/:id', isAuthenticated, isNotNew, zomatoSopController.updateCard);
+app.delete('/api/sop/card/:id', isAuthenticated, isNotNew, zomatoSopController.deleteCard);
+app.post('/api/sop/reorder', isAuthenticated, isNotNew, zomatoSopController.reorderCard);
 
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/api/:lob/cands', require('./routes/api/candRoutes'));

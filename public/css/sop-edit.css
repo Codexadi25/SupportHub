@@ -1,0 +1,500 @@
+/* ─── SOP Edit Mode Styles ─────────────────────────────────────────── */
+
+/* Center-aligned Sticky Edit Toolbar */
+#sop-edit-toolbar {
+    position: sticky;
+    top: 48px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 4500;
+    background: #1e293b;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 6px max(20px, calc((100% - 1400px) / 2 + 20px));
+    min-height: 50px;
+    box-sizing: border-box;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-bottom: 3px solid #7c3aed;
+    margin-bottom: 20px;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), height 0.25s ease, padding 0.25s ease, margin-bottom 0.25s ease;
+}
+
+/* Toolbar Border Variations */
+#sop-edit-toolbar.sop-toolbar-live {
+    border-bottom: 3px solid #24963f;
+}
+
+#sop-edit-toolbar.sop-toolbar-preview {
+    border-bottom: 3px solid #f5a623;
+}
+
+#sop-edit-toolbar.sop-toolbar-draft {
+    border-bottom: 3px solid #7c3aed;
+}
+
+/* Collapsed Ribbon Toolbar State */
+#sop-edit-toolbar.collapsed {
+    transform: translateY(-100%);
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+    border-bottom: none !important;
+    overflow: hidden !important;
+}
+
+/* Toolbar Buttons */
+.sop-toolbar-btn {
+    padding: 8px 16px;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.sop-toolbar-btn:active {
+    transform: scale(0.97);
+}
+
+.btn-purple {
+    background: #7c3aed;
+}
+
+.btn-purple:hover {
+    background: #6d28d9;
+}
+
+.btn-green {
+    background: #16a34a;
+}
+
+.btn-green:hover {
+    background: #15803d;
+}
+
+.btn-red {
+    background: #dc2626;
+}
+
+.btn-red:hover {
+    background: #b91c1c;
+}
+
+.btn-slate {
+    background: #475569;
+}
+
+.btn-slate:hover {
+    background: #334155;
+}
+
+.btn-secondary {
+    background: #334155;
+    border: 1px solid #475569;
+}
+
+.btn-secondary:hover {
+    background: #475569;
+}
+
+.btn-secondary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Options Dropdown */
+#sop-options-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0px;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    padding: 5px 0;
+    width: 170px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    z-index: 2000;
+}
+
+.sop-dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: #cbd5e1;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sop-dropdown-item:hover {
+    background: #334155;
+    color: #fff;
+}
+
+/* Sticky Sidebar Layout Adjustment (Default) */
+.layout .sidebar {
+    position: sticky;
+    top: 68px; /* 48px presence bar + 20px gap */
+    max-height: calc(100vh - 88px);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* Sticky Sidebar Layout Adjustment when Edit Toolbar is present */
+#sop-edit-toolbar ~ .layout .sidebar {
+    top: 118px; /* 48px presence bar + 50px edit toolbar + 20px gap */
+    max-height: calc(100vh - 138px);
+    transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sticky Sidebar Layout Adjustment when Edit Toolbar is collapsed */
+#sop-edit-toolbar.collapsed ~ .layout .sidebar {
+    top: 68px !important;
+    max-height: calc(100vh - 88px) !important;
+}
+
+/* Floating Show Ribbon Trigger Tab */
+#sop-show-ribbon-trigger {
+    display: none;
+    position: fixed;
+    top: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #cbd5e1;
+    padding: 6px 16px;
+    border-radius: 0 0 8px 8px;
+    z-index: 4600;
+    cursor: pointer;
+    border: 1.5px solid #475569;
+    border-top: none;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+    animation: slideDownTab 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+#sop-show-ribbon-trigger:hover {
+    background: #334155;
+    color: #fff;
+    transform: translateX(-50%) translateY(1px);
+}
+
+@keyframes slideDownTab {
+    from { transform: translateX(-50%) translateY(-100%); }
+    to { transform: translateX(-50%) translateY(0); }
+}
+
+/* Custom Scrollbar for Sticky Sidebar */
+.layout .sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.layout .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.layout .sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.layout .sidebar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+
+/* ─── Premium Glassmorphism Chatbot UI & Animations ───────────────── */
+
+/* Chatbot Sidebar Override */
+.ai-sidebar {
+    background: rgba(30, 41, 59, 0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-left: 1px solid rgba(71, 85, 105, 0.5) !important;
+    color: #f1f5f9 !important;
+    top: 48px !important;
+    height: calc(100vh - 48px) !important;
+    width: 380px !important;
+    right: -400px !important;
+    z-index: 4800 !important;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: -10px 0 30px rgba(15, 23, 42, 0.3) !important;
+}
+
+.ai-sidebar.open {
+    right: 0 !important;
+}
+
+/* Chatbot Drag & Drop Over Highlight */
+.ai-sidebar.drag-over {
+    border-left: 3px dashed #8b5cf6 !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+}
+
+/* Chatbot Header */
+.ai-header {
+    background: rgba(15, 23, 42, 0.4) !important;
+    border-bottom: 1px solid rgba(71, 85, 105, 0.5) !important;
+    padding: 18px 24px !important;
+}
+
+.ai-title {
+    color: #f1f5f9 !important;
+    font-size: 0.98rem !important;
+    font-weight: 600 !important;
+}
+
+.ai-close {
+    color: #94a3b8 !important;
+    transition: color 0.15s !important;
+}
+
+.ai-close:hover {
+    color: #ef4444 !important;
+}
+
+/* Chat Messages Panel */
+.ai-chat-messages {
+    background: rgba(15, 23, 42, 0.2) !important;
+    padding: 24px !important;
+    gap: 16px !important;
+}
+
+/* Message Bubble Styles */
+.ai-msg {
+    max-width: 85% !important;
+    padding: 12px 16px !important;
+    border-radius: 14px !important;
+    font-size: 0.85rem !important;
+    line-height: 1.5 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    animation: msgFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+}
+
+@keyframes msgFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ai-msg.user {
+    align-self: flex-end !important;
+    background: linear-gradient(135deg, #e11d48, #be123c) !important;
+    color: #ffffff !important;
+    border-bottom-right-radius: 3px !important;
+}
+
+.ai-msg.bot {
+    align-self: flex-start !important;
+    background: rgba(51, 65, 85, 0.8) !important;
+    color: #f1f5f9 !important;
+    border-bottom-left-radius: 3px !important;
+    border: 1px solid rgba(71, 85, 105, 0.4) !important;
+}
+
+/* Input Tray and Sleek Pill Container */
+.ai-input-container {
+    background: rgba(15, 23, 42, 0.4) !important;
+    border-top: 1px solid rgba(71, 85, 105, 0.5) !important;
+    padding: 14px 18px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ai-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: rgba(30, 41, 59, 0.6) !important;
+    border: 1px solid rgba(71, 85, 105, 0.8) !important;
+    border-radius: 24px !important;
+    padding: 4px 6px 4px 12px !important;
+    gap: 8px;
+    transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ai-input-wrapper:focus-within {
+    border-color: #8b5cf6 !important;
+    background: rgba(30, 41, 59, 0.8) !important;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2) !important;
+}
+
+.ai-input-textarea {
+    flex-grow: 1 !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #f1f5f9 !important;
+    font-family: inherit !important;
+    font-size: 0.85rem !important;
+    resize: none !important;
+    height: 24px !important;
+    max-height: 140px !important;
+    padding: 6px 0 !important;
+    line-height: 1.4 !important;
+    box-sizing: border-box !important;
+    overflow-y: auto;
+}
+
+.ai-attach-btn, .ai-send-icon-btn {
+    background: transparent !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    transition: all 0.2s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.ai-attach-btn:hover {
+    color: #8b5cf6 !important;
+    background: rgba(139, 92, 246, 0.15) !important;
+}
+
+.ai-send-icon-btn {
+    color: #ffffff !important;
+    background: #8b5cf6 !important;
+}
+
+.ai-send-icon-btn:hover {
+    color: #ffffff !important;
+    background: #7c3aed !important;
+    transform: scale(1.05) !important;
+}
+
+.ai-send-icon-btn:disabled {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+    background: rgba(71, 85, 105, 0.4) !important;
+    color: #94a3b8 !important;
+    transform: none !important;
+}
+
+/* File Preview Badge */
+.ai-file-preview-badge {
+    display: flex;
+    align-items: center;
+    background: rgba(139, 92, 246, 0.1) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #cbd5e1;
+    gap: 8px;
+    align-self: flex-start;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ai-file-preview-badge i {
+    color: #8b5cf6;
+}
+
+.ai-file-preview-badge .clear-btn {
+    cursor: pointer;
+    color: #ef4444;
+    font-weight: bold;
+    font-size: 14px;
+    margin-left: auto;
+    transition: color 0.15s;
+}
+
+.ai-file-preview-badge .clear-btn:hover {
+    color: #f87171;
+}
+
+/* Drag overlay */
+.ai-drag-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.93) !important;
+    z-index: 4900 !important;
+    align-items: center;
+    justify-content: center;
+    border: 2.5px dashed #8b5cf6 !important;
+    border-radius: 12px !important;
+    margin: 8px !important;
+    pointer-events: none !important;
+    box-sizing: border-box !important;
+}
+
+.ai-sidebar.drag-over .ai-drag-overlay {
+    display: flex !important;
+}
+
+.ai-drag-overlay-content {
+    text-align: center !important;
+    color: #f1f5f9 !important;
+}
+
+.ai-drag-overlay-content i {
+    font-size: 44px !important;
+    color: #8b5cf6 !important;
+    margin-bottom: 12px !important;
+    animation: bounce 1s infinite alternate !important;
+}
+
+.ai-drag-overlay-content p {
+    margin: 0 0 6px 0 !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+}
+
+.ai-drag-overlay-content span {
+    font-size: 11px !important;
+    color: #94a3b8 !important;
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-8px); }
+}
+
+/* Toggle Floating Button */
+.ai-sidebar-toggle {
+    background: #be123c !important;
+    box-shadow: 0 8px 25px rgba(190, 18, 60, 0.4) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s !important;
+    opacity: 1 !important;
+    transform: scale(1) !important;
+}
+
+.ai-sidebar-toggle:hover {
+    background: #9f1239 !important;
+    transform: scale(1.06) !important;
+}
+
+/* Custom Exit-Rotation Animation when Open */
+.ai-sidebar-toggle.hidden {
+    opacity: 0 !important;
+    transform: scale(0) rotate(180deg) !important;
+    pointer-events: none !important;
+}

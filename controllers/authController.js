@@ -308,13 +308,26 @@ exports.getAppPage = async (req, res) => {
             });
         }
         
+        // Resolve dynamic SOP URL
+        let sopUrl = '';
+        if (userDoc.role === 'admin') {
+            sopUrl = '/sop';
+        } else {
+            const { SopTemplate } = require('../models/Sop');
+            const template = await SopTemplate.findOne({ lob: new RegExp(`^${userLob}$`, 'i') });
+            const parentDept = template?.department || 'zomato';
+            const modeSegment = ['admin', 'quality_analyst', 'editor'].includes(userDoc.role) ? 'edit' : 'view';
+            sopUrl = `/${parentDept}/${userLob}/sop/${modeSegment}`;
+        }
+        
         // Render the main page with all the necessary data
         res.render('index', {
             categories: categories,
             privateNotes: privateNotes,
             allTags: [...allTags].sort(),
             user: userDoc,
-            users: users
+            users: users,
+            sopUrl: sopUrl
         });
     } catch (error) {
         console.error("Error loading application page:", error);

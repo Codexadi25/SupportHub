@@ -164,8 +164,8 @@
                 <button class="tab-link" data-tab="PNs">Private Notes</button>
                 <button class="tab-link" data-tab="Briefings">Briefings &amp; SOPs</button>
                 <% if (user.role !== 'new') { %>
-                  <a href="/<%= (user.department || 'zomato').toLowerCase().trim() %>/sop/edit" class="tab-link sop-btn" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;">Smart SOP</a>
-                <% } %>
+                   <a href="<%= (typeof sopUrl !== 'undefined' && sopUrl) ? sopUrl : '/' + (user.department || 'zomato').toLowerCase().trim() + '/sop/view' %>" class="tab-link sop-btn" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;">Smart SOP</a>
+                 <% } %>
 
                 <!-- Creative "More" Dropdown -->
                 <div class="tab-dropdown">
@@ -184,6 +184,9 @@
                     </button>
                     <% if (user.role !== 'new') { %>
                       <button class="tab-link dropdown-item" data-tab="AudioTranslate">Extensions</button>
+                    <% } %>
+                    <% if (user.role === 'admin' || user.role === 'vendor' || user.role === 'team_lead' || user.role === 'quality_analyst') { %>
+                      <a href="/performance/dashboard" target="_blank" class="dropdown-item" style="text-decoration:none;">Performance Dashboard</a>
                     <% } %>
                     <% if (user.role === 'admin' || user.role === 'vendor' || user.role === 'team_lead' || user.role === 'editor' || user.role === 'quality_analyst') { %>
                       <button class="tab-link dropdown-item" data-tab="AIConfig">AI Config</button>

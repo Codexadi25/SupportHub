@@ -7,6 +7,7 @@ const sopController = require('../controllers/sopController');
 const { generateSopDraft } = require('../services/aiService');
 const { isAuthenticated, isNotNew } = require('../middleware/authMiddleware');
 const Logger = require('../utils/logger');
+const SopChat = require('../models/SopChat');
 
 // Multer setup for processing PDF, DOCX, Images, etc.
 const upload = multer({ storage: multer.memoryStorage() });
@@ -33,27 +34,64 @@ const checkRole = (roles) => (req, res, next) => {
   next();
 };
 
-const checkSopPermission = (req, res, next) => {
-  const user = req.session?.user || req.user;
-  if (!user) return res.status(401).json({ error: 'Authentication required' });
-  
-  const rawRole = user.role;
-  const normalizedRole = ROLE_ALIASES[rawRole] || rawRole.toLowerCase();
-  
-  const allowedRoles = ['admin', 'quality_analyst', 'team_lead'];
-  if (!allowedRoles.includes(normalizedRole)) {
-    return res.status(403).json({ error: 'Forbidden: Only Admins, Team Leaders, and Quality Analysts can modify SOPs.' });
-  }
-
-  // If not admin, the user must belong to the department of the LOB
-  if (normalizedRole !== 'admin') {
-    const lob = (req.params.lob || req.body.lob || req.query.lob || 'zomato').toLowerCase().trim();
-    const userDept = (user.department || 'general').toLowerCase().trim();
-    if (userDept !== lob) {
-      return res.status(403).json({ error: `Forbidden: You are not authorized to modify SOPs for the "${lob}" department.` });
+const checkSopPermission = async (req, res, next) => {
+  try {
+    const user = req.session?.user || req.user;
+    if (!user) return res.status(401).json({ error: 'Authentication required' });
+    
+    const rawRole = user.role;
+    const normalizedRole = ROLE_ALIASES[rawRole] || rawRole.toLowerCase();
+    
+    const allowedRoles = ['admin', 'quality_analyst', 'editor'];
+    if (!allowedRoles.includes(normalizedRole)) {
+      return res.status(403).json({ error: 'Forbidden: Only Admins, Quality Analysts, and Editors can modify SOPs.' });
     }
+
+    // If not admin, the user must belong to the department of the LOB
+    if (normalizedRole !== 'admin') {
+      const lob = (req.params.lob || req.body.lob || req.query.lob || 'zomato').toLowerCase().trim();
+      const userDept = (user.department || 'general').toLowerCase().trim();
+      
+      const template = await SopTemplate.findOne({ lob: new RegExp(`^${lob}$`, 'i') });
+      const lobDept = (template?.department || lob).toLowerCase().trim();
+      
+      if (userDept !== lob && userDept !== lobDept) {
+        return res.status(403).json({ error: `Forbidden: You are not authorized to modify SOPs for the "${lob}" department.` });
+      }
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
+};
+
+const canViewSop = async (req, res, next) => {
+  try {
+    const user = req.session?.user || req.user;
+    if (!user) return res.status(401).json({ error: 'Authentication required' });
+    
+    const rawRole = user.role;
+    const normalizedRole = ROLE_ALIASES[rawRole] || rawRole.toLowerCase();
+    
+    if (normalizedRole === 'new') {
+      return res.status(403).json({ error: 'Forbidden: Upgrade access level from NEW to proceed.' });
+    }
+    
+    if (normalizedRole !== 'admin') {
+      const lob = (req.params.lob || req.body.lob || req.query.lob || 'zomato').toLowerCase().trim();
+      const userDept = (user.department || 'general').toLowerCase().trim();
+      
+      const template = await SopTemplate.findOne({ lob: new RegExp(`^${lob}$`, 'i') });
+      const lobDept = (template?.department || lob).toLowerCase().trim();
+      
+      if (userDept !== lob && userDept !== lobDept) {
+        return res.status(403).json({ error: `Forbidden: You are not authorized to view SOPs for the "${lob}" department.` });
+      }
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Normalize LOB param so downstream handlers always have a value
@@ -82,18 +120,16 @@ router.get('/view', isAuthenticated, isNotNew, async (req, res) => {
     const rawRole = user?.role || '';
     const normalizedRole = ROLE_ALIASES[rawRole] || rawRole.toLowerCase();
 
+    const theme = await Theme.findOne({ lob }) || {};
+    const template = await SopTemplate.findOne({ lob }) || { sidebarConfig: {}, categories: [] };
+
     // Authorization check: only respective LOB users can access that SOP
     if (normalizedRole !== 'admin') {
-      if (userDept !== lob) {
+      const lobDept = (template?.department || lob).toLowerCase().trim();
+      if (userDept !== lob && userDept !== lobDept) {
         return res.status(403).send(`Forbidden: SOP for "${lob}" is restricted to "${lob}" department/LOB users only.`);
       }
     }
-
-    // Render the beautiful interactive panel for authorized users
-    const viewTemplate = 'sop_panel';
-
-    const theme = await Theme.findOne({ lob }) || {};
-    const template = await SopTemplate.findOne({ lob }) || { sidebarConfig: {}, categories: [] };
 
     // search & pagination
     const q = (req.query.q || '').trim();
@@ -133,8 +169,9 @@ router.get('/view', isAuthenticated, isNotNew, async (req, res) => {
     }).sort((a, b) => a.order - b.order);
 
     const allTags = Array.from(new Set((await Sop.find({ lob })).flatMap(s => s.tags || [])));
+    const chatHistory = await SopChat.findOne({ userId: user._id || user.id, lob }) || { messages: [] };
 
-    res.render(viewTemplate, { categories, allTags, theme, template, user: user, mode: 'view', lob, pagination: { page, perPage, total } });
+    res.render('sop_panel', { categories, allTags, theme, template, user: user, mode: 'view', lob, pagination: { page, perPage, total }, chatHistory });
   } catch (error) {
     console.error("Error fetching SOPs:", error);
     res.status(500).json({ error: "Failed to fetch SOPs" });
@@ -192,10 +229,14 @@ router.get('/drafts', checkSopPermission, async (req, res) => {
     const lob = req?.params?.lob || req?.query?.lob || req?.body?.lob || req?.session?.user?.lob;
     const user = req.session?.user || req.user;
     const userDept = (user?.department || 'general').toLowerCase().trim();
+    const rawRole = user?.role || '';
+    const normalizedRole = ROLE_ALIASES[rawRole] || rawRole.toLowerCase();
 
     // Authorization check: Zomato SOP drafts are strictly for Zomato department users only.
-    if (lob && lob.toLowerCase().trim() === 'zomato' && userDept !== 'zomato') {
-      return res.status(403).send('Forbidden: Zomato SOP drafts are restricted to Zomato department users only.');
+    if (normalizedRole !== 'admin') {
+      if (lob && lob.toLowerCase().trim() === 'zomato' && userDept !== 'zomato') {
+        return res.status(403).send('Forbidden: Zomato SOP drafts are restricted to Zomato department users only.');
+      }
     }
 
     const theme = await Theme.findOne({ lob }) || {};
@@ -233,8 +274,9 @@ router.get('/drafts', checkSopPermission, async (req, res) => {
     }).sort((a, b) => a.order - b.order);
 
     const allTags = Array.from(new Set((await Sop.find({ lob })).flatMap(s => s.tags || [])));
+    const chatHistory = await SopChat.findOne({ userId: user._id || user.id, lob }) || { messages: [] };
 
-    res.render('sop_panel', { categories, allTags, theme, template, user: req.session?.user || req.user, mode: 'draft', lob, pagination: { page, perPage, total } });
+    res.render('sop_panel', { categories, allTags, theme, template, user: req.session?.user || req.user, mode: 'draft', lob, pagination: { page, perPage, total }, chatHistory });
   } catch (err) {
     console.error('Error loading drafts:', err);
     res.status(500).send('Failed to load drafts');
@@ -359,7 +401,7 @@ router.get('/admin-settings', checkSopPermission, async (req, res) => {
 // Accessible via /:lob/sop/edit  (e.g. /zomato/sop/edit)
 // The /:lob segment is captured by the app.use('/:lob/sop', sopRoutes) mount.
 
-router.get('/edit', isAuthenticated, async (req, res) => {
+router.get('/edit', isAuthenticated, isNotNew, async (req, res) => {
   try {
     const user = req.session?.user || req.user;
     const rawRole = user?.role || '';
@@ -367,9 +409,11 @@ router.get('/edit', isAuthenticated, async (req, res) => {
     const lob = (req.params.lob || req.session?.user?.lob || 'zomato').toLowerCase().trim();
     const userDept = (user?.department || 'general').toLowerCase().trim();
 
-    const allowed = ['admin', 'quality_analyst', 'team_lead'];
-    if (!allowed.includes(normalizedRole) || (normalizedRole !== 'admin' && userDept !== lob)) {
-      return res.redirect(`/${lob}/sop/view`);
+    const allowed = ['admin', 'quality_analyst', 'editor'];
+    const template = await SopTemplate.findOne({ lob: new RegExp(`^${lob}$`, 'i') });
+    const lobDept = (template?.department || lob).toLowerCase().trim();
+    if (!allowed.includes(normalizedRole) || (normalizedRole !== 'admin' && userDept !== lob && userDept !== lobDept)) {
+      return res.redirect(`/${lobDept}/${lob}/sop/view`);
     }
 
     const theme = await Theme.findOne({ lob }) || {};
@@ -430,6 +474,7 @@ router.get('/edit', isAuthenticated, async (req, res) => {
     }).sort((a, b) => a.order - b.order);
 
     const allTags = Array.from(new Set(draft.cards.flatMap(s => s.tags || [])));
+    const chatHistory = await SopChat.findOne({ userId: user._id || user.id, lob }) || { messages: [] };
 
     res.render('sop_panel', {
       categories, allTags, theme,
@@ -437,7 +482,8 @@ router.get('/edit', isAuthenticated, async (req, res) => {
       user: req.session?.user || req.user,
       mode: 'edit',
       lob,
-      pagination: { page: 1, perPage: 999, total: draft.cards.length }
+      pagination: { page: 1, perPage: 999, total: draft.cards.length },
+      chatHistory
     });
   } catch (err) {
     console.error('SOP edit load error:', err);
@@ -445,7 +491,7 @@ router.get('/edit', isAuthenticated, async (req, res) => {
   }
 });
 
-router.get('/preview', isAuthenticated, async (req, res) => {
+router.get('/preview', isAuthenticated, isNotNew, async (req, res) => {
   try {
     const user = req.session?.user || req.user;
     const rawRole = user?.role || '';
@@ -453,7 +499,7 @@ router.get('/preview', isAuthenticated, async (req, res) => {
     const lob = (req.params.lob || req.session?.user?.lob || 'zomato').toLowerCase().trim();
     const userDept = (user?.department || 'general').toLowerCase().trim();
 
-    const allowed = ['admin', 'quality_analyst', 'team_lead'];
+    const allowed = ['admin', 'quality_analyst', 'editor'];
     if (!allowed.includes(normalizedRole) || (normalizedRole !== 'admin' && userDept !== lob)) {
       return res.redirect(`/${lob}/sop/view`);
     }
@@ -485,6 +531,7 @@ router.get('/preview', isAuthenticated, async (req, res) => {
     }).sort((a, b) => a.order - b.order);
 
     const allTags = Array.from(new Set(draft.cards.flatMap(s => s.tags || [])));
+    const chatHistory = await SopChat.findOne({ userId: user._id || user.id, lob }) || { messages: [] };
 
     res.render('sop_panel', {
       categories, allTags, theme,
@@ -492,7 +539,8 @@ router.get('/preview', isAuthenticated, async (req, res) => {
       user: req.session?.user || req.user,
       mode: 'preview',
       lob,
-      pagination: { page: 1, perPage: 999, total: draft.cards.length }
+      pagination: { page: 1, perPage: 999, total: draft.cards.length },
+      chatHistory
     });
   } catch (err) {
     console.error('SOP preview load error:', err);
@@ -780,7 +828,7 @@ router.post('/publish', checkSopPermission, async (req, res) => {
 });
 
 // ─── GET VERSION HISTORY FOR LOB ────────────────────────
-router.get('/history', checkSopPermission, async (req, res) => {
+router.get('/history', canViewSop, async (req, res) => {
   try {
     const lob = (req.params.lob || 'zomato').toLowerCase().trim();
     const history = await SopHistory.find({ lob }).sort({ version: -1 }).select('version publishedAt publishedBy publishedByRole changesSummary');
@@ -792,7 +840,7 @@ router.get('/history', checkSopPermission, async (req, res) => {
 });
 
 // ─── GET SINGLE VERSION SNAPSHOT ────────────────────────
-router.get('/history/:version', checkSopPermission, async (req, res) => {
+router.get('/history/:version', canViewSop, async (req, res) => {
   try {
     const lob = (req.params.lob || 'zomato').toLowerCase().trim();
     const version = parseInt(req.params.version, 10);
@@ -1017,26 +1065,132 @@ router.get('/live', checkSopPermission, async (req, res) => {
   }
 });
 
-// ─── POST / CHAT WITH GEMINI ───────────────────────────
-router.post('/chat', checkSopPermission, async (req, res) => {
+// ─── POST / CHAT WITH GEMINI — Handles text & file uploads (.xlsx, .pdf, .docx) ───
+const exceljs = require('exceljs');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+
+async function parseUploadedFile(buffer, mimetype, originalname) {
+  const ext = originalname.split('.').pop().toLowerCase();
+  
+  if (ext === 'xlsx' || mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+    const workbook = new exceljs.Workbook();
+    await workbook.xlsx.load(buffer);
+    let text = '';
+    workbook.eachSheet((sheet) => {
+      text += `--- Sheet: ${sheet.name} ---\n`;
+      sheet.eachRow((row) => {
+        const values = Array.isArray(row.values) 
+          ? row.values.slice(1).map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(', ')
+          : '';
+        text += values + '\n';
+      });
+    });
+    return text;
+  }
+  
+  if (ext === 'pdf' || mimetype === 'application/pdf') {
+    const pdfData = await pdfParse(buffer);
+    return pdfData.text;
+  }
+  
+  if (ext === 'docx' || mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  }
+  
+  throw new Error('Unsupported file type. Please upload .xlsx, .pdf, or .docx.');
+}
+
+router.post('/chat', upload.single('document'), checkSopPermission, async (req, res) => {
   try {
-    const { message, context } = req.body;
-    if (!message) return res.status(400).json({ error: 'Message is required' });
+    const message = req.body.message || '';
+    if (!message && !req.file) {
+      return res.status(400).json({ error: 'Message or document is required' });
+    }
+
+    let context = {};
+    if (req.body.context) {
+      try {
+        context = typeof req.body.context === 'string' ? JSON.parse(req.body.context) : req.body.context;
+      } catch (e) {
+        console.error('Error parsing context from request:', e);
+      }
+    }
+
+    const lob = (req.params.lob || 'zomato').toLowerCase().trim();
+    const userId = req.session?.user?.id || req.session?.user?._id || req.user?.id || req.user?._id;
+
+    // Load or create chat history document
+    let chat = await SopChat.findOne({ userId, lob });
+    if (!chat) {
+      chat = new SopChat({ userId, lob, messages: [] });
+    }
+
+    // Save user's message
+    const displayUserMsg = req.file ? `${message} (Attached: ${req.file.originalname})`.trim() : message;
+    chat.messages.push({ sender: 'user', text: displayUserMsg });
+
+    // Handle file parsing if file is uploaded
+    let fileContent = '';
+    if (req.file) {
+      try {
+        fileContent = await parseUploadedFile(req.file.buffer, req.file.mimetype, req.file.originalname);
+      } catch (err) {
+        return res.status(400).json({ error: 'Failed to parse uploaded document: ' + err.message });
+      }
+    }
+
+    // Append document content to message context for Gemini
+    let finalMessage = message;
+    if (fileContent) {
+      finalMessage = `Here is the parsed content of the uploaded document "${req.file.originalname}":\n\n${fileContent}\n\nUser Message: ${message}`;
+    }
 
     const systemPrompt = `You are an AI assistant helping a Zomato WIMO (Where Is My Order) SOP editor.
 Your task is to help them write, edit, and optimize SOP policies and cards.
-Current Context (if any): ${context ? JSON.stringify(context) : 'None'}
+Current SOP Draft State:
+${context && context.draftState ? JSON.stringify(context.draftState, null, 2) : 'None'}
 
-Please answer the editor's question or help them draft a card/policy. Keep your response brief, helpful, and concise.`;
+If the user has uploaded/dropped a document, you MUST analyze the document and generate the appropriate "create_category", "create_card", or "update_card" commands to construct the SOP structure representing the document's policies.
+Make sure the created card titles, conditions, actions, details, and tags are summarized and clean (in quick look understanding view).
+At the very end of your response, output a JSON block inside a single \`\`\`json ... \`\`\` block containing an array of commands.
+
+Available edit commands:
+- Create a category: {"command": "create_category", "name": "Category Name", "phase": "Phase Info"}
+- Delete a category: {"command": "delete_category", "name": "Category Name"}
+- Create a card: {"command": "create_card", "category": "Category Name", "title": "Card Title", "condition": "Condition Text", "action": "Action Text", "details": "Detailed instructions", "tags": ["tag1", "tag2"]}
+- Update a card: {"command": "update_card", "title": "Existing Card Title", "updates": {"title": "New Title", "category": "New Category Name", "condition": "New Condition", "action": "New Action", "details": "New Details", "tags": ["tag1", "tag2"]}}
+- Delete a card: {"command": "delete_card", "title": "Card Title"}
+
+Example of how to structure the JSON block:
+\`\`\`json
+[
+  {
+    "command": "update_card",
+    "title": "Mall Orders",
+    "updates": {
+      "details": "• Updated instructions by AI..."
+    }
+  }
+]
+\`\`\`
+
+If no edits are requested, do not output any JSON block. Keep your text response brief and explanation clear. Do not include markdown formatting or tables in the text if possible.`;
 
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent([
       { text: systemPrompt },
-      { text: message }
+      { text: finalMessage }
     ]);
     const responseText = result.response.text().trim();
+
+    // Save bot's reply
+    chat.messages.push({ sender: 'bot', text: responseText });
+    await chat.save();
+
     res.json({ success: true, reply: responseText });
   } catch (err) {
     console.error('AI chat error:', err);

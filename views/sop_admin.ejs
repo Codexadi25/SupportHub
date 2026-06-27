@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>SOP Master Panel • SupportHub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0f172a;
+            --bg-surface: #1e293b;
+            --bg-surface-hover: #334155;
+            --border-color: #475569;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-purple: #8b5cf6;
+            --accent-purple-hover: #7c3aed;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        /* Premium Glassmorphic Header */
+        .admin-header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 14px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-brand i {
+            color: var(--accent-purple);
+            font-size: 24px;
+        }
+
+        .header-brand h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-btn {
+            background: var(--bg-surface);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-btn:hover {
+            background: var(--bg-surface-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: var(--accent-purple);
+            border-color: var(--accent-purple);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-purple-hover);
+            border-color: var(--accent-purple-hover);
+        }
+
+        /* Container & Layout */
+        .admin-container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 40px;
+            box-sizing: border-box;
+        }
+
+        .page-intro {
+            margin-bottom: 30px;
+        }
+
+        .page-intro h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .page-intro p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Department Groups */
+        .department-section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .department-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1.5px solid var(--border-color);
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+
+        .department-header i {
+            color: var(--accent-purple);
+            font-size: 18px;
+        }
+
+        .department-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* SOP Grid */
+        .sop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .sop-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(71, 85, 105, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 160px;
+        }
+
+        .sop-card:hover {
+            transform: translateY(-3px) scale(1.01);
+            border-color: var(--accent-purple);
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.1);
+        }
+
+        .sop-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .sop-title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .sop-tag {
+            background: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .sop-card-body {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .sop-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .sop-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sop-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .card-btn {
+            flex: 1;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.15s;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-main);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .card-btn:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .card-btn-primary {
+            background: var(--accent-purple);
+            border-color: var(--accent-purple);
+            color: #fff;
+        }
+
+        .card-btn-primary:hover {
+            background: var(--accent-purple-hover);
+            border-color: var(--accent-purple-hover);
+        }
+
+        /* Modal Backdrop */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Premium Modal Dialog */
+        .modal-dialog {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            width: 460px;
+            max-width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: color 0.15s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-main);
+        }
+
+        .modal-dialog h3 {
+            margin: 0 0 20px 0;
+            font-size: 1.25rem;
+            color: var(--text-main);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .form-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            background: var(--bg-surface);
+            border: 1.5px dashed var(--border-color);
+            border-radius: 16px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 40px;
+            color: var(--accent-purple);
+            margin-bottom: 16px;
+            opacity: 0.8;
+        }
+
+        .empty-state h4 {
+            margin: 0 0 8px 0;
+            color: var(--text-main);
+            font-size: 1.1rem;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 13px;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: #10b981;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            font-weight: 600;
+            font-size: 13px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 3000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.warning {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="admin-header">
+        <div class="header-brand">
+            <i class="fa fa-sliders"></i>
+            <h1>SupportHub SOP Master Panel</h1>
+        </div>
+        <div class="header-actions">
+            <a href="/" class="header-btn"><i class="fa fa-home"></i> Back to Dashboard</a>
+            <% if (user && ['admin', 'quality_analyst', 'editor'].includes(user.role)) { %>
+                <button class="header-btn btn-primary" onclick="openCreateSopModal()"><i class="fa fa-plus"></i> Create New SOP</button>
+            <% } %>
+        </div>
+    </header>
+
+    <div class="admin-container">
+        <div class="page-intro">
+            <h2>All SOPs & LOBs</h2>
+            <p>Access, manage, and edit Standard Operating Procedures (SOPs) organized by departments and lines of business.</p>
+        </div>
+
+        <% if (!templates || templates.length === 0) { %>
+            <div class="empty-state">
+                <i class="fa fa-folder-open-o"></i>
+                <h4>No SOPs Found</h4>
+                <p>There are no Line of Business SOPs registered on the platform yet.</p>
+            </div>
+        <% } else { 
+            // Group templates by department
+            const grouped = {};
+            templates.forEach(t => {
+                const dept = t.department || 'general';
+                if (!grouped[dept]) grouped[dept] = [];
+                grouped[dept].push(t);
+            });
+        %>
+            <% Object.keys(grouped).forEach(deptName => { %>
+                <section class="department-section">
+                    <div class="department-header">
+                        <i class="fa fa-building-o"></i>
+                        <h3><%= deptName %> DEPARTMENT</h3>
+                    </div>
+                    <div class="sop-grid">
+                        <% grouped[deptName].forEach(sop => { %>
+                            <div class="sop-card">
+                                <div>
+                                    <div class="sop-card-header">
+                                        <h4 class="sop-title"><%= sop.title || sop.lob.toUpperCase() %></h4>
+                                        <span class="sop-tag">LOB</span>
+                                    </div>
+                                    <div class="sop-card-body">
+                                        Slug: <code><%= sop.lob %></code>
+                                        <div class="sop-meta">
+                                            <span><i class="fa fa-list-alt"></i> <%= sop.cardCount || 0 %> Cards</span>
+                                            <span><i class="fa fa-clock-o"></i> <%= sop.updatedAt ? new Date(sop.updatedAt).toLocaleDateString('en-GB') : 'N/A' %></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="sop-card-actions">
+                                    <a href="/<%= sop.department %>/<%= sop.lob %>/sop/view" class="card-btn" target="_blank"><i class="fa fa-eye"></i> View Public</a>
+                                    <% if (user && ['admin', 'quality_analyst', 'editor'].includes(user.role)) { %>
+                                        <a href="/<%= sop.department %>/<%= sop.lob %>/sop/edit" class="card-btn card-btn-primary" target="_blank"><i class="fa fa-pencil"></i> Open Editor</a>
+                                    <% } %>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                </section>
+            <% }) %>
+        <% } %>
+    </div>
+
+    <!-- Create SOP Modal -->
+    <div class="modal-backdrop" id="createSopModal" onclick="closeModalOutside(event)">
+        <div class="modal-dialog">
+            <button class="modal-close" onclick="closeCreateSopModal()">✕</button>
+            <h3>＋ Create New SOP Template</h3>
+            
+            <div class="form-group">
+                <label for="newLobName">LOB Name</label>
+                <input type="text" id="newLobName" class="form-input" placeholder="e.g. WIMO AI Handover" oninput="autoGenSlug()">
+            </div>
+            
+            <div class="form-group">
+                <label for="newLobSlug">LOB Route Slug</label>
+                <input type="text" id="newLobSlug" class="form-input" placeholder="e.g. wimo-ai-handover">
+            </div>
+
+            <div class="form-group">
+                <label for="newLobDept">Parent Department</label>
+                <% if (user.role === 'admin') { %>
+                    <select id="newLobDept" class="form-input">
+                        <% if (typeof departments !== 'undefined' && departments && departments.length > 0) { %>
+                            <% departments.forEach(dept => { %>
+                                <option value="<%= dept.slug %>"><%= dept.name %> (<%= dept.slug %>)</option>
+                            <% }) %>
+                        <% } else { %>
+                            <option value="zomato">Zomato</option>
+                        <% } %>
+                    </select>
+                <% } else { %>
+                    <input type="text" id="newLobDept" class="form-input" value="<%= user.department || 'zomato' %>" disabled>
+                <% } %>
+            </div>
+
+            <button class="card-btn card-btn-primary" style="width:100%; padding:12px; margin-top:10px;" id="createSopBtn" onclick="submitCreateSop()">
+                <i class="fa fa-check"></i> Initialize SOP Template
+            </button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        function openCreateSopModal() {
+            document.getElementById('createSopModal').style.display = 'flex';
+        }
+
+        function closeCreateSopModal() {
+            document.getElementById('createSopModal').style.display = 'none';
+        }
+
+        function closeModalOutside(e) {
+            if (e.target === document.getElementById('createSopModal')) {
+                closeCreateSopModal();
+            }
+        }
+
+        function autoGenSlug() {
+            const name = document.getElementById('newLobName').value;
+            const slug = name.trim().toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '');
+            document.getElementById('newLobSlug').value = slug;
+        }
+
+        function showToast(msg, isWarning = false) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.className = 'toast';
+            if (isWarning) t.classList.add('warning');
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        async function submitCreateSop() {
+            const name = document.getElementById('newLobName').value.trim();
+            const slug = document.getElementById('newLobSlug').value.trim();
+            const department = document.getElementById('newLobDept').value || 'zomato';
+            
+            if (!name) {
+                showToast('LOB Name is required', true);
+                return;
+            }
+            if (!slug) {
+                showToast('LOB Route Slug is required', true);
+                return;
+            }
+
+            const btn = document.getElementById('createSopBtn');
+            const oldText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Initializing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/sop/new', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lobName: name, lobSlug: slug, department })
+                });
+                
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast('SOP template successfully initialized! Redirecting...', false);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Failed to initialize SOP.');
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, true);
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

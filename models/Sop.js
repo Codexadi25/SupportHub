@@ -38,6 +38,8 @@ const themeSchema = new mongoose.Schema({
 // Schema for SOP layout structures and sidebar widget configuration
 const sopTemplateSchema = new mongoose.Schema({
   lob: { type: String, required: true, unique: true },
+  department: { type: String, required: true, lowercase: true, trim: true, default: 'zomato' },
+  title: { type: String, default: '' },
   headerImage: { type: String, default: '' },
   googleSheetUrl: { type: String, default: '' },
   sidebarConfig: {

@@ -431,6 +431,15 @@ document.addEventListener('DOMContentLoaded', () => {
           roleHtml = `<span class="badge" style="background:var(--primary-light);color:var(--primary);padding:3px 8px;border-radius:12px;font-weight:700;font-size:11px;">${(u.role || '').toUpperCase()}</span>`;
         }
 
+        let orgHtml = '';
+        if (canEditRole) {
+          orgHtml = `
+            <input type="text" class="user-org-input" data-user-id="${u._id}" value="${u.organization || ''}" style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+          `;
+        } else {
+          orgHtml = `<span style="font-weight:600;color:var(--text-muted);font-size:13px;">${u.organization || ''}</span>`;
+        }
+
         if (canAlignTeam) {
           const teamOptions = (window.__teamsList || []).map(t => {
             const tlName = t.teamLeadId ? (t.teamLeadId.displayName || t.teamLeadId.username) : 'No TL';
@@ -485,6 +494,9 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td style="padding:10px 8px">
             ${selectHtml}
+          </td>
+          <td style="padding:10px 8px">
+            ${orgHtml}
           </td>
           <td style="padding:10px 8px;font-size:12px;">
             ${teamHtml}
@@ -614,6 +626,15 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         await api(`/api/admin/users/${id}/role`, 'PUT', { department });
         showToast('Department updated', 'success');
+        renderUsersTable();
+      } catch (err) { showToast(err.message,'error'); }
+    }
+    if (target.matches('.user-org-input')) {
+      const id = target.dataset.userId;
+      const organization = target.value.trim();
+      try {
+        await api(`/api/admin/users/${id}/role`, 'PUT', { organization });
+        showToast('Company details updated', 'success');
         renderUsersTable();
       } catch (err) { showToast(err.message,'error'); }
     }

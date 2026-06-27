@@ -10,13 +10,13 @@ async function migrate() {
         await connectDB();
         console.log('Database connected successfully.');
 
-        const ejsPath = path.join(__dirname, '..', 'views', 'sop_panel.ejs');
+        const ejsPath = path.join(__dirname, '..', 'sop_panel.ejs');
         if (!fs.existsSync(ejsPath)) {
-            console.error(`❌ views/sop_panel.ejs not found at ${ejsPath}`);
+            console.error(`❌ sop_panel.ejs not found at ${ejsPath}`);
             process.exit(1);
         }
 
-        console.log('Reading views/sop_panel.ejs...');
+        console.log('Reading sop_panel.ejs...');
         const html = fs.readFileSync(ejsPath, 'utf8');
 
         // Extract categories and cards

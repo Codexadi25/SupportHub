@@ -13,6 +13,7 @@
                 <label for="notif-recipient" style="font-weight: 500; font-size: 0.9rem; color: var(--text, #334155);">Recipient User *</label>
                 <select id="notif-recipient" name="recipientId" required style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); background: var(--bg-input, #fff); color: var(--text, #1e293b); width: 100%;">
                     <option value="">-- Select Recipient --</option>
+                    <option value="all">Broadcast to All Users</option>
                 </select>
             </div>
 
@@ -68,7 +69,7 @@
                 if (!res.ok) throw new Error('Failed to fetch users');
                 const users = await res.json();
                 
-                recipientSelect.innerHTML = '<option value="">-- Select Recipient --</option>';
+                recipientSelect.innerHTML = '<option value="">-- Select Recipient --</option><option value="all">Broadcast to All Users</option>';
                 
                 users.forEach(u => {
                     const option = document.createElement('option');

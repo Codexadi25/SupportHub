@@ -4,7 +4,7 @@
  * Only team_lead, admin, and vendor roles are allowed.
  * Assumes your existing auth middleware already sets req.user.
  */
-const ALLOWED_ROLES = ['team_lead', 'admin', 'vendor'];
+const ALLOWED_ROLES = ['team_lead', 'admin', 'vendor', 'quality_analyst'];
 
 function guard(req, res, next) {
     // req.user is populated by your existing session/JWT middleware

@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <title>Zomato WIMO Smart-SOP 2025</title>
     <link href="https://fonts.googleapis.com/css2?family=Okra:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/sop-edit.css">
     <style>
         /* ─── CORE VARIABLES ─────────────────────────────────────────── */
         :root {
@@ -1417,7 +1418,7 @@
       <img class="h-8 w-auto" src="https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png" loading="eager" height="30" alt="Zomato">
       <input type="text" id="sopSearch" placeholder="Search scenario (e.g., 'mall', 'device', 'spillage')..." onkeyup="filterSOP()">
       
-      <% if (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) { %>
+      <% if (user && ['admin', 'quality_analyst', 'editor'].includes(user.role)) { %>
          <div class="mode-toggle-container" style="display:flex;align-items:center;gap:8px;margin-left:auto;">
              <button id="toggleEditModeBtn" class="mode-btn" onclick="toggleEditMode()">
                  <i class="fa fa-pencil"></i> Manage SOP
@@ -1427,7 +1428,7 @@
              </button>
          </div>
       <% } %>
-      <a href="/" style="<%= (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) ? 'margin-left:12px;' : 'margin-left:auto;' %>"><i class="fa fa-home" style="font-size:36px; color:white;"></i></a>
+      <a href="/" style="<%= (user && ['admin', 'quality_analyst', 'editor'].includes(user.role)) ? 'margin-left:12px;' : 'margin-left:auto;' %>"><i class="fa fa-home" style="font-size:36px; color:white;"></i></a>
    </header>
 
    <main class="sop-container">
@@ -1441,7 +1442,7 @@
                    <span class="cat-name" style="font-weight:700;"><%= cat.category %></span>
                    <span class="cat-phase" style="font-size:0.85rem;font-weight:normal;color:#666;margin-left:8px;"><%= cat.phase %></span>
                </div>
-               <% if (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) { %>
+               <% if (user && ['admin', 'quality_analyst', 'editor'].includes(user.role)) { %>
                   <div class="cat-edit-actions edit-only" style="display:none;gap:6px;">
                      <button class="mode-btn" onclick="editCategory('<%= cat.category %>', '<%= cat.phase %>')" style="padding:4px 8px;font-size:0.75rem;background:#f1f5f9;color:#475569;border-color:#cbd5e1;"><i class="fa fa-pencil"></i> Rename</button>
                      <button class="mode-btn" onclick="deleteCategory('<%= cat.category %>')" style="padding:4px 8px;font-size:0.75rem;background:#fee2e2;color:#ef4444;border-color:#fca5a5;"><i class="fa fa-trash"></i> Delete</button>
@@ -1462,7 +1463,7 @@
                      <div class="expand-hint"><i class="fa fa-expand"></i> View full SOP</div>
                      <div class="card-detail-data" style="display:none"><%= sop.details %></div>
                      
-                     <% if (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) { %>
+                     <% if (user && ['admin', 'quality_analyst', 'editor'].includes(user.role)) { %>
                         <div class="card-edit-overlay" onclick="event.stopPropagation()">
                            <button class="btn-card-action edit" onclick="editCard('<%= sop._id %>')" title="Edit"><i class="fa fa-pencil"></i></button>
                            <button class="btn-card-action move-up" onclick="moveCard('<%= sop._id %>', 'up')" title="Move Up"><i class="fa fa-arrow-up"></i></button>
@@ -1472,7 +1473,7 @@
                      <% } %>
                   </div>
                <% }) %>
-               <% if (user && ['admin', 'quality_analyst', 'team_lead'].includes(user.role)) { %>
+               <% if (user && ['admin', 'quality_analyst', 'editor'].includes(user.role)) { %>
                   <div class="sop-card add-card-placeholder edit-only" onclick="addCard('<%= cat.category %>', '<%= cat.phase %>')" style="display:none;justify-content:center;align-items:center;border:2px dashed #ccc;background:none;height:120px;">
                      <div style="font-size:2rem;color:#94a3b8;margin-bottom:4px;">＋</div>
                      <div style="color:#64748b;font-size:0.8rem;font-weight:700;">Add Card</div>
@@ -1645,10 +1646,8 @@
     // Match exactly what SupportHub stores in user.role
     // Add/remove values here to match your actual role strings
     const SHEET_EDITOR_ROLES = [
-        // Display labels (used when WIMO name popup is shown manually)
-        'Admin', 'QA Analyst', 'Team Leader', 'Vendor',
-        // Raw SupportHub role slugs (used when session is auto-filled)
-        'admin', 'quality_analyst', 'qa_analyst', 'team_leader', 'teamlead', 'vendor'
+        'Admin', 'QA Analyst', 'Editor',
+        'admin', 'quality_analyst', 'qa_analyst', 'editor'
     ];
 
     // Boot: restore saved URL on page load, enforce role permissions
@@ -1825,6 +1824,7 @@
         return null;
     }
 </script>
+
 
 <script type="module">
 const HEARTBEAT_MS   = 18000;
@@ -2324,20 +2324,15 @@ function initEditMode() {
 function showEditToolbar() {
     const toolbar = document.createElement('div');
     toolbar.id = 'sop-edit-toolbar';
-    toolbar.style.cssText = `
-        position: sticky; top: 0; z-index: 200;
-        background: #1e293b; color: #f1f5f9;
-        display: flex; align-items: center; gap: 12px;
-        padding: 10px 20px; font-size: 13px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.25);
-    `;
+    toolbar.className = 'sop-toolbar-draft';
     toolbar.innerHTML = `
         <span style="font-weight:800;letter-spacing:.5px;">✏️ EDIT MODE</span>
         <span style="opacity:.5;font-size:11px;">Drag cards to reorder · Click ✏️ to edit a block</span>
         <div style="margin-left:auto;display:flex;gap:8px;">
-            <button id="sop-add-cat-btn" style="padding:7px 16px;background:#7c3aed;color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;">+ Add Category</button>
-            <button id="sop-save-layout-btn" style="padding:7px 16px;background:#16a34a;color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Save Layout</button>
-            <a href="/${SOP_LOB}/sop/view" style="padding:7px 14px;background:#475569;color:#fff;border-radius:7px;font-weight:700;text-decoration:none;font-size:13px;display:flex;align-items:center;">👁 View Mode</a>
+            <button id="sop-add-cat-btn" class="sop-toolbar-btn btn-purple">+ Add Category</button>
+            <button id="sop-save-layout-btn" class="sop-toolbar-btn btn-green">💾 Save Layout</button>
+            <a href="/${SOP_LOB}/sop/view" class="sop-toolbar-btn btn-slate" style="text-decoration:none;">👁 View Mode</a>
+            <button id="sop-hide-ribbon-btn" class="sop-toolbar-btn btn-secondary" onclick="toggleRibbon(true)" title="Hide Ribbon"><i class="fa fa-chevron-up"></i> Hide Ribbon</button>
         </div>
     `;
     document.body.insertBefore(toolbar, document.body.firstChild);
@@ -2529,7 +2524,7 @@ function openBlockEditModal(card) {
 
     const backdrop = buildBackdrop('sopEditBackdrop');
     backdrop.innerHTML = `
-        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:580px;max-width:97%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;">
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;width:580px;max-width:97%;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative;">
             <button onclick="document.getElementById('sopEditBackdrop').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
             <h3 style="margin:0 0 16px;font-size:1rem;color:#CB202D;">✏️ Edit SOP Block</h3>
             <label style="font-size:.75rem;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TITLE</label>
@@ -2901,6 +2896,37 @@ if (SOP_MODE === 'edit') {
         document.getElementById('modalOverlay').classList.add('open');
         document.body.style.overflow = 'hidden';
     }
+
+    // Show / Hide Ribbon logic
+    function toggleRibbon(hide) {
+        const tb = document.getElementById('sop-edit-toolbar');
+        if (!tb) return;
+        
+        let trigger = document.getElementById('sop-show-ribbon-trigger');
+        if (!trigger) {
+            trigger = document.createElement('div');
+            trigger.id = 'sop-show-ribbon-trigger';
+            trigger.innerHTML = '<i class="fa fa-chevron-down"></i> Show Ribbon';
+            trigger.onclick = () => toggleRibbon(false);
+            document.body.appendChild(trigger);
+        }
+        
+        if (hide) {
+            tb.classList.add('collapsed');
+            trigger.style.display = 'block';
+            localStorage.setItem('sop-ribbon-collapsed', 'true');
+        } else {
+            tb.classList.remove('collapsed');
+            trigger.style.display = 'none';
+            localStorage.removeItem('sop-ribbon-collapsed');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('sop-ribbon-collapsed') === 'true') {
+            toggleRibbon(true);
+        }
+    });
 </script>
 
 </body>

@@ -3,7 +3,7 @@ const { Sop, Audit } = require('../models/Sop');
 // Helper to check editor permissions
 function canEdit(user) {
     const role = (user?.role || '').toLowerCase();
-    return ['admin', 'quality_analyst', 'team_lead'].includes(role);
+    return ['admin', 'quality_analyst', 'editor'].includes(role);
 }
 
 // GET /zomato/WIMO-AI-Handover

@@ -118,11 +118,20 @@ router.post('/', isAuthenticated, async (req, res) => {
             return res.status(400).json({ message: 'Title and content are required' });
         }
 
+        let targetRecipientId = recipientId;
+        if (!targetRecipientId || targetRecipientId === 'all' || targetRecipientId === 'null') {
+            targetRecipientId = null;
+        }
+
+        let targetType = type;
+        if (targetType === 'other') targetType = 'custom';
+        if (targetType === 'daily_briefing') targetType = 'briefing';
+
         const notif = new Notification({
             title,
             content,
-            type,
-            recipientId,
+            type: targetType,
+            recipientId: targetRecipientId,
             recipientRole,
             recipientDepartment,
             lob: req.params.lob,
