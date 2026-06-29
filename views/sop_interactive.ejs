@@ -9,7 +9,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    
+    <script>
+        window.currentUserId = '<%= user._id %>';
+        window.currentUserRole = '<%= user.role %>';
+    </script>
+    <%- include('partials/header') %>
     <title>Zomato WIMO Smart-SOP 2025</title>
     <link href="https://fonts.googleapis.com/css2?family=Okra:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/sop-edit.css">
@@ -1215,7 +1221,8 @@
     window.__sopUserRole = '<%= user && user.role ? user.role : "" %>';
     window.__sopUserId   = '<%= user && user._id ? user._id : "" %>';
     window.__sopUsername = '<%= user && user.username ? user.username : "" %>';
-    window.__sopLob      = '<%= lob || "zomato" %>';
+    window.__sopLob      = '<%= typeof lob !== "undefined" ? lob : "zomato" %>';
+    window.__sopDept     = '<%= typeof department !== "undefined" ? department : (typeof dept !== "undefined" ? dept : "zomato") %>';
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -1837,24 +1844,22 @@ const PALETTE = [
 ];
 
 const ROLE_COLOR = {
-    "Agent":       "#37474F",
-    "QA Analyst":  "#1565C0",
-    "Team Leader": "#2E7D32",
-    "Vendor":      "#6A1B9A",
-    "Admin":       "#CB202D",
-    "Editor":      "#e65100"
+    "User":       "#37474F",
+    "quality_analyst":  "#1565C0",
+    "team_lead": "#2E7D32",
+    "vendor":      "#6A1B9A",
+    "admin":       "#CB202D",
+    "editor":      "#e65100"
 };
 
 function mapRole(role) {
-    if (!role) return 'Agent';
+    if (!role) return 'User';
     const map = {
         'admin': 'Admin',
         'quality_analyst': 'QA Analyst',
-        'qa_analyst': 'QA Analyst',
         'team_lead': 'Team Leader',
-        'teamlead': 'Team Leader',
         'vendor': 'Vendor',
-        'user': 'Agent',
+        'user': 'User',
         'editor': 'Editor'
     };
     return map[role.toLowerCase()] || role;
@@ -2300,6 +2305,7 @@ function esc(str) {
 // ─────────────────────────────────────────────────────────────────────
 const SOP_MODE = '<%= typeof mode !== "undefined" ? mode : "view" %>';
 const SOP_LOB  = window.__sopLob || 'zomato';
+const SOP_DEPT = window.__sopDept || 'zomato';
 
 if (SOP_MODE === 'edit') {
     // Load SortableJS for drag-to-reorder (CDN, async)
@@ -2331,7 +2337,7 @@ function showEditToolbar() {
         <div style="margin-left:auto;display:flex;gap:8px;">
             <button id="sop-add-cat-btn" class="sop-toolbar-btn btn-purple">+ Add Category</button>
             <button id="sop-save-layout-btn" class="sop-toolbar-btn btn-green">💾 Save Layout</button>
-            <a href="/${SOP_LOB}/sop/view" class="sop-toolbar-btn btn-slate" style="text-decoration:none;">👁 View Mode</a>
+            <a href="/sop/${SOP_DEPT}/${SOP_LOB}/view" class="sop-toolbar-btn btn-slate" style="text-decoration:none;">👁 View Mode</a>
             <button id="sop-hide-ribbon-btn" class="sop-toolbar-btn btn-secondary" onclick="toggleRibbon(true)" title="Hide Ribbon"><i class="fa fa-chevron-up"></i> Hide Ribbon</button>
         </div>
     `;
@@ -2372,7 +2378,7 @@ async function saveLayout() {
     if (!order.length) { showToast('Nothing to save', 'warning'); return; }
 
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/reorder`, {
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/reorder`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ order }),
@@ -2454,7 +2460,7 @@ function openCategoryModal() {
         const name = document.getElementById('newCatName').value.trim();
         if (!name) { showToast('Name required', 'warning'); return; }
         try {
-            const res = await fetch(`/${SOP_LOB}/sop/category`, {
+            const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/category`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name }),
@@ -2500,7 +2506,7 @@ function openBlockCreateModal(category) {
         const tags      = document.getElementById('nb-tags').value;
         if (!title) { showToast('Title required', 'warning'); return; }
         try {
-            const res = await fetch(`/${SOP_LOB}/sop/block`, {
+            const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/block`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ category, title, condition, action, tags, status: 'Draft' }),
@@ -2548,7 +2554,7 @@ function openBlockEditModal(card) {
         const details = document.getElementById('se-details').value;
         if (!title) { showToast('Title required', 'warning'); return; }
         try {
-            const res = await fetch(`/${SOP_LOB}/sop/update/${sopId}`, {
+            const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/update/${sopId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, condition: cond, action: details }),
@@ -2573,7 +2579,7 @@ async function deleteBlock(card, overrideId, backdrop) {
     if (!sopId) { showToast('No SOP ID — cannot delete static card', 'warning'); return; }
     if (!confirm('Delete this SOP block permanently?')) return;
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/delete/${sopId}`, { method: 'DELETE', credentials: 'same-origin' });
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/delete/${sopId}`, { method: 'DELETE', credentials: 'same-origin' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Delete failed');
         showToast('Block deleted');
@@ -2929,5 +2935,6 @@ if (SOP_MODE === 'edit') {
     });
 </script>
 
+    <%- include('partials/chatSidebar', { user: user }) %>
 </body>
 </html>

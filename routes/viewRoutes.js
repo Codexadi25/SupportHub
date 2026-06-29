@@ -39,8 +39,15 @@ router.get('/sop', isAuthenticated, async (req, res) => {
     try {
         const user = req.session.user;
         if (!user) return res.redirect('/login');
-        if (user.role !== 'admin') {
-            return res.status(403).send('Forbidden: Admin access only.');
+        
+        const allowedRoles = ['admin', 'quality_analyst', 'editor'];
+        const normalizedRole = user.role ? user.role.toLowerCase() : '';
+        
+        if (!allowedRoles.includes(normalizedRole)) {
+            // Auto redirect to the new smart SOP view route
+            const dept = (user.department || 'zomato').toLowerCase();
+            const lob = (user.lob || dept).toLowerCase();
+            return res.redirect(`/sop/${dept}/${lob}/view`);
         }
 
         const templates = await SopTemplate.find().lean();
@@ -108,7 +115,30 @@ router.post('/sop/new', isAuthenticated, async (req, res) => {
         res.status(201).json({ success: true, lob: template.lob, department: template.department });
     } catch (err) {
         console.error('Error in /sop/new:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Server Error: ' + err.message });
+    }
+});
+
+router.delete('/sop/delete/:id', isAuthenticated, async (req, res) => {
+    try {
+        const user = req.session.user;
+        if (!user || !['admin', 'quality_analyst', 'editor'].includes(user.role)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+        
+        const template = await SopTemplate.findById(req.params.id);
+        if (!template) {
+            return res.status(404).json({ error: 'SOP Template not found' });
+        }
+        
+        // Also delete all SOP cards associated with this lob
+        await Sop.deleteMany({ lob: template.lob });
+        
+        await SopTemplate.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error deleting SOP:', err);
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 

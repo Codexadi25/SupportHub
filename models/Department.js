@@ -52,10 +52,10 @@ const departmentSchema = new mongoose.Schema({
 
 // Virtual: full edit URL for a given request hostname
 departmentSchema.virtual('editUrl').get(function () {
-  return `/${this.slug}/sop/edit`;
+  return `/sop/${this.slug}/edit`; // Notice that if LOB routing is needed this might need adaptation, but keeping as requested
 });
 departmentSchema.virtual('viewUrl').get(function () {
-  return `/${this.slug}/sop/view`;
+  return `/sop/${this.slug}/view`;
 });
 
 module.exports = mongoose.model('Department', departmentSchema);

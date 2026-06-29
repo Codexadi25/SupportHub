@@ -7,16 +7,62 @@ const { isAuthenticated, isBroadcaster, isAdmin } = require('../../middleware/au
 // Get messages for current user
 router.get('/my', isAuthenticated, async (req, res) => {
     try {
-        const user = req.session.user;
-        const messages = await Message.find({ isActive: true, lob: req.params.lob })
-            .sort({ priority: -1, createdAt: -1 });
+        const lob = req.params.lob;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const skip = (page - 1) * limit;
+
+        const sessionUser = req.session.user;
+        const dbUser = await User.findById(sessionUser._id || sessionUser.id);
+        const clearedAt = dbUser && dbUser.clearedGroupChats ? dbUser.clearedGroupChats.get(lob) : null;
+
+        let query = { lob: lob };
+        if (clearedAt) {
+            query.createdAt = { $gt: clearedAt };
+        }
+
+        // Group chat mode: fetch active or deleted messages for the LOB
+        const messages = await Message.find(query)
+            .populate('authorId', 'image profilePic')
+            .sort({ priority: -1, createdAt: -1 }) // Newest first for pagination
+            .skip(skip)
+            .limit(limit);
         
-        // Filter messages that should be shown to this user
-        const userMessages = messages.filter(message => message.shouldShowToUser(user));
+        // Reverse back to chronological order for chat display
+        messages.reverse();
+        
+        const userMessages = messages.filter(message => {
+            if (message.isDeleted) return true;
+            return message.shouldShowToUser(dbUser || sessionUser);
+        }).map(msg => {
+            const m = msg.toObject();
+            if (msg.authorId && (msg.authorId.image || msg.authorId.profilePic)) {
+                m.authorAvatar = msg.authorId.image || msg.authorId.profilePic;
+            }
+            return m;
+        });
         
         res.json(userMessages);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching messages', error: error.message });
+    }
+});
+
+// Clear group chat history for current user
+router.delete('/my', isAuthenticated, async (req, res) => {
+    try {
+        const lob = req.params.lob;
+        const sessionUser = req.session.user;
+        const userId = sessionUser._id || sessionUser.id;
+        
+        const updateStr = `clearedGroupChats.${lob}`;
+        await User.findByIdAndUpdate(userId, {
+            $set: { [updateStr]: new Date() }
+        });
+        
+        res.json({ message: 'Chat history cleared' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error clearing chat', error: error.message });
     }
 });
 
@@ -46,7 +92,7 @@ router.post('/:id/read', isAuthenticated, async (req, res) => {
     }
 });
 
-// Get all messages (vendor/admin view logs per matrix? Keep admin only)
+// Get all messages (admin view logs)
 router.get('/', isAuthenticated, async (req, res) => {
     if (req.session.user?.role !== 'admin') return res.status(403).json({ message: 'Admin access required' });
     try {
@@ -75,23 +121,18 @@ router.get('/', isAuthenticated, async (req, res) => {
     }
 });
 
-// Create new message (team_lead, quality_analyst, vendor, admin)
-router.post('/', isAuthenticated, isBroadcaster, async (req, res) => {
+// Create new message (any user for group chat)
+router.post('/', isAuthenticated, async (req, res) => {
     try {
         const {
-            title,
+            title = 'Message', // Default title for chat
             content,
             targetUsers = [],
             targetRoles = ['all'],
             priority = 'medium',
             type = 'info',
-            endDate,
             contentType = 'plain'
         } = req.body;
-        
-        if (!endDate) {
-            return res.status(400).json({ message: 'End date is required' });
-        }
         
         const sessionUser = req.session.user || {};
         const currentUserId = sessionUser._id || sessionUser.id;
@@ -104,7 +145,6 @@ router.post('/', isAuthenticated, isBroadcaster, async (req, res) => {
             targetRoles,
             priority,
             type,
-            endDate: new Date(endDate),
             lob: req.params.lob,
             contentType
         });
@@ -153,16 +193,39 @@ router.put('/:id', isAuthenticated, isBroadcaster, async (req, res) => {
     }
 });
 
-// Delete message (team_lead or above per matrix delete messages)
-router.delete('/:id', isAuthenticated, isBroadcaster, async (req, res) => {
+// Delete message (Soft delete by admin or author)
+router.delete('/:id', isAuthenticated, async (req, res) => {
+    try {
+        const message = await Message.findOne({ _id: req.params.id, lob: req.params.lob });
+        if (!message) {
+            return res.status(404).json({ message: 'Message not found' });
+        }
+        
+        const user = req.session.user;
+        if (user.role !== 'admin' && String(message.authorId) !== String(user._id || user.id)) {
+            return res.status(403).json({ message: 'Not authorized to delete this message' });
+        }
+
+        message.isDeleted = true;
+        message.deletedBy = user.username;
+        await message.save();
+
+        res.json({ message: 'Message deleted successfully', data: message });
+    } catch (error) {
+        res.status(400).json({ message: 'Error deleting message', error: error.message });
+    }
+});
+
+// Permanently delete message (admin only)
+router.delete('/:id/permanent', isAuthenticated, isAdmin, async (req, res) => {
     try {
         const message = await Message.findOneAndDelete({ _id: req.params.id, lob: req.params.lob });
         if (!message) {
             return res.status(404).json({ message: 'Message not found' });
         }
-        res.json({ message: 'Message deleted successfully' });
+        res.json({ message: 'Message permanently deleted' });
     } catch (error) {
-        res.status(400).json({ message: 'Error deleting message', error: error.message });
+        res.status(400).json({ message: 'Error permanently deleting message', error: error.message });
     }
 });
 

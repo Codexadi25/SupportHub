@@ -1,0 +1,64 @@
+<link rel="stylesheet" href="/css/chatSidebar.css">
+
+<!-- Floating Toggle Button Container -->
+<div id="chat-toggle-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+    <div class="chat-levitating-tooltip" id="chat-levitating-tooltip" style="background: white; color: #333; padding: 8px 14px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 0.85rem; font-weight: 500; position: relative; animation: levitate 3s ease-in-out infinite;">
+        Veronica is online to assist you!
+        <div style="position: absolute; bottom: -6px; right: 20px; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid white;"></div>
+    </div>
+    <button class="chat-sidebar-toggle" id="chat-sidebar-toggle" title="Open AI & Group Chat" style="position: relative; bottom: 0; right: 0; padding: 0; overflow: hidden; background: transparent; border: 2px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        <img src="/veronica.png" alt="Veronica AI" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    </button>
+</div>
+
+<!-- Floating Sidebar Panel -->
+<div class="chat-sidebar" id="chat-sidebar">
+    <!-- Confirmation Modal (Hidden by default) -->
+    <div id="chat-confirm-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; border-radius: 15px;">
+        <div style="background: white; padding: 20px; border-radius: 10px; width: 80%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h4 style="margin-top: 0; color: #333;">Clear Chat?</h4>
+            <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Are you sure you want to clear this chat history?</p>
+            <div style="display: flex; justify-content: space-around;">
+                <button id="chat-confirm-cancel" style="padding: 8px 16px; border: 1px solid #ccc; background: white; border-radius: 5px; cursor: pointer; color: #333;">Cancel</button>
+                <button id="chat-confirm-clear" style="padding: 8px 16px; border: none; background: #ef4444; color: white; border-radius: 5px; cursor: pointer;">Clear</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="chat-sidebar-header">
+        <div class="chat-tabs">
+            <button class="chat-tab-btn active" data-tab="veronica">
+                <img src="/veronica.png" alt="Veronica AI" style="width: 20px; height: 20px; object-fit: cover; display: inline-block;"> Veronica AI
+            </button>
+            <button class="chat-tab-btn" data-tab="groupchat">
+                <i class="fa fa-users" style="margin-right: 5px;"></i> Group Chat
+            </button>
+        </div>
+        <div class="chat-sidebar-actions" style="display: flex; gap: 8px;">
+            <button class="chat-sidebar-btn" id="ai-chat-settings" title="Speed Typing Settings"><i class="fa fa-cog"></i> Settings</button>
+            <button class="chat-sidebar-btn" id="ai-chat-clear" title="Clear Chat History"><i class="fa fa-trash"></i> Clear</button>
+            <button class="chat-sidebar-btn" id="chat-sidebar-close" title="Close" style="background:transparent; font-size:1.5rem;">&times;</button>
+        </div>
+    </div>
+
+    <!-- Veronica AI Tab Content -->
+    <div class="chat-tab-content active" id="tab-veronica">
+        <div class="chat-messages" id="ai-chat-messages">
+            <!-- Messages will be injected here dynamically -->
+        </div>
+        <div class="chat-input-container">
+            <form id="ai-chat-form" style="display:flex; width: 100%; gap: 8px;">
+                <textarea id="ai-chat-input" class="chat-input" placeholder="Ask Veronica AI (e.g. summarize this text)..." rows="2" required></textarea>
+                <button type="submit" class="chat-send-btn" id="ai-chat-send">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Group Chat Tab Content -->
+    <div class="chat-tab-content" id="tab-groupchat" style="padding: 15px; background: #fff;">
+        <%- include('messagePanel', { user: user }) %>
+    </div>
+</div>
+
+<script src="/js/chatSidebar.js"></script>
+<script src="/js/speedTyping.js"></script>

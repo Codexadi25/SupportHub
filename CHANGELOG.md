@@ -5,6 +5,27 @@ Format: `## [version] — YYYY-MM-DD`
 
 ---
 
+## [2.6.0] — 2026-06-29
+
+### 🆕 New Features
+- **Floating Chat & AI Sidebar** — Replaced the static Messages tab with a sleek, globally accessible floating sidebar in the bottom-right corner.
+- **Veronica AI Integration** — Chat with Veronica AI, a business-focused virtual assistant integrated directly into the floating sidebar.
+- **Context-Aware Vector Search** — AI responses are now augmented via MongoDB Atlas Vector Search (`$vectorSearch`), using embeddings generated from SOP documents for accurate, context-aware answers.
+- **Persistent AI Chat History** — AI conversations are now continuously saved, allowing you to pick up exactly where you left off.
+- **Smart Reply Option** — Added a quick "Reply" button to chat bubbles, making it easier to thread conversations and quote context in AI chats.
+
+### ✨ Improvements
+- **Smart SOP Inline Button** — Clicking the Smart SOP button now securely routes standard users into an embedded, read-only viewer mode, while admins and editors retain full access to the edit suite.
+- **Live Data Transition** — Stripped out all legacy sample data from the master panel in favor of live data routing.
+- **Token Rate Limits** — Implemented an intelligent daily limit (1,000 words/tokens) for AI generation to control bandwidth, bypassed automatically for admins.
+
+### 🐛 Bug Fixes & Cleanup
+- Eradicated legacy 'Notices' routing, frontend files, and widgets to streamline the dashboard.
+- Removed the deprecated 'General' Department selection constraint.
+- Fixed UI clipping/styling bugs around the Chat feature's file drop area and input field.
+
+---
+
 ## [2.5.1] — 2026-05-31
 
 ### 🆕 New Features

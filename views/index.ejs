@@ -29,6 +29,8 @@
 <head>
     <%- include('partials/header') %>
     <script>
+        window.currentUserId = '<%= user._id %>';
+        window.currentUserRole = '<%= user.role %>';
         // Apply saved profile settings instantly on load to prevent flickering
         (function() {
             const fontSize = '<%= user.fontSize || "medium" %>';
@@ -164,7 +166,7 @@
                 <button class="tab-link" data-tab="PNs">Private Notes</button>
                 <button class="tab-link" data-tab="Briefings">Briefings &amp; SOPs</button>
                 <% if (user.role !== 'new') { %>
-                   <a href="<%= (typeof sopUrl !== 'undefined' && sopUrl) ? sopUrl : '/' + (user.department || 'zomato').toLowerCase().trim() + '/sop/view' %>" class="tab-link sop-btn" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;">Smart SOP</a>
+                   <a href="<%= (typeof sopUrl !== 'undefined' && sopUrl) ? sopUrl : '/sop/' + (user.department || 'zomato').toLowerCase().trim() + '/' + (user.lob || user.department || 'zomato').toLowerCase().trim() + '/view' %>" class="tab-link sop-btn" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;">Smart SOP</a>
                  <% } %>
 
                 <!-- Creative "More" Dropdown -->
@@ -175,13 +177,7 @@
                   </button>
                   <div class="tab-dropdown-menu" id="tab-dropdown-menu">
                     <button class="tab-link dropdown-item" data-tab="Feedback">Feedback</button>
-                    <button class="tab-link dropdown-item" data-tab="Messages">
-                        <span class="tab-text">Messages</span>
-                        <span class="notification-bell" id="message-notification-bell" style="display: none;">
-                            🔔
-                            <span class="notification-count" id="unread-message-count">0</span>
-                        </span>
-                    </button>
+
                     <% if (user.role !== 'new') { %>
                       <button class="tab-link dropdown-item" data-tab="AudioTranslate">Extensions</button>
                     <% } %>
@@ -278,9 +274,7 @@
               <div id="Feedback" class="tab-content">
                   <%- include('partials/feedbackPanel') %>
               </div>
-              <div id="Messages" class="tab-content">
-                  <%- include('partials/messagePanel', { user: user }) %>
-              </div>
+
               <div id="Briefings" class="tab-content">
                   <%- include('partials/briefingsPanel') %>
               </div>
@@ -807,11 +801,12 @@
     </script>
     <script src="/js/notifications.js"></script>
     <script src="/js/main.js"></script>
-    <script src="/js/notices.js"></script>
+
     <% if (user.role === 'admin' || user.role === 'vendor' || user.role === 'team_lead' || user.role === 'editor' || user.role === 'quality_analyst' || user.hasAdminPanelAccess) { %>
         <script src="/js/admin.js"></script>
     <% } %>
     <!-- Feature Guide — loads last so all UI elements are in DOM -->
     <script src="/js/guide.js"></script>
+    <%- include('partials/chatSidebar', { user: user }) %>
 </body>
 </html>

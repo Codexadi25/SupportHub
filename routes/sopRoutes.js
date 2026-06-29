@@ -131,10 +131,7 @@ router.get('/view', isAuthenticated, isNotNew, async (req, res) => {
       }
     }
 
-    // search & pagination
     const q = (req.query.q || '').trim();
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const perPage = Math.max(6, Math.min(50, parseInt(req.query.perPage, 10) || 12));
 
     const filter = { lob, status: 'Published' };
     if (q) {
@@ -146,8 +143,7 @@ router.get('/view', isAuthenticated, isNotNew, async (req, res) => {
       ];
     }
 
-    const total = await Sop.countDocuments(filter);
-    const sops = await Sop.find(filter).sort({ order: 1 }).skip((page - 1) * perPage).limit(perPage);
+    const sops = await Sop.find(filter).sort({ order: 1 });
 
     // Group by category for the panel UI
     const categoriesMap = {};
@@ -171,7 +167,7 @@ router.get('/view', isAuthenticated, isNotNew, async (req, res) => {
     const allTags = Array.from(new Set((await Sop.find({ lob })).flatMap(s => s.tags || [])));
     const chatHistory = await SopChat.findOne({ userId: user._id || user.id, lob }) || { messages: [] };
 
-    res.render('sop_panel', { categories, allTags, theme, template, user: user, mode: 'view', lob, pagination: { page, perPage, total }, chatHistory });
+    res.render('sop_panel', { categories, allTags, theme, template, user: user, mode: 'view', lob, chatHistory });
   } catch (error) {
     console.error("Error fetching SOPs:", error);
     res.status(500).json({ error: "Failed to fetch SOPs" });
@@ -413,7 +409,7 @@ router.get('/edit', isAuthenticated, isNotNew, async (req, res) => {
     const template = await SopTemplate.findOne({ lob: new RegExp(`^${lob}$`, 'i') });
     const lobDept = (template?.department || lob).toLowerCase().trim();
     if (!allowed.includes(normalizedRole) || (normalizedRole !== 'admin' && userDept !== lob && userDept !== lobDept)) {
-      return res.redirect(`/${lobDept}/${lob}/sop/view`);
+      return res.redirect(`/sop/${lobDept}/${lob}/view`);
     }
 
     const theme = await Theme.findOne({ lob }) || {};
@@ -501,7 +497,7 @@ router.get('/preview', isAuthenticated, isNotNew, async (req, res) => {
 
     const allowed = ['admin', 'quality_analyst', 'editor'];
     if (!allowed.includes(normalizedRole) || (normalizedRole !== 'admin' && userDept !== lob)) {
-      return res.redirect(`/${lob}/sop/view`);
+      return res.redirect(`/sop/${req.params.department || 'zomato'}/${lob}/view`);
     }
 
     const theme = await Theme.findOne({ lob }) || {};
@@ -509,7 +505,7 @@ router.get('/preview', isAuthenticated, isNotNew, async (req, res) => {
     // Load active draft
     let draft = await SopDraft.findOne({ userId: user._id, lob });
     if (!draft) {
-      return res.redirect(`/${lob}/sop/edit`);
+      return res.redirect(`/sop/${req.params.department || 'zomato'}/${lob}/edit`);
     }
 
     const categoriesMap = {};

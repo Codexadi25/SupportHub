@@ -310,15 +310,16 @@ exports.getAppPage = async (req, res) => {
         
         // Resolve dynamic SOP URL
         let sopUrl = '';
-        if (userDoc.role === 'admin') {
-            sopUrl = '/sop';
-        } else {
-            const { SopTemplate } = require('../models/Sop');
-            const template = await SopTemplate.findOne({ lob: new RegExp(`^${userLob}$`, 'i') });
-            const parentDept = template?.department || 'zomato';
-            const modeSegment = ['admin', 'quality_analyst', 'editor'].includes(userDoc.role) ? 'edit' : 'view';
-            sopUrl = `/${parentDept}/${userLob}/sop/${modeSegment}`;
-        }
+            if (userDoc.role === 'admin') {
+                sopUrl = '/sop';
+            } else {
+                const { SopTemplate } = require('../models/Sop');
+                const template = await SopTemplate.findOne({ lob: new RegExp(`^${userLob}$`, 'i') });
+                const parentDept = (template?.department || userDept).toLowerCase().trim();
+                
+                const modeSegment = ['quality_analyst', 'editor'].includes(userDoc.role) ? 'edit' : 'view';
+                sopUrl = `/sop/${parentDept}/${userLob}/${modeSegment}`;
+            }
         
         // Render the main page with all the necessary data
         res.render('index', {

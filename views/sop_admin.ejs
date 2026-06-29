@@ -449,7 +449,7 @@
             // Group templates by department
             const grouped = {};
             templates.forEach(t => {
-                const dept = t.department || 'general';
+                const dept = t.department && t.department.toLowerCase() !== 'general' ? t.department : 'zomato';
                 if (!grouped[dept]) grouped[dept] = [];
                 grouped[dept].push(t);
             });
@@ -477,9 +477,10 @@
                                     </div>
                                 </div>
                                 <div class="sop-card-actions">
-                                    <a href="/<%= sop.department %>/<%= sop.lob %>/sop/view" class="card-btn" target="_blank"><i class="fa fa-eye"></i> View Public</a>
+                                    <a href="/sop/<%= sop.department && sop.department.toLowerCase() !== 'general' ? sop.department : 'zomato' %>/<%= sop.lob %>/view" class="card-btn" target="_blank"><i class="fa fa-eye"></i> View Public</a>
                                     <% if (user && ['admin', 'quality_analyst', 'editor'].includes(user.role)) { %>
-                                        <a href="/<%= sop.department %>/<%= sop.lob %>/sop/edit" class="card-btn card-btn-primary" target="_blank"><i class="fa fa-pencil"></i> Open Editor</a>
+                                        <a href="/sop/<%= sop.department && sop.department.toLowerCase() !== 'general' ? sop.department : 'zomato' %>/<%= sop.lob %>/edit" class="card-btn card-btn-primary" target="_blank"><i class="fa fa-pencil"></i> Open Editor</a>
+                                        <button onclick="deleteSop('<%= sop._id %>')" class="card-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);"><i class="fa fa-trash"></i> Delete</button>
                                     <% } %>
                                 </div>
                             </div>
@@ -602,6 +603,22 @@
                 showToast('Error: ' + err.message, true);
                 btn.innerHTML = oldText;
                 btn.disabled = false;
+            }
+        }
+
+        async function deleteSop(id) {
+            if (!confirm('Are you sure you want to completely delete this SOP template and all its cards? This cannot be undone.')) return;
+            try {
+                const res = await fetch(`/sop/delete/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast('SOP deleted successfully.', false);
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error(data.error || 'Failed to delete SOP.');
+                }
+            } catch(err) {
+                showToast('Error: ' + err.message, true);
             }
         }
     </script>

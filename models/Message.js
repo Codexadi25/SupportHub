@@ -47,13 +47,24 @@ const messageSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    isDeleted: {
+        type: Boolean,
+        default: false
+    },
+    deletedBy: {
+        type: String,
+        default: null
+    },
     startDate: {
         type: Date,
         default: Date.now
     },
     endDate: {
         type: Date,
-        required: true
+        default: function() {
+            // Default to 1 year in the future for chat messages
+            return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+        }
     },
     isRead: [{
         userId: {

@@ -1,316 +1,322 @@
-// Messages Panel JavaScript
+// Messages Panel JavaScript - Realtime Group Chat
 document.addEventListener('DOMContentLoaded', () => {
     const messageListContainer = document.getElementById('message-list-container');
-    const messageModal = document.getElementById('message-modal');
+    const messageScrollArea = document.getElementById('message-scroll-area');
     const messageForm = document.getElementById('message-form');
-    const createMessageBtn = document.getElementById('btn-create-message');
-    const closeMessageModal = document.getElementById('close-message-modal');
-    const cancelMessageBtn = document.getElementById('cancel-message');
-    
-    // Filter elements
-    const typeFilter = document.getElementById('message-type-filter');
-    const priorityFilter = document.getElementById('message-priority-filter');
-    const clearFiltersBtn = document.getElementById('clear-message-filters');
-    
-    // Form elements
-    const targetAllCheckbox = document.getElementById('target-all');
-    const roleTargets = document.getElementById('role-targets');
-    const specificUsersSelect = document.getElementById('message-specific-users');
+    const searchInput = document.getElementById('message-search');
     
     let allMessages = [];
-    let allUsers = [];
-    let currentFilters = {};
+    let currentSearchTerm = '';
+    let pollingInterval = null;
+    let isUserScrolling = false;
+    let currentLimit = 50;
+    let hasMoreMessages = true;
+    let isFetchingHistory = false;
     
     // Initialize
     loadMessages();
-    if (createMessageBtn) loadUsers(); // Only load users if admin
     setupEventListeners();
-    updateNotificationCount(); // Update notification count on load
+    
+    // Polling for realtime updates
+    pollingInterval = setInterval(() => {
+        if (!isFetchingHistory) loadMessages();
+    }, 3000);
     
     function setupEventListeners() {
-        // Modal controls
-        createMessageBtn?.addEventListener('click', openMessageModal);
-        closeMessageModal?.addEventListener('click', closeModal);
-        cancelMessageBtn?.addEventListener('click', closeModal);
-        messageModal?.addEventListener('click', (e) => {
-            if (e.target === messageModal) closeModal();
-        });
-        
         // Form submission
         messageForm?.addEventListener('submit', handleMessageSubmit);
         
-        // Target audience controls
-        targetAllCheckbox?.addEventListener('change', handleTargetAllChange);
-        
-        // Filters
-        typeFilter?.addEventListener('change', applyFilters);
-        priorityFilter?.addEventListener('change', applyFilters);
-        clearFiltersBtn?.addEventListener('click', clearFilters);
+        // Search
+        searchInput?.addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value.toLowerCase();
+            renderMessages();
+        });
+
+        // Group Chat Replies
+        messageListContainer?.addEventListener('click', (e) => {
+            const replyBtn = e.target.closest('.gc-reply-btn');
+            if (replyBtn) {
+                const author = replyBtn.dataset.author;
+                const input = document.getElementById('message-content');
+                if (input && author) {
+                    input.value = `@${author} ` + input.value;
+                    input.focus();
+                }
+            }
+            
+            const replyAllBtn = e.target.closest('.gc-reply-all-btn');
+            if (replyAllBtn) {
+                const input = document.getElementById('message-content');
+                if (input) {
+                    input.value = `@All ` + input.value;
+                    input.focus();
+                }
+            }
+        });
+
+        // Track scrolling to prevent auto-scroll if user is reading history
+        if (messageScrollArea) {
+            messageScrollArea.addEventListener('scroll', () => {
+                if (messageScrollArea.scrollTop === 0 && hasMoreMessages && !isFetchingHistory) {
+                    isFetchingHistory = true;
+                    currentLimit += 50;
+                    const oldScrollHeight = messageScrollArea.scrollHeight;
+                    
+                    loadMessages().then(() => {
+                        requestAnimationFrame(() => {
+                            if (messageScrollArea) {
+                                messageScrollArea.scrollTop = messageScrollArea.scrollHeight - oldScrollHeight;
+                            }
+                            isFetchingHistory = false;
+                        });
+                    }).catch(() => { isFetchingHistory = false; });
+                }
+                
+                const isAtBottom = messageScrollArea.scrollHeight - messageScrollArea.scrollTop <= messageScrollArea.clientHeight + 50;
+                isUserScrolling = !isAtBottom;
+            });
+        }
+    }
+    
+    // Expose clear function for chatSidebar.js
+    window.clearGroupChat = async function() {
+        try {
+            const res = await fetch(`${basePath}/my`, { method: 'DELETE' });
+            if (res.ok) {
+                allMessages = [];
+                currentLimit = 50;
+                hasMoreMessages = true;
+                renderMessages();
+            }
+        } catch (err) {
+            console.error('Failed to clear group chat', err);
+        }
+    };
+    
+    // Get basePath based on URL
+    let basePath = '/api/zomato/messages'; // default fallback
+    const lobMatch = window.location.pathname.match(/\/sop\/[^\/]+\/([^\/]+)/);
+    if (lobMatch) {
+        basePath = `/api/${lobMatch[1]}/messages`;
     }
     
     async function loadMessages() {
         try {
-            showLoading();
-            const response = await fetch('/api/messages/my');
+            const response = await fetch(`${basePath}/my?limit=${currentLimit}`);
             if (!response.ok) throw new Error('Failed to load messages');
             
-            allMessages = await response.json();
-            renderMessages(allMessages);
-            updateNotificationCount(); // Update notification count after loading messages
-        } catch (error) {
-            showError('Failed to load messages: ' + error.message);
-        }
-    }
-    
-    async function loadUsers() {
-        try {
-            const response = await fetch('/api/messages/users');
-            if (!response.ok) throw new Error('Failed to load users');
+            const newMessages = await response.json();
             
-            allUsers = await response.json();
-            populateUsersSelect();
+            if (newMessages.length < currentLimit) {
+                hasMoreMessages = false;
+            } else {
+                hasMoreMessages = true;
+            }
+            
+            // Check for new messages to show in tooltip (only if not fetching history)
+            if (!isFetchingHistory && allMessages.length > 0 && newMessages.length > allMessages.length) {
+                const latestMsg = newMessages[newMessages.length - 1];
+                const currentUserId = getCurrentUserId();
+                if (String(latestMsg.authorId) !== String(currentUserId)) {
+                    showTooltipForNewMessage(latestMsg);
+                }
+            }
+            
+            allMessages = newMessages;
+            
+            if (!isFetchingHistory) {
+                renderMessages(false);
+            } else {
+                renderMessages(true); // true means preserve scroll conceptually, but we handle it manually above
+            }
+            
+            updateNotificationCount();
         } catch (error) {
-            console.error('Failed to load users:', error);
+            console.error('Failed to load messages:', error);
+            // Hide loading indicator if it exists and array is empty
+            if (messageListContainer && allMessages.length === 0) {
+                messageListContainer.innerHTML = '<div class="no-messages" style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">Failed to load messages.</div>';
+            }
         }
     }
     
-    function populateUsersSelect() {
-        if (!specificUsersSelect) return;
-        
-        specificUsersSelect.innerHTML = allUsers.map(user => 
-            `<option value="${user._id}">${escapeHtml(user.username)} (${user.role})</option>`
-        ).join('');
+    function showTooltipForNewMessage(message) {
+        const sidebar = document.getElementById('chat-sidebar');
+        if (sidebar && sidebar.classList.contains('open')) return;
+
+        const tooltip = document.getElementById('chat-levitating-tooltip');
+        if (tooltip) {
+            let text = message.content || '';
+            const isReplyAll = text.includes('@All ');
+            
+            let prefix = `${message.authorName}: `;
+            if (isReplyAll) {
+                prefix = `${message.authorName} replied all: `;
+                text = text.replace('@All ', '');
+            } else if (text.startsWith('@')) {
+                // simple replace for other replies
+                text = text.replace(/^@[^\s]+\s/, '');
+            }
+            
+            let chunk = prefix + text;
+            if (chunk.length > 16) {
+                chunk = chunk.substring(0, 16) + '...';
+            }
+            
+            tooltip.innerHTML = `${escapeHtml(chunk)}
+                <div style="position: absolute; bottom: -6px; right: 20px; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid white;"></div>`;
+            tooltip.style.display = 'block';
+        }
     }
     
-    function renderMessages(messages) {
+    function renderMessages(forceScroll = false) {
         if (!messageListContainer) return;
         
-        if (messages.length === 0) {
-            messageListContainer.innerHTML = '<div class="no-messages">No messages found.</div>';
+        // Filter by search term
+        const filteredMessages = allMessages.filter(msg => {
+            if (!currentSearchTerm) return true;
+            return (msg.content && msg.content.toLowerCase().includes(currentSearchTerm)) || 
+                   (msg.authorName && msg.authorName.toLowerCase().includes(currentSearchTerm));
+        });
+
+        if (filteredMessages.length === 0) {
+            messageListContainer.innerHTML = '<div class="no-messages" style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">No messages found.</div>';
             return;
         }
         
-        messageListContainer.innerHTML = messages.map(message => {
-            const isExpired = new Date(message.endDate) < new Date();
-            const currentUserId = getCurrentUserId();
-            const isRead = message.isRead && currentUserId && message.isRead.some(read => read.userId === currentUserId);
-            const isUnread = !isRead && !isExpired;
-            const isAdmin = window.currentUserRole === 'admin';
+        const currentUserId = getCurrentUserId();
+        const isAdmin = window.currentUserRole === 'admin';
+        
+        messageListContainer.innerHTML = filteredMessages.map(message => {
+            const isMine = String(message.authorId) === String(currentUserId);
             
+            let messageContentHtml = '';
+            
+            if (message.isDeleted) {
+                if (isAdmin) {
+                    messageContentHtml = `
+                        <div style="filter: blur(4px); opacity: 0.7; user-select: none;">${compileContent(message.content, message.contentType)}</div>
+                        <div style="font-size: 11px; color: #ef4444; margin-top: 5px;">Deleted by ${escapeHtml(message.deletedBy || 'unknown')}</div>
+                    `;
+                } else {
+                    messageContentHtml = `<div style="color: #94a3b8; font-style: italic;">🚫 This message was deleted.</div>`;
+                }
+            } else {
+                messageContentHtml = compileContent(message.content, message.contentType);
+            }
+            
+            const fallbackAvatarUrl = isMine ? 'https://ui-avatars.com/api/?name=You&background=random' : `https://ui-avatars.com/api/?name=${encodeURIComponent(message.authorName)}&background=random`;
+            const avatarRaw = message.authorAvatar ? message.authorAvatar : fallbackAvatarUrl;
+            
+            let avatarHtml = '';
+            if (avatarRaw.trim().startsWith('<')) {
+                // The database stored an HTML snippet (like an <img> or <i> tag)
+                avatarHtml = `<span style="display:inline-flex; width:16px; height:16px; border-radius:50%; overflow:hidden; align-items:center; justify-content:center; [&>img]:width:100%; [&>img]:height:100%; [&>img]:object-fit:cover;">${avatarRaw}</span>`;
+            } else {
+                // It's a plain URL
+                avatarHtml = `<img src="${avatarRaw}" style="width:16px; height:16px; border-radius:50%; object-fit:cover;">`;
+            }
+
             return `
-                <div class="message-item priority-${message.priority} ${isUnread ? 'unread' : ''}" data-id="${message._id}">
-                    <div class="message-header">
-                        <div class="message-meta">
-                            <span class="message-type ${message.type}">${message.type}</span>
-                            <span class="message-priority ${message.priority}">${message.priority}</span>
-                        </div>
-                        <div class="message-dates">
-                            <div>Created: ${new Date(message.createdAt).toLocaleDateString()}</div>
-                            <div class="message-expiry ${isExpired ? 'expired' : ''}">
-                                Expires: ${new Date(message.endDate).toLocaleString()}
-                            </div>
+                <div class="chat-bubble-container" style="display: flex; flex-direction: column; align-items: ${isMine ? 'flex-end' : 'flex-start'}; margin-bottom: 5px;" data-id="${message._id}">
+                    <div style="font-size: 11px; color: #64748b; margin-bottom: 3px; margin-left: 5px; margin-right: 5px; display: flex; align-items: center; gap: 4px;">
+                        ${avatarHtml}
+                        ${isMine ? 'You' : escapeHtml(message.authorName)} • ${new Date(message.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </div>
+                    
+                    <div class="chat-bubble" style="
+                        max-width: 75%;
+                        padding: 10px 14px;
+                        border-radius: 18px;
+                        background: ${isMine ? 'var(--primary, #CB202D)' : '#f1f5f9'};
+                        color: ${isMine ? '#ffffff' : '#333333'};
+                        border-bottom-${isMine ? 'right' : 'left'}-radius: 4px;
+                        position: relative;
+                        word-break: break-word;
+                    ">
+                        ${messageContentHtml}
+                        <div class="gc-reply-container" style="position: absolute; top: -12px; ${isMine ? 'left: -45px' : 'right: -45px'}; display: flex; gap: 4px;">
+                            <button class="gc-reply-btn" data-author="${escapeHtml(message.authorName)}" title="Reply" style="background: white; border: 1px solid #cbd5e1; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; color: #334155; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">↩</button>
+                            <button class="gc-reply-all-btn" title="Reply All" style="background: white; border: 1px solid #cbd5e1; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; color: #334155; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">⇈</button>
                         </div>
                     </div>
-                    <div class="message-title">${escapeHtml(message.title)}</div>
-                    <div class="message-content">${compileContent(message.content, message.contentType)}</div>
-                    <div class="message-target-info">
-                        Target: ${getTargetDescription(message)}
-                    </div>
-                    <div class="message-footer">
-                        <div class="message-actions">
-                            ${isUnread ? `
-                                <button class="message-read-btn" data-id="${message._id}">
-                                    Mark as Read
-                                </button>
-                            ` : ''}
-                            <span class="message-read-ticks" title="${isRead ? 'Read' : 'Delivered'}">
-                                ${isRead ? '✓✓' : '✓'}
-                            </span>
-                            ${isAdmin ? `
-                                <button class="message-delete-btn danger" data-id="${message._id}">Delete</button>
-                            ` : ''}
-                        </div>
-                        <div class="message-author">By ${escapeHtml(message.authorName)}</div>
+                    
+                    <div class="chat-actions" style="display: flex; gap: 10px; margin-top: 3px; font-size: 11px;">
+                        ${(!message.isDeleted && (isMine || isAdmin)) ? `<span class="delete-msg-btn" data-id="${message._id}" style="cursor: pointer; color: #94a3b8;">Delete</span>` : ''}
+                        ${(message.isDeleted && isAdmin) ? `<span class="permanent-delete-msg-btn" data-id="${message._id}" style="cursor: pointer; color: #ef4444; font-weight: bold;">Permanently Delete</span>` : ''}
                     </div>
                 </div>
             `;
         }).join('');
         
-        // Add read event listeners
-        document.querySelectorAll('.message-read-btn').forEach(btn => {
-            btn.addEventListener('click', handleMarkAsRead);
-        });
-        // Admin delete listeners
-        document.querySelectorAll('.message-delete-btn').forEach(btn => {
+        // Add delete event listeners
+        document.querySelectorAll('.delete-msg-btn').forEach(btn => {
             btn.addEventListener('click', handleDeleteMessage);
         });
-    }
-    
-    function getTargetDescription(message) {
-        if (message.targetRoles.includes('all')) {
-            return 'All Users';
+        document.querySelectorAll('.permanent-delete-msg-btn').forEach(btn => {
+            btn.addEventListener('click', handlePermanentDeleteMessage);
+        });
+
+        // Auto-scroll to bottom
+        if (messageScrollArea && (!isUserScrolling || forceScroll)) {
+            messageScrollArea.scrollTop = messageScrollArea.scrollHeight;
         }
-        
-        const roles = message.targetRoles.filter(role => role !== 'all');
-        const userCount = message.targetUsers ? message.targetUsers.length : 0;
-        
-        let description = roles.length > 0 ? roles.join(', ') : '';
-        if (userCount > 0) {
-            description += (description ? ', ' : '') + `${userCount} specific user(s)`;
-        }
-        
-        return description || 'No specific targets';
     }
     
     function getCurrentUserId() {
-        // Get user ID from window object set by server
-        if (window.currentUserId) {
-            return window.currentUserId;
-        }
-        
-        // Fallback: try to get from data attribute
+        if (window.currentUserId) return window.currentUserId;
         const userElement = document.querySelector('[data-user-id]');
-        if (userElement) {
-            return userElement.getAttribute('data-user-id');
-        }
-        
-        // Last resort: return null and handle in the calling function
+        if (userElement) return userElement.getAttribute('data-user-id');
         return null;
-    }
-    
-    function openMessageModal() {
-        if (messageModal) {
-            messageModal.style.display = 'flex';
-            document.body.classList.add('modal-open');
-            
-            // Set default end date to 7 days from now
-            const endDateInput = document.getElementById('message-end-date');
-            if (endDateInput) {
-                const futureDate = new Date();
-                futureDate.setDate(futureDate.getDate() + 7);
-                endDateInput.value = futureDate.toISOString().slice(0, 16);
-            }
-        }
-    }
-    
-    function closeModal() {
-        if (messageModal) {
-            messageModal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-            messageForm?.reset();
-            handleTargetAllChange(); // Reset target options
-        }
-    }
-    
-    function handleTargetAllChange() {
-        if (!targetAllCheckbox || !roleTargets) return;
-        
-        const isChecked = targetAllCheckbox.checked;
-        const roleCheckboxes = roleTargets.querySelectorAll('input[type="checkbox"]');
-        
-        roleCheckboxes.forEach(checkbox => {
-            checkbox.disabled = isChecked;
-            if (isChecked) {
-                checkbox.checked = false;
-            }
-        });
-        
-        // Also disable specific users select when "All Users" is checked
-        if (specificUsersSelect) {
-            specificUsersSelect.disabled = isChecked;
-            if (isChecked) {
-                specificUsersSelect.selectedIndex = -1;
-            }
-        }
     }
     
     async function handleMessageSubmit(e) {
         e.preventDefault();
         
-        const formData = new FormData(messageForm);
-        const targetRoles = [];
-        
-        if (targetAllCheckbox?.checked) {
-            targetRoles.push('all');
-        } else {
-            const roleCheckboxes = roleTargets?.querySelectorAll('input[type="checkbox"]:checked');
-            roleCheckboxes?.forEach(checkbox => {
-                targetRoles.push(checkbox.value);
-            });
-        }
-        
-        const targetUsers = specificUsersSelect?.disabled ? [] : 
-            Array.from(specificUsersSelect?.selectedOptions || [])
-                .map(option => option.value);
+        const contentInput = document.getElementById('message-content');
+        const content = contentInput.value.trim();
+        if (!content) return;
         
         const data = {
-            title: formData.get('title'),
-            content: formData.get('content'),
-            type: formData.get('type'),
-            priority: formData.get('priority'),
-            endDate: formData.get('endDate'),
-            targetRoles,
-            targetUsers,
-            contentType: formData.get('contentType') || 'plain'
+            title: 'Chat Message',
+            content: content,
+            type: 'info',
+            priority: 'medium',
+            contentType: 'plain'
         };
         
         try {
-            const response = await fetch('/api/messages', {
+            contentInput.disabled = true;
+            const postResponse = await fetch(basePath, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
                 body: JSON.stringify(data)
             });
             
-            if (!response.ok) {
-                const error = await response.json();
+            if (!postResponse.ok) {
+                const error = await postResponse.json();
                 throw new Error(error.message);
             }
             
-            showToast('Message broadcasted successfully!', 'success');
-            closeModal();
-            loadMessages();
-        } catch (error) {
-            showToast('Error creating message: ' + error.message, 'error');
-        }
-    }
-    
-    async function handleMarkAsRead(e) {
-        const messageId = e.target.dataset.id;
-        const currentUserId = getCurrentUserId();
-        
-        if (!currentUserId) {
-            showToast('Unable to identify user. Please refresh the page.', 'error');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`/api/messages/${messageId}/read`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin'
-            });
+            messageForm.reset();
+            contentInput.disabled = false;
+            contentInput.focus();
             
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message);
-            }
-            
-            showToast('Message marked as read!', 'success');
-            loadMessages(); // Reload to update UI
-            updateNotificationCount(); // Update notification count
+            await loadMessages();
+            renderMessages(true); // force scroll down
         } catch (error) {
-            showToast('Error marking message as read: ' + error.message, 'error');
+            contentInput.disabled = false;
+            showToast('Error sending message: ' + error.message, 'error');
         }
     }
 
     async function handleDeleteMessage(e) {
         const messageId = e.target.dataset.id;
-        if (!confirm('Delete this message? This cannot be undone.')) return;
+        if (!confirm('Delete this message for everyone?')) return;
+        
         try {
-            const response = await fetch(`/api/messages/${messageId}`, {
+            const response = await fetch(`${basePath}/${messageId}`, {
                 method: 'DELETE',
                 credentials: 'same-origin'
             });
@@ -318,43 +324,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const error = await response.json();
                 throw new Error(error.message);
             }
-            showToast('Message deleted.', 'success');
-            loadMessages();
+            await loadMessages();
         } catch (error) {
             showToast('Error deleting message: ' + error.message, 'error');
         }
     }
-    
-    function applyFilters() {
-        currentFilters = {
-            type: typeFilter?.value || '',
-            priority: priorityFilter?.value || ''
-        };
+
+    async function handlePermanentDeleteMessage(e) {
+        const messageId = e.target.dataset.id;
+        if (!confirm('Permanently delete this message? It will be erased from the database.')) return;
         
-        const filtered = allMessages.filter(message => {
-            return (!currentFilters.type || message.type === currentFilters.type) &&
-                   (!currentFilters.priority || message.priority === currentFilters.priority);
-        });
-        
-        renderMessages(filtered);
-    }
-    
-    function clearFilters() {
-        if (typeFilter) typeFilter.value = '';
-        if (priorityFilter) priorityFilter.value = '';
-        currentFilters = {};
-        renderMessages(allMessages);
-    }
-    
-    function showLoading() {
-        if (messageListContainer) {
-            messageListContainer.innerHTML = '<div class="loading-indicator">Loading messages...</div>';
-        }
-    }
-    
-    function showError(message) {
-        if (messageListContainer) {
-            messageListContainer.innerHTML = `<div class="no-messages">${escapeHtml(message)}</div>`;
+        try {
+            const response = await fetch(`${basePath}/${messageId}/permanent`, {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            }
+            await loadMessages();
+        } catch (error) {
+            showToast('Error permanently deleting message: ' + error.message, 'error');
         }
     }
     
@@ -372,7 +363,6 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 return marked.parse(content);
             } catch (e) {
-                console.error('Markdown parse error:', e);
                 return linkifyText(escapeHtml(content)).replace(/\n/g, '<br>');
             }
         } else {
@@ -380,13 +370,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Function to detect and convert URLs to clickable links
     function linkifyText(text) {
         if (!text) return '';
-        
-        // URL regex pattern
         const urlRegex = /(https?:\/\/[^\s]+)/g;
-        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="text-decoration: underline;">$1</a>');
     }
     
     function showToast(message, type = 'success') {
@@ -413,11 +400,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentUserId = getCurrentUserId();
         if (!currentUserId) return;
         
-        // Count unread messages
+        // Count unread messages (ignore deleted for notif count)
         const unreadCount = allMessages.filter(message => {
-            const isExpired = new Date(message.endDate) < new Date();
+            if (message.isDeleted) return false;
             const isRead = message.isRead && message.isRead.some(read => read.userId === currentUserId);
-            return !isRead && !isExpired;
+            return !isRead;
         }).length;
         
         if (unreadCount > 0) {

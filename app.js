@@ -154,6 +154,7 @@ const apiUsersRouter = require('./routes/users'); // for legacy /api/users/bulk 
 app.use('/api/admin', adminRouter);
 app.use('/api', apiUsersRouter);
 app.use('/api', require('./routes/api/userActivity'));
+app.use('/api/ai', require('./routes/api/aiRoutes'));
 app.use('/', require('./routes/viewRoutes'));
 
 // Performance Dashboard Routes
@@ -161,7 +162,7 @@ app.use('/performance', require('./routes/performance'));
 
 // SOP Routes
 const sopRoutes = require('./routes/sopRoutes');
-app.use('/:department/:lob/sop', sopRoutes);
+app.use('/sop/:department/:lob', sopRoutes);
 
 // Legacy SOP URL Redirection
 app.use('/:lob/sop', async (req, res, next) => {
@@ -170,7 +171,7 @@ app.use('/:lob/sop', async (req, res, next) => {
     const { SopTemplate } = require('./models/Sop');
     const template = await SopTemplate.findOne({ lob: new RegExp(`^${lob}$`, 'i') });
     const department = template?.department || 'zomato';
-    res.redirect(`/${department}/${lob}/sop${req.url}`);
+    res.redirect(`/sop/${department}/${lob}${req.url}`);
   } catch (err) {
     next(err);
   }
@@ -195,7 +196,7 @@ app.use('/api/:lob/ai-cand', require('./routes/api/aiCandRoutes'));
 app.use('/api/:lob/pns', require('./routes/api/pnRoutes'));
 app.use('/api/:lob/feedback', require('./routes/api/feedbackRoutes'));
 app.use('/api/:lob/messages', require('./routes/api/messageRoutes'));
-app.use('/api/:lob/notices', require('./routes/api/noticeRoutes'));
+
 app.use('/api/:lob/notifications', require('./routes/api/notificationRoutes'));
 app.use('/api/:lob/briefings', require('./routes/api/briefingRoutes'));
 // ... other API routes

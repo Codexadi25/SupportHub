@@ -16,7 +16,8 @@ const sopEntrySchema = new mongoose.Schema({
     at: { type: Date, default: Date.now },
     by: String, // Username
     role: String // Role
-  }
+  },
+  embedding: { type: [Number] } // Vector embedding for AI context search
 });
 
 // Schema for tracking changes (Audit Log)

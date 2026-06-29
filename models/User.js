@@ -32,6 +32,9 @@ const userSchema = new mongoose.Schema({
     shiftType: { type: String, default: 'general' },  // NEW: default shift
     isActive: { type: Boolean, default: true },        // NEW: soft delete / deactivation
     hasAdminPanelAccess: { type: Boolean, default: false },
+    aiTokensUsedToday: { type: Number, default: 0 },
+    aiTokensDate: { type: String, default: '' },
+    clearedGroupChats: { type: Map, of: Date, default: {} },
     }, 
 { timestamps: true });
 

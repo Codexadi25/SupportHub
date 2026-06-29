@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.6.0",
+    "label": "LTS · v2.6.0",
+    "hash": "manual",
+    "fullHash": "manual-commit",
+    "branch": "main",
+    "author": "Codexadi25",
+    "email": "contactaditya25@gmail.com",
+    "date": "2026-06-29T08:15:00+05:30",
+    "message": "feat: v2.6.0 — Floating Chat Sidebar, Veronica AI Vector Search, Live Data Route, Token Limiting",
+    "changelog": [
+      "💬 **Floating Chat Sidebar** — Messages tab removed in favor of a sleek, floating chat sidebar anchored to the bottom right.",
+      "🤖 **Veronica AI Integration** — Powered by Gemini & MongoDB Atlas Vector Search to answer questions using context drawn directly from live SOPs.",
+      "🔄 **Smart Reply Options** — Click the reply icon on any AI or chat message to thread replies with full context.",
+      "🛡️ **AI Token Rate Limiting** — Non-admin users are restricted to generating a maximum of 1,000 words (tokens) per day to ensure stability.",
+      "⚡ **Live Data SOP Panel** — Removed legacy static data; the master SOP panel now exclusively routes through the live `/sop/:department/:lob/view` endpoints.",
+      "🧹 **Removed Legacy Modules** — The old 'Notices' widget and 'General' department constraint have been securely eradicated from the system."
+    ]
+  },
+  {
     "version": "2.5.1",
     "label": "LTS · v2.5.1",
     "hash": "34cf47e",

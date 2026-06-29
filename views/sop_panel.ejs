@@ -1382,7 +1382,8 @@
     window.__sopUserRole = '<%= user && user.role ? user.role : "" %>';
     window.__sopUserId   = '<%= user && user._id ? user._id : "" %>';
     window.__sopUsername = '<%= user && user.username ? user.username : "" %>';
-    window.__sopLob      = '<%= lob || "zomato" %>';
+    window.__sopLob      = '<%= typeof lob !== "undefined" ? lob : "zomato" %>';
+    window.__sopDept     = '<%= typeof department !== "undefined" ? department : (typeof dept !== "undefined" ? dept : "zomato") %>';
 </script>
 <script src="/js/presenceBar.js"></script>
 <script>
@@ -1611,7 +1612,7 @@
              <button id="sop-redo-btn" class="sop-toolbar-btn btn-secondary" onclick="redo()" disabled title="Redo last change"><i class="fa fa-repeat"></i></button>
              <button id="sop-add-cat-btn" class="sop-toolbar-btn btn-purple" onclick="openCategoryModal()">＋ Add Category</button>
              <button id="sop-save-layout-btn" class="sop-toolbar-btn btn-slate">💾 Save Draft</button>
-             <a href="/<%= lob %>/sop/preview" target="_blank" class="sop-toolbar-btn btn-slate" style="text-decoration:none;"><i class="fa fa-external-link"></i> Live Preview</a>
+             <a href="/sop/<%= typeof department !== 'undefined' ? department : (typeof dept !== 'undefined' ? dept : 'zomato') %>/<%= lob %>/preview" target="_blank" class="sop-toolbar-btn btn-slate" style="text-decoration:none;"><i class="fa fa-external-link"></i> Live Preview</a>
              <button id="sop-publish-btn" class="sop-toolbar-btn btn-green">🚀 Publish Draft</button>
              <button id="sop-options-btn" class="sop-toolbar-btn btn-secondary" title="Options"><i class="fa fa-ellipsis-v"></i></button>
              <button id="sop-hide-ribbon-btn" class="sop-toolbar-btn btn-secondary" onclick="toggleRibbon(true)" title="Hide Ribbon"><i class="fa fa-chevron-up"></i> Hide Ribbon</button>
@@ -1634,7 +1635,7 @@
          <span style="font-weight:800;letter-spacing:.5px;color:#cbd5e1;">👁 PUBLIC VIEW (LIVE)</span>
          <span style="opacity:.6;font-size:11px;">You have edit permissions for this SOP</span>
          <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-             <a href="/<%= lob %>/sop/edit" class="sop-toolbar-btn btn-purple" style="text-decoration:none;"><i class="fa fa-pencil"></i> Open Draft Editor</a>
+             <a href="/sop/<%= typeof department !== 'undefined' ? department : (typeof dept !== 'undefined' ? dept : 'zomato') %>/<%= lob %>/edit" class="sop-toolbar-btn btn-purple" style="text-decoration:none;"><i class="fa fa-pencil"></i> Open Draft Editor</a>
          </div>
       </div>
    <% } else if (currentMode === 'preview') { %>
@@ -1643,7 +1644,7 @@
          <span style="font-weight:800;letter-spacing:.5px;color:#cbd5e1;">🚀 LIVE PREVIEW (DRAFT)</span>
          <span style="opacity:.6;font-size:11px;">Viewing how your draft will look when published</span>
          <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-             <a href="/<%= lob %>/sop/edit" class="sop-toolbar-btn btn-purple" style="text-decoration:none;"><i class="fa fa-arrow-left"></i> Return to Editor</a>
+             <a href="/sop/<%= typeof department !== 'undefined' ? department : (typeof dept !== 'undefined' ? dept : 'zomato') %>/<%= lob %>/edit" class="sop-toolbar-btn btn-purple" style="text-decoration:none;"><i class="fa fa-arrow-left"></i> Return to Editor</a>
          </div>
       </div>
    <% } else if (currentMode === 'draft') { %>
@@ -1652,7 +1653,7 @@
          <span style="font-weight:800;letter-spacing:.5px;color:#cbd5e1;">📜 DRAFT LIST (UNPUBLISHED)</span>
          <span style="opacity:.6;font-size:11px;">You are viewing unpublished draft cards</span>
          <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-             <a href="/<%= lob %>/sop/edit" class="sop-toolbar-btn btn-purple" style="text-decoration:none;"><i class="fa fa-pencil"></i> Open Draft Editor</a>
+             <a href="/sop/<%= typeof department !== 'undefined' ? department : (typeof dept !== 'undefined' ? dept : 'zomato') %>/<%= lob %>/edit" class="sop-toolbar-btn btn-purple" style="text-decoration:none;"><i class="fa fa-pencil"></i> Open Draft Editor</a>
          </div>
       </div>
    <% } %>
@@ -2109,6 +2110,7 @@
 // ─────────────────────────────────────────────────────────────────────
 const SOP_MODE = '<%= typeof mode !== "undefined" ? mode : "view" %>';
 const SOP_LOB  = window.__sopLob || 'zomato';
+const SOP_DEPT = window.__sopDept || 'zomato';
 
 // Initialize Draft State
 window.SopDraftState = {
@@ -2575,7 +2577,7 @@ async function askAiToHelpDetails() {
     btn.disabled = true;
 
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/chat`, {
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -2764,7 +2766,7 @@ function triggerAutoSave() {
 
 async function saveDraftToServer() {
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/draft`, {
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/draft`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -2998,7 +3000,7 @@ async function openVersionHistoryModal() {
     backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
 
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/history`);
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/history`);
         const data = await res.json();
         if (data.success && data.history) {
             const list = document.getElementById('sop-history-list');
@@ -3035,7 +3037,7 @@ async function openVersionHistoryModal() {
 async function compareHistoryVersion(version) {
     showToast(`Loading version v${version}...`, 'info');
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/history/${version}`);
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/history/${version}`);
         const data = await res.json();
         if (data.success && data.snapshot) {
             window.diffSnapshotData = {
@@ -3069,7 +3071,7 @@ async function compareHistoryVersion(version) {
 async function rollbackToVersion(version) {
     if (!confirm(`Rollback SOP WIMO to Version v${version}? This overrides the live version.`)) return;
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/rollback/${version}`, { method: 'POST', credentials: 'same-origin' });
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/rollback/${version}`, { method: 'POST', credentials: 'same-origin' });
         const data = await res.json();
         if (data.success) {
             showToast(`SOP rolled back successfully to version v${version}!`, 'success');
@@ -3134,7 +3136,7 @@ function levenshteinDistance(a, b) {
 async function fetchAndReconcileSheet() {
     showToast('Fetching Google Sheet source...', 'info');
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/fetch-source`);
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/fetch-source`);
         const data = await res.json();
         if (data.success && data.data) {
             const rows = data.data;
@@ -3190,7 +3192,7 @@ async function saveSheetUrl() {
     const url = document.getElementById('smUrlInput').value.trim();
     if (!isValidSheetUrl(url)) return;
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/link-source`, {
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/link-source`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url }),
@@ -3377,7 +3379,7 @@ async function sendAiChatMessage() {
     }
 
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/chat`, {
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/chat`, {
             method: 'POST',
             body: formData
         });
@@ -3470,7 +3472,7 @@ async function openPublishValidationModal() {
 
     // Fetch live data to compute diff
     try {
-        const res = await fetch(`/${SOP_LOB}/sop/live`);
+        const res = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/live`);
         const data = await res.json();
         const diffArea = document.getElementById('pub-diff-area');
         const confirmBtn = document.getElementById('pub-confirm-btn');
@@ -3535,7 +3537,7 @@ async function openPublishValidationModal() {
                 // First save the latest draft state
                 await saveDraftToServer();
 
-                const pubRes = await fetch(`/${SOP_LOB}/sop/publish`, {
+                const pubRes = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/publish`, {
                     method: 'POST',
                     credentials: 'same-origin'
                 });
@@ -3567,7 +3569,7 @@ async function openPublishValidationModal() {
                 confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Publishing…';
                 try {
                     await saveDraftToServer();
-                    const pubRes = await fetch(`/${SOP_LOB}/sop/publish`, { method: 'POST', credentials: 'same-origin' });
+                    const pubRes = await fetch(`/sop/${SOP_DEPT}/${SOP_LOB}/publish`, { method: 'POST', credentials: 'same-origin' });
                     const pubData = await pubRes.json();
                     if (pubData.success) {
                         backdrop.remove();

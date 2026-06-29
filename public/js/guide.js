@@ -38,29 +38,21 @@
         <line x1="14" y1="28" x2="36" y2="28" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-linecap="round"/>
     </svg>`;
 
-    // ── Step definitions for v2.5.0 ───────────────────────────────────────────
+    // ── Step definitions for v2.6.0 ───────────────────────────────────────────
     const STEPS = [
         {
-            target    : '[data-tab="Messages"]',
-            emoji     : '🔔',
-            title     : 'Update Notifications',
-            body      : 'After every new release, a detailed in-app message with all the release notes is sent here automatically — no email needed.',
-            position  : 'bottom',
-            cursorPos : 'below-right',
-        },
-        {
-            target    : '[data-tab="PNs"]',
-            emoji     : '🖼',
-            title     : 'Masonry Gallery Layout',
-            body      : 'Private Notes now render in a Pinterest-style masonry grid — cards vary naturally in height for a beautiful, gallery-like feel.',
-            position  : 'bottom',
-            cursorPos : 'below-right',
+            target    : '#chat-sidebar-toggle',
+            emoji     : '💬',
+            title     : 'New Floating Chat & AI',
+            body      : 'The Messages tab has moved! Click here to access Group Chat and the brand new Veronica AI (powered by Vector Search).',
+            position  : 'top',
+            cursorPos : 'above-left',
         },
         {
             target    : '#top-bar-username-display',
             emoji     : '⚙️',
             title     : 'Font Size & Settings',
-            body      : 'Click your name to open Profile Settings. You can now scale the entire UI font — Small, Medium, Large, or Extra Large.',
+            body      : 'Click your name to open Profile Settings. You can scale the entire UI font — Small, Medium, Large, or Extra Large.',
             position  : 'bottom',
             cursorPos : 'below-left',
         },
@@ -68,7 +60,7 @@
             target    : '#footer-version-link',
             emoji     : '📋',
             title     : 'Version History',
-            body      : 'Click this badge at any time to open the full changelog — every release note and commit, beautifully visualised.',
+            body      : 'Click this badge at any time to open the full changelog to see all the new updates released after v2.5.1!',
             position  : 'top',
             cursorPos : 'above-right',
         },
