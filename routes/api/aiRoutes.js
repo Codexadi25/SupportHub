@@ -210,9 +210,10 @@ Create a concise briefing or SOP update based on the following instruction:
 
 Requirements:
 - Ensure the content is POINT-WISE and concise (use bullet points or numbered lists). Do NOT write a long, verbose essay or a complete document.
+- Format the output like a clean, minimal "Flash Card" so that readers can instantly grasp the key takeaways quickly.
 - Generate a single HTML <div> element containing the briefing.
 - DO NOT generate a full HTML web page (no <html>, <head>, or <body> tags).
-- Include minimal inline or internal CSS (<style> tags inside the div) to provide structure and make it look sleek and modern.
+- Include minimal, elegant inline or internal CSS (<style> tags inside the div) to provide structure (e.g. slight padding, a clean font, modern bullet points) but keep the design lightweight and strictly flash-card style.
 - Ensure smooth scrolling where needed inside your elements.
 - Return ONLY valid HTML. Do not return Markdown code blocks (like \`\`\`html).
 - The final output must be ready to be injected directly as an HTML chunk.`;
