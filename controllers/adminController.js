@@ -67,7 +67,21 @@ async function bulkUploadCands(req, res) {
 // @access  Admin/Vendor
 async function getLogs(req, res) {
     try {
-        const logs = await Log.find({}).sort({ createdAt: -1 }).limit(1000);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 15;
+        const skip = (page - 1) * limit;
+        const level = req.query.level;
+
+        let query = {};
+        if (level && level !== 'all') {
+            query.level = level;
+        }
+
+        const logs = await Log.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
         res.json(logs);
     } catch (error) {
         console.error('Get logs error:', error);

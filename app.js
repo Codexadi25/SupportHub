@@ -201,6 +201,15 @@ app.use('/api/:lob/notifications', require('./routes/api/notificationRoutes'));
 app.use('/api/:lob/briefings', require('./routes/api/briefingRoutes'));
 // ... other API routes
 
+// 404 Catch-All Route
+app.use('*', (req, res) => {
+    res.status(404);
+    if (req.accepts('html') && !req.xhr && !req.path.startsWith('/api/')) {
+        return res.render('404', { url: req.originalUrl });
+    }
+    res.json({ error: 'Not Found', url: req.originalUrl });
+});
+
 // Error Handler
 app.use(errorHandler);
 

@@ -9,11 +9,19 @@
             <option value="database">Database Changes</option>
             <option value="timeout">Timeouts</option>
         </select>
+        <select id="logCountFilter" class="log-filter">
+            <option value="15">15 Logs</option>
+            <option value="50">50 Logs</option>
+            <option value="100">100 Logs</option>
+        </select>
         <button id="refreshLogsBtn" class="action-btn">Refresh Logs</button>
     </div>
 </div>
 <div class="content-scroll-area">
     <div id="log-list">
         <p>Click "Refresh Logs" to load recent system logs.</p>
+    </div>
+    <div style="text-align: center; margin-top: 15px; margin-bottom: 20px;">
+        <button id="loadMoreLogsBtn" class="action-btn" style="display: none; width: auto; padding: 6px 16px;">Load More Logs</button>
     </div>
 </div>

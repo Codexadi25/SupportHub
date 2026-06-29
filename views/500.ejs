@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Occurred</title>
+    <style>
+        :root { --primary: #2563eb; --danger: #ef4444; --danger-light: #fee2e2; --text: #1e293b; --text-muted: #64748b; --surface-alt: #f1f5f9; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; margin: 0; padding: 20px; }
+    </style>
+</head>
+<body>
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;">
+    <h1 style="font-size:4rem;margin:0;color:var(--danger);">Oops!</h1>
+    <h2 style="margin:10px 0 20px 0;color:var(--text);">Something went wrong (<%= statusCode %>)</h2>
+    <p style="color:var(--text-muted);max-width:500px;margin-bottom:30px;line-height:1.6;">
+        Our servers encountered an unexpected error. Don't worry, the administrators have been notified with the log details.
+    </p>
+    <div style="background:var(--danger-light);color:var(--danger);padding:12px 20px;border-radius:8px;margin-bottom:30px;font-family:monospace;max-width:80%;word-wrap:break-word;">
+        <%= message %>
+    </div>
+    <% if (stack) { %>
+        <details style="text-align:left;background:var(--surface-alt);padding:15px;border-radius:8px;margin-bottom:20px;max-width:800px;width:100%;overflow-x:auto;box-shadow:inset 0 1px 3px rgba(0,0,0,0.05);">
+            <summary style="cursor:pointer;font-weight:600;margin-bottom:10px;color:var(--text);">Developer Stack Trace</summary>
+            <pre style="font-size:12px;margin:0;color:var(--text-muted);"><%= stack %></pre>
+        </details>
+    <% } %>
+    <a href="/" style="padding:12px 24px;background:var(--primary);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:var(--shadow-sm);">Return to Dashboard</a>
+</div>
+</body>
+</html>

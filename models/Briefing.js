@@ -9,7 +9,7 @@ const briefingSchema = new mongoose.Schema({
     content: {
         type: String,
         required: true,
-        maxlength: 5000
+        maxlength: 50000
     },
     contentType: {
         type: String,

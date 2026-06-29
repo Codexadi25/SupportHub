@@ -169,4 +169,75 @@ ${contextText ? contextText : 'No context found.'}`;
     }
 });
 
+// Enhance Text Endpoint
+router.post('/enhance', async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        const { text, instruction } = req.body;
+        
+        if (!text) return res.status(400).json({ error: 'Text is required' });
+
+        const prompt = `${instruction || 'Please enhance and professionally format the following text. Provide ONLY the enhanced text, nothing else:'}\n\n${text}`;
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt
+        });
+
+        const replyText = response.text;
+        
+        const tokensGenerated = response.usageMetadata?.candidatesTokenCount || replyText.split(' ').length;
+        await checkAndChargeTokens(user, tokensGenerated);
+
+        res.json({ reply: replyText });
+    } catch (error) {
+        console.error('AI Enhance Error:', error);
+        res.status(500).json({ error: 'Failed to enhance text' });
+    }
+});
+
+// Generate Briefing Endpoint
+router.post('/generate-briefing', async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        const { instruction } = req.body;
+        
+        if (!instruction) return res.status(400).json({ error: 'Instruction is required' });
+
+        const prompt = `You are an expert at creating beautiful, highly professional SOPs and Daily Briefings. 
+Create a concise briefing or SOP update based on the following instruction:
+"${instruction}"
+
+Requirements:
+- Ensure the content is POINT-WISE and concise (use bullet points or numbered lists). Do NOT write a long, verbose essay or a complete document.
+- Generate a single HTML <div> element containing the briefing.
+- DO NOT generate a full HTML web page (no <html>, <head>, or <body> tags).
+- Include minimal inline or internal CSS (<style> tags inside the div) to provide structure and make it look sleek and modern.
+- Ensure smooth scrolling where needed inside your elements.
+- Return ONLY valid HTML. Do not return Markdown code blocks (like \`\`\`html).
+- The final output must be ready to be injected directly as an HTML chunk.`;
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt
+        });
+
+        let replyText = response.text;
+        
+        // Strip markdown blocks if the AI stubbornly adds them
+        if (replyText.startsWith('```html')) {
+            replyText = replyText.replace(/^```html\s*/i, '');
+            replyText = replyText.replace(/\s*```$/i, '');
+        }
+
+        const tokensGenerated = response.usageMetadata?.candidatesTokenCount || replyText.split(' ').length;
+        await checkAndChargeTokens(user, tokensGenerated);
+
+        res.json({ reply: replyText });
+    } catch (error) {
+        console.error('AI Generate Briefing Error:', error);
+        res.status(500).json({ error: 'Failed to generate briefing' });
+    }
+});
+
 module.exports = router;

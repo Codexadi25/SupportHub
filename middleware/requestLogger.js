@@ -17,6 +17,7 @@ const SILENT_READONLY_PATTERNS = [
     '/api/admin/user-activity-stats',
     '/api/admin/departments',
     '/api/ping',
+    '/messages/my'
 ];
 
 const requestLogger = (req, res, next) => {

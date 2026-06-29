@@ -236,7 +236,12 @@
                 </div>
 
                 <div class="notif-field notif-form-full">
-                    <label for="notif-content">Message Content *</label>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+                        <label for="notif-content" style="margin-bottom: 0;">Message Content *</label>
+                        <button type="button" id="notif-ai-enhance-btn" style="background: transparent; border: 1px solid var(--primary); color: var(--primary); border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                            <i class="fa fa-magic"></i> AI Enhance
+                        </button>
+                    </div>
                     <textarea id="notif-content" name="content" required placeholder="Type the message details here..." class="notif-input notif-textarea"></textarea>
                 </div>
 
@@ -278,6 +283,46 @@
         
         if (recipientSelect) {
             loadRecipients();
+        }
+
+        const aiEnhanceBtn = document.getElementById('notif-ai-enhance-btn');
+        const contentArea = document.getElementById('notif-content');
+        
+        if (aiEnhanceBtn && contentArea) {
+            aiEnhanceBtn.addEventListener('click', async function() {
+                const currentText = contentArea.value.trim();
+                if (!currentText) {
+                    alert('Please enter some message content first for AI to enhance.');
+                    return;
+                }
+                
+                const originalText = aiEnhanceBtn.innerHTML;
+                aiEnhanceBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Enhancing...';
+                aiEnhanceBtn.disabled = true;
+                
+                try {
+                    const res = await fetch('/api/ai/enhance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            text: currentText,
+                            instruction: 'Please enhance and professionally format the following notification message. Make it clear, concise, and polite. Provide ONLY the enhanced message content, nothing else:'
+                        })
+                    });
+                    
+                    if (!res.ok) throw new Error('Failed to get AI response');
+                    const data = await res.json();
+                    
+                    if (data.reply) {
+                        contentArea.value = data.reply;
+                    }
+                } catch (err) {
+                    alert('AI Enhancement failed: ' + err.message);
+                } finally {
+                    aiEnhanceBtn.innerHTML = originalText;
+                    aiEnhanceBtn.disabled = false;
+                }
+            });
         }
 
         if (form) {

@@ -42,10 +42,19 @@ const errorHandler = async (err, req, res, next) => {
         console.error(err.stack);
     }
 
-    // Send the final, formatted JSON response
-    res.status(statusCode); // <-- Use the new status code
+    // Send the final, formatted JSON response or HTML page
+    res.status(statusCode);
+
+    if (req.accepts('html') && !req.xhr && !req.path.startsWith('/api/')) {
+        return res.render('500', { 
+            message: message, 
+            statusCode: statusCode,
+            stack: process.env.NODE_ENV === 'production' ? null : err.stack 
+        });
+    }
+
     res.json({
-        message: message, // <-- Use the new, clean message
+        message: message,
         stack: process.env.NODE_ENV === 'production' ? null : err.stack,
     });
 };

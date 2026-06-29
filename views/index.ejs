@@ -723,8 +723,8 @@
       </svg>
       ⚡ Weak or No Internet Connection — Some features may not work properly.
     </div>
-    <script src="/js/presenceBar.js"></script>
-    <script src="/js/profile.js"></script>
+    <script src="/js/presenceBar.js" defer></script>
+    <script src="/js/profile.js" defer></script>
     <script>
         // ── Session globals ───────────────────────────────────────────────
         window.currentUserId   = '<%= user.id %>';
@@ -776,15 +776,28 @@
 
         // ── Initialize Modular Presence Bar ───────────────────────────────
         // Initialize real-time presence tracking for active users
-        const presenceBar = new PresenceBar({
-            username: window.currentUsername,
-            department: window.currentUserDept,
-            role: window.currentUserRole,
-            avatarsElementId: 'auAvatars',
-            overflowElementId: 'auOverflow',
-            moreButtonId: 'auMoreBtn',
-            moreCountId: 'auMoreCount',
-            dropdownId: 'auDropdown'
+        document.addEventListener('DOMContentLoaded', () => {
+            // Delay non-critical presence tracking to optimize initial page load
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(initPresenceBar);
+            } else {
+                setTimeout(initPresenceBar, 1500);
+            }
+
+            function initPresenceBar() {
+                if (typeof PresenceBar !== 'undefined') {
+                    new PresenceBar({
+                        username: window.currentUsername,
+                        department: window.currentUserDept,
+                        role: window.currentUserRole,
+                        avatarsElementId: 'auAvatars',
+                        overflowElementId: 'auOverflow',
+                        moreButtonId: 'auMoreBtn',
+                        moreCountId: 'auMoreCount',
+                        dropdownId: 'auDropdown'
+                    });
+                }
+            }
         });
     </script>
 
@@ -799,14 +812,14 @@
         if (!navigator.onLine) showBanner();
     })();
     </script>
-    <script src="/js/notifications.js"></script>
-    <script src="/js/main.js"></script>
+    <script src="/js/notifications.js" defer></script>
+    <script src="/js/main.js" defer></script>
 
     <% if (user.role === 'admin' || user.role === 'vendor' || user.role === 'team_lead' || user.role === 'editor' || user.role === 'quality_analyst' || user.hasAdminPanelAccess) { %>
-        <script src="/js/admin.js"></script>
+        <script src="/js/admin.js" defer></script>
     <% } %>
     <!-- Feature Guide — loads last so all UI elements are in DOM -->
-    <script src="/js/guide.js"></script>
+    <script src="/js/guide.js" defer></script>
     <%- include('partials/chatSidebar', { user: user }) %>
 </body>
 </html>

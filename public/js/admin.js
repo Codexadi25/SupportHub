@@ -187,14 +187,116 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Logs
+  let currentLogPage = 1;
   const refreshLogsBtn = document.getElementById('refreshLogsBtn');
-  if (refreshLogsBtn) refreshLogsBtn.addEventListener('click', async () => {
+  const loadMoreLogsBtn = document.getElementById('loadMoreLogsBtn');
+  const logList = document.getElementById('log-list');
+
+  const renderLogEntry = (l) => {
+    const level = (l.level || 'info').toLowerCase();
+    const severity = (l.severity || 'low').toLowerCase();
+    const timeString = new Date(l.createdAt).toLocaleString();
+    
+    const hasDetails = l.description || l.action || l.resource || l.oldData || l.newData || l.ip || l.userAgent || l.stack || l.errorCode || l.statusCode || l.responseTime;
+
+    return `
+      <div class="log-item log-${level}">
+          <div class="log-header">
+              <div class="log-meta">
+                  <span class="log-level ${level}">${level}</span>
+                  ${l.severity ? `<span class="log-severity severity-${severity}">${severity}</span>` : ''}
+                  <span class="log-time">${timeString}</span>
+              </div>
+              ${hasDetails ? `<button class="log-toggle-details">Show Details</button>` : ''}
+          </div>
+          <div class="log-content">
+              <p>${l.message}</p>
+              ${l.username ? `<p><strong>User:</strong> ${l.username}</p>` : ''}
+          </div>
+          ${hasDetails ? `
+          <div class="log-details" style="display: none;">
+              ${l.description ? `<div><strong>Description:</strong> ${l.description}</div>` : ''}
+              ${l.action ? `<div><strong>Action:</strong> ${l.action} ${l.resource ? `on ${l.resource}` : ''} ${l.resourceId ? `(ID: ${l.resourceId})` : ''}</div>` : ''}
+              ${l.errorCode ? `<div><strong>Error Code:</strong> ${l.errorCode}</div>` : ''}
+              ${l.statusCode ? `<div><strong>Status Code:</strong> ${l.statusCode}</div>` : ''}
+              ${l.responseTime ? `<div><strong>Response Time:</strong> ${l.responseTime}ms</div>` : ''}
+              ${l.ip ? `<div><strong>IP:</strong> ${l.ip}</div>` : ''}
+              ${l.userAgent ? `<div><strong>User Agent:</strong> ${l.userAgent}</div>` : ''}
+              ${l.oldData ? `<div><strong>Old Data:</strong> <pre>${JSON.stringify(l.oldData, null, 2)}</pre></div>` : ''}
+              ${l.newData ? `<div><strong>New Data:</strong> <pre>${JSON.stringify(l.newData, null, 2)}</pre></div>` : ''}
+              ${l.stack ? `<div><strong>Stack Trace:</strong> <pre style="margin:0;">${l.stack}</pre></div>` : ''}
+          </div>` : ''}
+      </div>
+    `;
+  };
+  const fetchLogs = async (page = 1, append = false) => {
     try {
-      const logs = await api('/api/admin/logs');
-      const logList = document.getElementById('log-list');
-      logList.innerHTML = logs.length ? logs.map(l => `<div style="padding:8px;border-bottom:1px solid #eee"><strong>[${new Date(l.createdAt).toLocaleString()}] ${l.level || ''}</strong><div>${l.message}</div><pre>${l.stack||''}</pre></div>`).join('') : '<p>No logs found.</p>';
-    } catch (err) { showToast(err.message,'error'); }
-  });
+      const logLevelFilter = document.getElementById('logLevelFilter');
+      const logCountFilter = document.getElementById('logCountFilter');
+      const level = logLevelFilter ? logLevelFilter.value : 'all';
+      const limit = logCountFilter ? parseInt(logCountFilter.value, 10) || 15 : 15;
+
+      const logs = await api(`/api/admin/logs?page=${page}&limit=${limit}&level=${level}`);
+      if (!append) {
+        logList.innerHTML = logs.length ? logs.map(renderLogEntry).join('') : '<p>No logs found.</p>';
+      } else {
+        logList.insertAdjacentHTML('beforeend', logs.map(renderLogEntry).join(''));
+      }
+
+      if (logs.length < limit) {
+        if (loadMoreLogsBtn) loadMoreLogsBtn.style.display = 'none';
+      } else {
+        if (loadMoreLogsBtn) loadMoreLogsBtn.style.display = 'inline-block';
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  if (refreshLogsBtn) {
+    refreshLogsBtn.addEventListener('click', () => {
+      currentLogPage = 1;
+      fetchLogs(currentLogPage, false);
+    });
+  }
+
+  if (logList) {
+      logList.addEventListener('click', (e) => {
+          if (e.target.classList.contains('log-toggle-details')) {
+              const details = e.target.closest('.log-item').querySelector('.log-details');
+              if (details.style.display === 'none') {
+                  details.style.display = 'block';
+                  e.target.textContent = 'Hide Details';
+              } else {
+                  details.style.display = 'none';
+                  e.target.textContent = 'Show Details';
+              }
+          }
+      });
+  }
+
+  const logLevelFilter = document.getElementById('logLevelFilter');
+  if (logLevelFilter) {
+      logLevelFilter.addEventListener('change', () => {
+          currentLogPage = 1;
+          fetchLogs(currentLogPage, false);
+      });
+  }
+
+  const logCountFilter = document.getElementById('logCountFilter');
+  if (logCountFilter) {
+      logCountFilter.addEventListener('change', () => {
+          currentLogPage = 1;
+          fetchLogs(currentLogPage, false);
+      });
+  }
+
+  if (loadMoreLogsBtn) {
+    loadMoreLogsBtn.addEventListener('click', () => {
+      currentLogPage++;
+      fetchLogs(currentLogPage, true);
+    });
+  }
 
   // Active Users handled by userActivityDashboard.js
 

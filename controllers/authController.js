@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Category = require('../models/Category');
 const PrivateNote = require('../models/PrivateNote');
+const Notification = require('../models/Notification');
 const Logger = require('../utils/logger');
 const asyncHandler = require('express-async-handler');
 const { syncUserToFirebase } = require('../services/firebaseService');
@@ -244,6 +245,28 @@ exports.reportUnauthorized = asyncHandler(async (req, res) => {
         action: 'SECURITY_ALERT',
         resource: 'User'
     });
+
+    try {
+        // Send notification to admins
+        await Notification.create({
+            title: 'Unauthorized Access Reported 🚨',
+            content: `User ${user.username} reported an unauthorized access attempt. Immediate review recommended.`,
+            type: 'admin_broadcast',
+            recipientRole: 'admin',
+            lob: user.department || 'zomato'
+        });
+
+        // Send confirmation notification to the user who reported it
+        await Notification.create({
+            title: 'Security Alert Received ✅',
+            content: `We received your report regarding an unauthorized login attempt on your account. Your current session has been secured and administrators have been notified.`,
+            type: 'custom',
+            recipientId: user._id,
+            lob: user.department || 'zomato'
+        });
+    } catch (notifErr) {
+        console.error('Failed to create unauthorized access notifications:', notifErr);
+    }
     
     res.json({ success: true, message: 'Security alert successfully recorded.' });
 });

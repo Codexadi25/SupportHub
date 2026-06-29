@@ -40,6 +40,51 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // AI Generation
+    const generateAiBtn = document.getElementById('btn-generate-ai');
+    if (generateAiBtn) {
+        generateAiBtn.addEventListener('click', async () => {
+            const contentInput = document.getElementById('briefing-content');
+            const instruction = contentInput.value.trim();
+            
+            if (!instruction) {
+                if (window.showToast) window.showToast('Please provide an instruction in the content area first.', 'warn');
+                else alert('Please provide an instruction in the content area first.');
+                return;
+            }
+
+            const originalText = generateAiBtn.innerHTML;
+            generateAiBtn.innerHTML = '<span style="display:inline-block; animation: spin 1s linear infinite;">⏳</span> Generating...';
+            generateAiBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/ai/generate-briefing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ instruction })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to generate content');
+
+                contentInput.value = data.reply;
+                
+                // Set format to HTML automatically
+                const typeSelect = document.getElementById('briefing-content-type');
+                if (typeSelect) typeSelect.value = 'html';
+                
+                if (window.showToast) window.showToast('AI Generation Complete!', 'success');
+            } catch (err) {
+                console.error(err);
+                if (window.showToast) window.showToast(err.message, 'error');
+                else alert(err.message);
+            } finally {
+                generateAiBtn.innerHTML = originalText;
+                generateAiBtn.disabled = false;
+            }
+        });
+    }
+
     // Submit new briefing
     if (briefingForm) {
         briefingForm.addEventListener('submit', async (e) => {
@@ -186,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <h4 class="briefing-card-title">${escapeHTML(b.title)}</h4>
-                    <div class="briefing-card-body">${compileContent(b.content, b.contentType)}</div>
+                    <div class="briefing-card-body">${compileContent(b.content, b.contentType, b._id)}</div>
                     
                     ${canDelete ? `
                     <div class="briefing-card-actions">
@@ -201,6 +246,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         }).join('');
+
+        // Attach shadow DOMs for HTML content
+        document.querySelectorAll('.ai-shadow-host').forEach(host => {
+            const id = host.dataset.id;
+            if (id && window.__briefingHtmlContents && window.__briefingHtmlContents[id]) {
+                const shadow = host.attachShadow({mode: 'open'});
+                shadow.innerHTML = window.__briefingHtmlContents[id];
+            }
+        });
 
         // Attach delete listeners
         document.querySelectorAll('.briefing-delete-btn').forEach(btn => {
@@ -244,10 +298,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, '&#039;');
     }
 
-    function compileContent(content, contentType) {
+    function compileContent(content, contentType, id) {
         if (!content) return '';
         if (contentType === 'html') {
-            return content;
+            window.__briefingHtmlContents = window.__briefingHtmlContents || {};
+            window.__briefingHtmlContents[id] = content;
+            return `<div class="ai-shadow-host" data-id="${id}" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; padding: 12px; background: #fff;"></div>`;
         } else if (contentType === 'markdown' && typeof marked !== 'undefined') {
             try {
                 return marked.parse(content);
