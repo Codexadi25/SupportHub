@@ -5,6 +5,27 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb-bg) var(--scrollbar-track-bg);
+}
+
+/* WebKit Global Scrollbar Styling */
+::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-bg);
+    border-radius: var(--radius-lg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 html {

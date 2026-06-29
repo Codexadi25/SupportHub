@@ -28,6 +28,10 @@
     --transition: .18s ease;
     --font-scale: 1.0;
     --card-bg-fade: var(--surface);
+    --scrollbar-width: 2px;
+    --scrollbar-track-bg: transparent;
+    --scrollbar-thumb-bg: var(--text-xs);
+    --scrollbar-thumb-hover: var(--text-muted);
 }
 
 /* Backwards compat aliases */
