@@ -28,10 +28,10 @@
     --transition: .18s ease;
     --font-scale: 1.0;
     --card-bg-fade: var(--surface);
-    --scrollbar-width: 2px;
+    --scrollbar-width: 6px;
     --scrollbar-track-bg: transparent;
-    --scrollbar-thumb-bg: var(--text-xs);
-    --scrollbar-thumb-hover: var(--text-muted);
+    --scrollbar-thumb-bg: rgba(148, 163, 184, 0.4); /* soft slate */
+    --scrollbar-thumb-hover: rgba(100, 116, 139, 0.7); /* deeper slate on hover */
 }
 
 /* Backwards compat aliases */
