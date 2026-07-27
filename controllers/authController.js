@@ -286,26 +286,8 @@ exports.getAppPage = async (req, res) => {
         // Fetch all data needed for the UI, filtered by active LOB
         const categories = await Category.find({ lob: userLob }).sort({ title: 1 });
         
-        // Fetch private notes respecting visibility rules and active LOB
-        const ELEVATED_ROLES = ['admin', 'vendor', 'team_lead', 'quality_analyst', 'editor'];
-        let privateNotesQuery;
-
-        if (userDoc.role === 'admin') {
-            // Admin sees ALL notes (public & private from everyone)
-            privateNotesQuery = { lob: userLob };
-        } else if (userDoc.role === 'new') {
-            // Restricted users only see their own notes
-            privateNotesQuery = { user: userDoc._id, lob: userLob };
-        } else {
-            // Everyone else sees public notes + their own private notes
-            privateNotesQuery = {
-                lob: userLob,
-                $or: [
-                    { visibility: 'public' },
-                    { user: userDoc._id }
-                ]
-            };
-        }
+        // Fetch all private notes for the active LOB
+        const privateNotesQuery = { lob: userLob };
 
         const privateNotes = await PrivateNote.find(privateNotesQuery).sort({ createdAt: -1 });
 

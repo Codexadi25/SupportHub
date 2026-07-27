@@ -16,34 +16,7 @@ exports.getNotes = asyncHandler(async (req, res) => {
     const sessionUser = getSessionUser(req);
     if (!sessionUser) return res.status(401).json({ message: 'Unauthorized' });
 
-    let notes;
-
-    if (sessionUser.role === 'admin') {
-        // Admin sees ALL notes in the LOB (public & private from everyone)
-        notes = await PrivateNote.find({ lob: req.params.lob }).sort({ createdAt: -1 });
-    } else if (ELEVATED_ROLES.includes(sessionUser.role)) {
-        // Elevated users see: all public notes + their own private notes + all notes they created
-        notes = await PrivateNote.find({
-            lob: req.params.lob,
-            $or: [
-                { visibility: 'public' },
-                { user: sessionUser.id }
-            ]
-        }).sort({ createdAt: -1 });
-    } else if (sessionUser.role === 'new') {
-        // Restricted users — only their own notes
-        notes = await PrivateNote.find({ user: sessionUser.id, lob: req.params.lob }).sort({ createdAt: -1 });
-    } else {
-        // Regular users — own notes + public notes
-        notes = await PrivateNote.find({
-            lob: req.params.lob,
-            $or: [
-                { visibility: 'public' },
-                { user: sessionUser.id }
-            ]
-        }).sort({ createdAt: -1 });
-    }
-
+    const notes = await PrivateNote.find({ lob: req.params.lob }).sort({ createdAt: -1 });
     res.status(200).json(notes);
 });
 

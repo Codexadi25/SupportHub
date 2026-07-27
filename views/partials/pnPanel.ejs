@@ -63,68 +63,70 @@
         </div>
 
         <!-- Notes list -->
-        <div id="pns-list-container" class="pn-list">
+        <div class="pn-list-wrapper">
+            <div id="pns-list-container" class="pn-list">
 
-            <% if (privateNotes.length === 0) { %>
-            <div class="pn-empty-state">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
-                <p>No notes yet</p>
-                <% if (user.role !== 'new') { %><span>Click <strong>Add Note</strong> to create one</span><% } %>
-            </div>
-            <% } %>
-
-            <% privateNotes.forEach(note => {
-                const mine    = isOwner(note);
-                const canEdit = (user.role !== 'new') && (mine || isMgr);
-                const pub     = note.visibility === 'public';
-            %>
-            <div class="pn-card"
-                 data-pn-category="<%= note.category || '' %>"
-                 data-note-id="<%= note._id %>"
-                 data-visibility="<%= note.visibility %>"
-                 title="Click to copy">
-
-                <div class="pn-card-top">
-                    <div class="pn-card-badges">
-                        <span class="pn-badge pn-badge-cat"><%= (note.category || 'General').toUpperCase() %></span>
-                        <% if (pub) { %>
-                        <span class="pn-badge pn-badge-public">PUBLIC</span>
-                        <% } else { %>
-                        <span class="pn-badge pn-badge-private">PRIVATE</span>
-                        <% } %>
-                        <% if (!mine && note.createdBy) { %>
-                        <span class="pn-badge-author">by <%= note.createdBy %></span>
-                        <% } %>
-                    </div>
-
-                    <div class="pn-card-actions">
-                        <% if (canEdit) { %>
-                        <button class="pn-icon-btn btn-edit-pn"
-                                title="Edit"
-                                data-note-id="<%= note._id %>"
-                                data-title="<%= note.title.replace(/"/g,'&quot;') %>"
-                                data-content="<%= note.content.replace(/"/g,'&quot;') %>"
-                                data-category="<%= note.category %>"
-                                data-visibility="<%= note.visibility %>">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button>
-                        <button class="pn-icon-btn pn-icon-btn--danger btn-delete-pn" title="Delete">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/></svg>
-                        </button>
-                        <% } %>
-                    </div>
-                </div>
-
-                <h4 class="pn-card-title"><%= note.title %></h4>
-                <p class="pn-card-body"><%= note.content %></p>
-
-                <% if (note.tags && note.tags.length) { %>
-                <div class="pn-card-tags">
-                    <% note.tags.forEach(t => { %><span class="pn-tag"><%= t %></span><% }); %>
+                <% if (privateNotes.length === 0) { %>
+                <div class="pn-empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+                    <p>No notes yet</p>
+                    <% if (user.role !== 'new') { %><span>Click <strong>Add Note</strong> to create one</span><% } %>
                 </div>
                 <% } %>
+
+                <% privateNotes.forEach(note => {
+                    const mine    = isOwner(note);
+                    const canEdit = (user.role !== 'new') && (mine || isMgr);
+                    const pub     = note.visibility === 'public';
+                %>
+                <div class="pn-card"
+                     data-pn-category="<%= note.category || '' %>"
+                     data-note-id="<%= note._id %>"
+                     data-visibility="<%= note.visibility %>"
+                     title="Click to copy">
+
+                    <div class="pn-card-top">
+                        <div class="pn-card-badges">
+                            <span class="pn-badge pn-badge-cat"><%= (note.category || 'General').toUpperCase() %></span>
+                            <% if (pub) { %>
+                            <span class="pn-badge pn-badge-public">PUBLIC</span>
+                            <% } else { %>
+                            <span class="pn-badge pn-badge-private">PRIVATE</span>
+                            <% } %>
+                            <% if (!mine && note.createdBy) { %>
+                            <span class="pn-badge-author">by <%= note.createdBy %></span>
+                            <% } %>
+                        </div>
+
+                        <div class="pn-card-actions">
+                            <% if (canEdit) { %>
+                            <button class="pn-icon-btn btn-edit-pn"
+                                    title="Edit"
+                                    data-note-id="<%= note._id %>"
+                                    data-title="<%= note.title.replace(/"/g,'&quot;') %>"
+                                    data-content="<%= note.content.replace(/"/g,'&quot;') %>"
+                                    data-category="<%= note.category %>"
+                                    data-visibility="<%= note.visibility %>">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button class="pn-icon-btn pn-icon-btn--danger btn-delete-pn" title="Delete">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/></svg>
+                            </button>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <h4 class="pn-card-title"><%= note.title %></h4>
+                    <p class="pn-card-body"><%= note.content %></p>
+
+                    <% if (note.tags && note.tags.length) { %>
+                    <div class="pn-card-tags">
+                        <% note.tags.forEach(t => { %><span class="pn-tag"><%= t %></span><% }); %>
+                    </div>
+                    <% } %>
+                </div>
+                <% }); %>
             </div>
-            <% }); %>
         </div>
     </div>
 </div>
