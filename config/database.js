@@ -2,7 +2,17 @@ const mongoose = require('mongoose');
 const dns = require('dns');
 
 const connectDB = async () => {
-    if (process.env.MONGO_URI?.startsWith('mongodb+srv://')) {
+    // If already connected, reuse connection (essential for serverless platforms like Vercel and Netlify)
+    if (mongoose.connection.readyState >= 1) {
+        return;
+    }
+
+    if (!process.env.MONGO_URI) {
+        console.warn('[DB] MONGO_URI environment variable is not defined.');
+        return;
+    }
+
+    if (process.env.MONGO_URI.startsWith('mongodb+srv://')) {
         dns.setServers(['8.8.8.8', '1.1.1.1']);
         console.log('Using Google/Cloudflare DNS servers for Atlas SRV resolution');
     }
@@ -80,7 +90,9 @@ Generate a concise, connected explanation phrase adhering to the rules above.`;
         }
     } catch (error) {
         console.error(`Error connecting to MongoDB: ${error.message}`);
-        process.exit(1);
+        if (!process.env.VERCEL && !process.env.NETLIFY && process.env.NODE_ENV !== 'production') {
+            process.exit(1);
+        }
     }
 };
 

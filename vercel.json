@@ -1,11 +1,11 @@
 {
-  "version": "v2.6.0",
+  "version": 2,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
+  ],
   "functions": {
-    "app.js": {
+    "api/index.js": {
       "includeFiles": "views/**"
     }
-  },
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/app.js" }
-  ]
+  }
 }

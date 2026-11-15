@@ -217,9 +217,9 @@ let PORT = parseInt(process.env.PORT, 10) || 3000;
 
 function startServer(port) {
   try {
-    server.listen(port, () => console.log(`Server running on port ${port}`));
+    server.listen(port, '0.0.0.0', () => console.log(`Server running on port ${port}`));
   } catch (err) {
-    if (err && err.code === 'EADDRINUSE') {
+    if (err && err.code === 'EADDRINUSE' && process.env.NODE_ENV !== 'production') {
       const nextPort = port + 1;
       console.warn(`Port ${port} in use, retrying on ${nextPort}...`);
       startServer(nextPort);
@@ -231,14 +231,23 @@ function startServer(port) {
 
 server.on('error', (err) => {
   if (err && err.code === 'EADDRINUSE') {
-    const nextPort = PORT + 1;
-    console.warn(`Port ${PORT} in use, retrying on ${nextPort}...`);
-    PORT = nextPort;
-    setTimeout(() => startServer(PORT), 250);
+    if (process.env.NODE_ENV !== 'production') {
+      const nextPort = PORT + 1;
+      console.warn(`Port ${PORT} in use, retrying on ${nextPort}...`);
+      PORT = nextPort;
+      setTimeout(() => startServer(PORT), 250);
+    } else {
+      console.error(`Port ${PORT} is already in use. Exiting.`);
+      process.exit(1);
+    }
   } else {
     console.error('Server error:', err);
     process.exit(1);
   }
 });
 
-startServer(PORT);
+if (require.main === module) {
+  startServer(PORT);
+}
+
+module.exports = app;
