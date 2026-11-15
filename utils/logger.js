@@ -1,8 +1,15 @@
 const Log = require('../models/Log');
+const mongoose = require('mongoose');
 
 class Logger {
     static async log(level, message, options = {}) {
         try {
+            // If database is not connected, log to console and return to prevent buffering timeouts
+            if (mongoose.connection.readyState !== 1) {
+                console.log(`[Logger ${level.toUpperCase()}] ${message}`);
+                return;
+            }
+
             const logEntry = {
                 level,
                 message,

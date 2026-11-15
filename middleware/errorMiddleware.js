@@ -1,4 +1,5 @@
 const Log = require('../models/Log');
+const mongoose = require('mongoose');
 
 const errorHandler = async (err, req, res, next) => {
     
@@ -19,8 +20,8 @@ const errorHandler = async (err, req, res, next) => {
     }
     // --- End of New Error Parsing Logic ---
 
-    // Log the error to the database only if it is a server error (5xx)
-    if (statusCode >= 500) {
+    // Log the error to the database only if it is a server error (5xx) and DB is connected
+    if (statusCode >= 500 && mongoose.connection.readyState === 1) {
         try {
             const user = req?.session?.user;
             await Log.create({

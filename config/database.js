@@ -1,24 +1,41 @@
 const mongoose = require('mongoose');
 const dns = require('dns');
 
+let connectionPromise = null;
+
 const connectDB = async () => {
     // If already connected, reuse connection (essential for serverless platforms like Vercel and Netlify)
-    if (mongoose.connection.readyState >= 1) {
-        return;
+    if (mongoose.connection.readyState === 1) {
+        return mongoose.connection;
+    }
+
+    if (mongoose.connection.readyState === 2 && connectionPromise) {
+        return connectionPromise;
     }
 
     if (!process.env.MONGO_URI) {
         console.warn('[DB] MONGO_URI environment variable is not defined.');
-        return;
+        return null;
     }
 
-    if (process.env.MONGO_URI.startsWith('mongodb+srv://')) {
-        dns.setServers(['8.8.8.8', '1.1.1.1']);
-        console.log('Using Google/Cloudflare DNS servers for Atlas SRV resolution');
+    // Only override DNS servers on Windows where Node.js has a known local SRV bug.
+    // In Linux/AWS Lambda/cloud containers, overriding DNS can cause timeouts if UDP port 53 is blocked.
+    if (process.platform === 'win32' && process.env.MONGO_URI.startsWith('mongodb+srv://')) {
+        try {
+            dns.setServers(['8.8.8.8', '1.1.1.1']);
+            console.log('Using Google/Cloudflare DNS servers for Atlas SRV resolution (Windows)');
+        } catch (dnsErr) {
+            console.warn('[DB] Could not set custom DNS:', dnsErr.message);
+        }
     }
 
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI);
+        connectionPromise = mongoose.connect(process.env.MONGO_URI, {
+            serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of hanging for 30s
+            maxPoolSize: 10
+        });
+
+        const conn = await connectionPromise;
         console.log(`MongoDB Connected: ${conn.connection.host}`);
         
         // Seed default tags and prompt templates for Zomato LOB
@@ -89,6 +106,7 @@ Generate a concise, connected explanation phrase adhering to the rules above.`;
             console.error('Error during default AI Cands tag/prompt seeding/sync:', seedErr.message);
         }
     } catch (error) {
+        connectionPromise = null;
         console.error(`Error connecting to MongoDB: ${error.message}`);
         if (!process.env.VERCEL && !process.env.NETLIFY && process.env.NODE_ENV !== 'production') {
             process.exit(1);

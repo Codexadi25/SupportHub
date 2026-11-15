@@ -157,6 +157,16 @@ app.use((req, res, next) => {
     res.send(`Dev login set: ${username} (${role}) for lob=${lob} with id=${id}`);
   });
 
+// Ensure database connection is ready for incoming requests (prevents buffering timeouts in serverless)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.warn('[DB Middleware] connectDB error:', err.message);
+  }
+  next();
+});
+
 // mount ping endpoint (keep it under /api so client fetch('/api/ping') works)
 app.use('/api', require('./routes/ping'));
 
