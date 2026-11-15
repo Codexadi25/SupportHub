@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 const session = require('express-session');
 const connectDB = require('./config/database');
 const { errorHandler } = require('./middleware/errorMiddleware');
@@ -67,7 +68,13 @@ if (process.env.NODE_ENV === 'production') {
 
 // EJS Setup
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+const viewsDirs = [
+  path.join(process.cwd(), 'views'),
+  path.join(__dirname, 'views'),
+  path.join(__dirname, '../../views'),
+  path.join(__dirname, '../views')
+];
+app.set('views', viewsDirs);
 
 // Make moment available to EJS templates
 try {
@@ -100,7 +107,12 @@ app.get('/extension.zip', (req, res) => {
   }
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+const publicDirs = [
+  path.join(process.cwd(), 'public'),
+  path.join(__dirname, 'public'),
+  path.join(__dirname, '../../public')
+];
+publicDirs.forEach(dir => app.use(express.static(dir)));
 // Ensure session is initialized before requestLogger so user info is available for logs
 app.use(session({
     secret: process.env.SESSION_SECRET,
@@ -205,7 +217,12 @@ app.use('/api/:lob/briefings', require('./routes/api/briefingRoutes'));
 app.use('*', (req, res) => {
     res.status(404);
     if (req.accepts('html') && !req.xhr && !req.path.startsWith('/api/')) {
-        return res.render('404', { url: req.originalUrl });
+        return res.render('404', { url: req.originalUrl }, (renderErr, html) => {
+            if (renderErr) {
+                return res.status(404).send(`<h1>😕404 Not Found</h1><p>${req.originalUrl}</p>`);
+            }
+            res.send(html);
+        });
     }
     res.json({ error: 'Not Found', url: req.originalUrl });
 });

@@ -50,6 +50,12 @@ const errorHandler = async (err, req, res, next) => {
             message: message, 
             statusCode: statusCode,
             stack: process.env.NODE_ENV === 'production' ? null : err.stack 
+        }, (renderErr, html) => {
+            if (renderErr) {
+                console.error('Failed to render 500 error page:', renderErr.message);
+                return res.status(statusCode).send(`<!DOCTYPE html><html><head><title>Error ${statusCode}</title></head><body style="font-family:sans-serif;padding:2rem;"><h1>Something went wrong (${statusCode})</h1><p>${message}</p></body></html>`);
+            }
+            res.send(html);
         });
     }
 

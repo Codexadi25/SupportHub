@@ -8,7 +8,7 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["express", "ejs"]
-  included_files = ["views/**"]
+  included_files = ["views/**", "views/**/*"]
 
 [[redirects]]
   from = "/*"
