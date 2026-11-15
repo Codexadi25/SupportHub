@@ -1,5 +1,5 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const pdf = require('pdf-parse');
+const pdf = require('pdf-parse/lib/pdf-parse.js');
 const mammoth = require('mammoth');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);

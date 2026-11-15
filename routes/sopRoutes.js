@@ -1063,7 +1063,7 @@ router.get('/live', checkSopPermission, async (req, res) => {
 
 // ─── POST / CHAT WITH GEMINI — Handles text & file uploads (.xlsx, .pdf, .docx) ───
 const exceljs = require('exceljs');
-const pdfParse = require('pdf-parse');
+const pdfParse = require('pdf-parse/lib/pdf-parse.js');
 const mammoth = require('mammoth');
 
 async function parseUploadedFile(buffer, mimetype, originalname) {
