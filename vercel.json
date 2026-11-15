@@ -1,0 +1,11 @@
+{
+  "version": "v2.6.0",
+  "functions": {
+    "app.js": {
+      "includeFiles": "views/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/app.js" }
+  ]
+}
