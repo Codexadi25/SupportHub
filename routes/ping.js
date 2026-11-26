@@ -56,9 +56,6 @@ router.get('/ping', isAuthenticated, (req, res) => {
         status: 'online'
       });
 
-      // Update last active in MongoDB
-      User.updateOne({ _id: user._id }, { $set: { lastActiveAt: new Date() } }).catch(() => {});
-
       // Sync status to Firebase
       firebaseService.updateUserStatus(user.username, user.department || 'general', 'online').catch(err => {
         console.warn('[Ping] Firebase status sync failed:', err.message);
@@ -109,9 +106,6 @@ router.post('/heartbeat', isAuthenticated, (req, res) => {
       lastPingAt: now,
       status: 'online'
     });
-
-    // Update last active in MongoDB
-    User.updateOne({ _id: user._id }, { $set: { lastActiveAt: new Date() } }).catch(() => {});
 
     // Sync status to Firebase
     firebaseService.updateUserStatus(user.username, user.department || 'general', 'online').catch(err => {

@@ -181,8 +181,11 @@ class PresenceBar {
       bgColor: window.currentUserBgColor || ''
     });
 
-    // Remove presence on disconnect
-    this.presenceRef.onDisconnect().remove();
+    // Automatically transition to unresponsive on disconnect (tab closed / internet lost without logging out)
+    this.presenceRef.onDisconnect().update({
+      status: 'unresponsive',
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
 
     // Connection state monitoring
     const connectedRef = this.db.ref('.info/connected');

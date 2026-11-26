@@ -838,6 +838,37 @@ async function createUnknownEmployee(req, res) {
     }
 }
 
+// @desc    Get detailed user profile and activity history for activity dashboard modal
+// @route   GET /api/admin/users/:id/activity
+// @access  UserManager roles
+async function getUserActivityHistory(req, res) {
+    try {
+        const userId = req.params.id;
+        const user = await User.findById(userId).select('-password').populate('teamId', 'name').lean();
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Fetch user activity logs from Log collection
+        const Log = require('../models/Log');
+        const logs = await Log.find({
+            $or: [
+                { user: user._id },
+                { username: (user.username || '').toLowerCase() }
+            ]
+        }).sort({ createdAt: -1 }).limit(100).lean();
+
+        res.json({
+            success: true,
+            user,
+            logs: logs || []
+        });
+    } catch (error) {
+        console.error('Get user activity history error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch user activity' });
+    }
+}
+
 module.exports = {
     bulkUploadCands,
     getLogs,
@@ -853,6 +884,7 @@ module.exports = {
     deleteComment,
     getUserActivityStats,
     getUserActivityLogs,
+    getUserActivityHistory,
     getDepartments,
     createDepartment,
     syncPermittedWords,

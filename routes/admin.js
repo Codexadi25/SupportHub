@@ -15,6 +15,7 @@ router.get('/logs', isVendorOrAdmin, adminController.getLogs);
 router.post('/cleanup-logs', isVendorOrAdmin, adminController.cleanupLogs);
 
 router.get('/users', isUserManager, adminController.getUsers);
+router.get('/users/:id/activity', isUserManager, adminController.getUserActivityHistory);
 router.get('/teams', isUserManager, adminController.getTeams);
 router.put('/users/:id/role', isUserManager, adminController.updateUserRole);
 router.put('/users/:id/password', isVendorOrAdmin, adminController.updateUserPassword);

@@ -2063,7 +2063,7 @@ function startFirebase() {
     });
 
     set(myRef, payload());
-    onDisconnect(myRef).remove();
+    onDisconnect(myRef).update({ status: 'unresponsive', ts: Date.now() });
 
     const hb = setInterval(() => {
         const idleDuration = Date.now() - lastActivityTime;

@@ -169,26 +169,120 @@
       </div>
     </div>
 
+    <div style="font-size:12px;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+      <i class="bi bi-info-circle"></i>
+      <span>Tip: Click on any user row to view profile details, live activity status, activity history, and access management actions.</span>
+    </div>
+
     <div id="admin-users-container" class="panel" style="padding:0;min-height:120px;overflow-x:auto;">
-      <table id="admin-users-table" style="width:100%;border-collapse:collapse;min-width:900px;">
+      <table id="admin-users-table" style="width:100%;border-collapse:collapse;min-width:850px;">
         <thead>
           <tr style="background:#fafafa">
             <th style="padding:10px 8px;text-align:left">Username</th>
             <th style="padding:10px 8px;text-align:left">Status</th>
             <th style="padding:10px 8px;text-align:left">Employee ID</th>
-            <th style="padding:10px 8px;text-align:left">Password</th>
             <th style="padding:10px 8px;text-align:left">Role</th>
             <th style="padding:10px 8px;text-align:left">Department</th>
             <th style="padding:10px 8px;text-align:left">Company</th>
             <th style="padding:10px 8px;text-align:left">Aligned TL</th>
             <th style="padding:10px 8px;text-align:left">Modified At</th>
-            <th style="padding:10px 8px;text-align:left">Actions</th>
           </tr>
         </thead>
         <tbody id="admin-users-table-body">
             <!-- Populated dynamically via JS -->
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ═══ USER ACTIVITY & PROFILE DASHBOARD MODAL (Google / Instagram Activity Style) ═══ -->
+  <div id="userActivityModalBackdrop" class="uam-backdrop" style="display:none;">
+    <div id="userActivityModal" class="uam-modal" role="dialog" aria-modal="true" aria-labelledby="uamDisplayName">
+      <!-- Modal Header -->
+      <div class="uam-header">
+        <div class="uam-header-left">
+          <div class="uam-avatar-wrapper">
+            <div id="uamAvatar" class="uam-avatar">?</div>
+            <span id="uamLiveStatusDot" class="uam-status-badge offline" title="Offline"></span>
+          </div>
+          <div class="uam-title-group">
+            <div class="uam-name-row">
+              <h2 id="uamDisplayName" class="uam-display-name">—</h2>
+              <span id="uamRoleBadge" class="uam-role-badge">USER</span>
+              <span id="uamStatusTextBadge" class="uam-status-text-badge offline">Offline</span>
+            </div>
+            <div class="uam-handle-row">
+              <span id="uamUsername" class="uam-username">@username</span>
+              <span class="uam-dot-sep">•</span>
+              <span id="uamDepartment" class="uam-meta-text">Zomato</span>
+              <span class="uam-dot-sep">•</span>
+              <span id="uamOrganization" class="uam-meta-text">Startek India</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="uam-close-btn" id="uamCloseBtn" aria-label="Close modal">&times;</button>
+      </div>
+
+      <!-- Management Actions Toolbar (Shifted from main table) -->
+      <div class="uam-actions-bar">
+        <div class="uam-actions-label"><i class="bi bi-shield-lock-fill"></i> Account Actions:</div>
+        <div class="uam-actions-btns">
+          <button type="button" id="uamBtnResetPassword" class="btn btn-set-password uam-action-btn" title="Set a new custom password">
+            <i class="bi bi-key-fill"></i> Reset Password
+          </button>
+          <button type="button" id="uamBtnDefaultPassword" class="btn btn-reset-password uam-action-btn" title="Reset password to username">
+            <i class="bi bi-arrow-counterclockwise"></i> Set Default Password
+          </button>
+          <button type="button" id="uamBtnDeleteUser" class="btn btn-delete-user uam-action-btn uam-btn-danger" title="Permanently delete user">
+            <i class="bi bi-trash-fill"></i> Delete User
+          </button>
+        </div>
+      </div>
+
+      <!-- Body: Overview & Timeline -->
+      <div class="uam-body">
+        <!-- Profile Overview Cards -->
+        <div class="uam-overview-section">
+          <h3 class="uam-section-title"><i class="bi bi-person-lines-fill"></i> Profile &amp; Session Details</h3>
+          <div class="uam-stats-grid">
+            <div class="uam-stat-card">
+              <span class="uam-stat-label">Employee ID</span>
+              <span id="uamStatEmpId" class="uam-stat-val">—</span>
+            </div>
+            <div class="uam-stat-card">
+              <span class="uam-stat-label">Aligned Team</span>
+              <span id="uamStatTeam" class="uam-stat-val">—</span>
+            </div>
+            <div class="uam-stat-card">
+              <span class="uam-stat-label">Email Address</span>
+              <span id="uamStatEmail" class="uam-stat-val">—</span>
+            </div>
+            <div class="uam-stat-card">
+              <span class="uam-stat-label">Session State</span>
+              <span id="uamStatSession" class="uam-stat-val">—</span>
+            </div>
+            <div class="uam-stat-card">
+              <span class="uam-stat-label">Last Active IP</span>
+              <span id="uamStatIp" class="uam-stat-val">—</span>
+            </div>
+            <div class="uam-stat-card">
+              <span class="uam-stat-label">Member Since</span>
+              <span id="uamStatCreated" class="uam-stat-val">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Timeline (Google My Activity style) -->
+        <div class="uam-activity-section">
+          <div class="uam-activity-header">
+            <h3 class="uam-section-title"><i class="bi bi-clock-history"></i> Activity History &amp; Event Stream</h3>
+            <span id="uamActivityCount" class="uam-activity-count">0 events</span>
+          </div>
+          <div id="uamTimeline" class="uam-timeline">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

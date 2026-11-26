@@ -463,7 +463,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const modified = u.updatedAt ? new Date(u.updatedAt).toLocaleString() : '';
         
         const p = presenceMap.get((u.username || '').toLowerCase());
-        const status = p ? p.status : 'offline';
+        const hasSession = !!u.currentSessionId;
+        
+        let status = 'offline';
+        if (p) {
+          const isStale = (Date.now() - (p.ts || p.lastUpdated || 0)) > 5 * 60 * 1000;
+          if (p.status === 'online') {
+            status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'online';
+          } else if (p.status === 'idle') {
+            status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'idle';
+          } else if (p.status === 'on_break') {
+            status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'on_break';
+          } else if (p.status === 'unresponsive') {
+            status = hasSession ? 'unresponsive' : 'offline';
+          } else if (p.status === 'offline') {
+            status = 'offline';
+          } else {
+            status = p.status || (hasSession ? 'unresponsive' : 'offline');
+          }
+        } else {
+          status = hasSession ? 'unresponsive' : 'offline';
+        }
+        
         const livePic = p ? p.profilePic : '';
         const liveProfileName = p ? p.profileName : '';
         
@@ -491,13 +512,11 @@ document.addEventListener('DOMContentLoaded', () => {
           : `<span class="user-avatar-small" style="vertical-align: middle; margin-right: 6px; background:#e2e8f0; color:#475569;">${((liveProfileName || u.profileName || u.username || '?').charAt(0) || '?').toUpperCase()}</span>`;
 
         const canEditRole = ['admin', 'vendor', 'team_lead'].includes(window.currentUserRole);
-        const canEditPassword = ['admin', 'vendor'].includes(window.currentUserRole);
         const canAlignTeam = ['admin', 'vendor', 'team_lead'].includes(window.currentUserRole);
 
         let selectHtml = '';
         let roleHtml = '';
         let teamHtml = '';
-        let actionsHtml = '';
 
         if (canEditRole) {
           const deptOptions = (window.__departmentsList || []).map(d => 
@@ -560,21 +579,8 @@ document.addEventListener('DOMContentLoaded', () => {
           teamHtml = matchedTeam ? `<span style="font-weight:600;">${matchedTeam.name}</span> ${tlName ? `<span style="font-size:11px;color:var(--text-muted);"> (TL: ${tlName})</span>` : ''}` : '<span style="color:#94a3b8">None</span>';
         }
 
-        let actionButtons = [];
-        if (canEditPassword) {
-          actionButtons.push(`<button class="btn btn-set-password" data-user-id="${u._id}" style="padding:4px 8px;font-size:11px;">Reset Password</button>`);
-          actionButtons.push(`<button class="btn btn-reset-password" data-user-id="${u._id}" title="Reset password to username" style="padding:4px 8px;font-size:11px;">Set Default Password</button>`);
-        }
-        if (window.currentUserRole === 'admin' && u.role !== 'admin') {
-          actionButtons.push(`<button class="btn btn-delete-user" data-user-id="${u._id}" data-username="${u.username}" style="padding:4px 8px;font-size:11px;background:#ef4444;color:#fff;">Delete</button>`);
-        }
-
-        actionsHtml = actionButtons.length 
-          ? `<div style="display:flex;gap:6px">${actionButtons.join('')}</div>`
-          : `<span style="color:#94a3b8;font-size:12px;font-style:italic;">No Actions</span>`;
-
         const displayName = liveProfileName || u.profileName || '';
-        return `<tr data-user-id="${u._id}">
+        return `<tr data-user-id="${u._id}" class="clickable-user-row" style="cursor:pointer;" title="Click to view activity dashboard and manage account">
           <td style="padding:10px 8px">
             <div style="display:flex;align-items:center;gap:8px;">
               ${avatarHtml}
@@ -604,13 +610,219 @@ document.addEventListener('DOMContentLoaded', () => {
             ${teamHtml}
           </td>
           <td style="padding:10px 8px">${modified}</td>
-          <td style="padding:10px 8px">
-            ${actionsHtml}
-          </td>
         </tr>`; }).join('');
     } catch (err) {
       console.error('[Admin Directory] Refresh Error:', err);
       showToast('Failed to fetch users', 'error');
+    }
+  }
+
+  // Row click handler to open the User Activity Dashboard modal
+  if (usersTbody) {
+    usersTbody.addEventListener('click', (e) => {
+      // Ignore click if user is interacting with form controls in the row
+      if (e.target.closest('select, input, button, a')) return;
+      const tr = e.target.closest('tr[data-user-id]');
+      if (tr && tr.dataset.userId) {
+        openUserActivityDashboard(tr.dataset.userId);
+      }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // USER ACTIVITY & PROFILE DASHBOARD MODAL LOGIC (Google / Instagram Style)
+  // ═══════════════════════════════════════════════════════════════════
+  const uamBackdrop = document.getElementById('userActivityModalBackdrop');
+  const uamCloseBtn = document.getElementById('uamCloseBtn');
+  let currentModalUser = null;
+
+  function closeUserActivityDashboard() {
+    if (uamBackdrop) uamBackdrop.style.display = 'none';
+    currentModalUser = null;
+  }
+
+  if (uamCloseBtn) {
+    uamCloseBtn.addEventListener('click', closeUserActivityDashboard);
+  }
+  if (uamBackdrop) {
+    uamBackdrop.addEventListener('click', (e) => {
+      if (e.target === uamBackdrop) closeUserActivityDashboard();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && uamBackdrop && uamBackdrop.style.display !== 'none') {
+      closeUserActivityDashboard();
+    }
+  });
+
+  async function openUserActivityDashboard(userId) {
+    if (!uamBackdrop) return;
+    
+    // Open backdrop and display loading state
+    uamBackdrop.style.display = 'flex';
+    document.getElementById('uamDisplayName').textContent = 'Loading profile…';
+    document.getElementById('uamUsername').textContent = '@…';
+    document.getElementById('uamTimeline').innerHTML = '<div class="uam-empty-state"><i class="bi bi-arrow-repeat bi-spin"></i><p>Loading activity history…</p></div>';
+
+    try {
+      const res = await api(`/api/admin/users/${userId}/activity`);
+      if (!res || !res.user) throw new Error('User data not found');
+
+      const user = res.user;
+      const logs = res.logs || [];
+      currentModalUser = user;
+
+      // 1. Resolve live status from Firebase presence map + session
+      const p = presenceMap.get((user.username || '').toLowerCase());
+      const hasSession = !!user.currentSessionId;
+      let status = 'offline';
+      if (p) {
+        const isStale = (Date.now() - (p.ts || p.lastUpdated || 0)) > 5 * 60 * 1000;
+        if (p.status === 'online') {
+          status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'online';
+        } else if (p.status === 'idle') {
+          status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'idle';
+        } else if (p.status === 'on_break') {
+          status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'on_break';
+        } else if (p.status === 'unresponsive') {
+          status = hasSession ? 'unresponsive' : 'offline';
+        } else if (p.status === 'offline') {
+          status = 'offline';
+        } else {
+          status = p.status || (hasSession ? 'unresponsive' : 'offline');
+        }
+      } else {
+        status = hasSession ? 'unresponsive' : 'offline';
+      }
+
+      const statusLabels = {
+        online: 'Online',
+        on_break: 'On Break',
+        idle: 'Idle',
+        unresponsive: 'Unresponsive',
+        offline: 'Offline'
+      };
+      const statusLabel = statusLabels[status] || 'Offline';
+
+      // 2. Populate Header
+      const displayName = user.displayName || user.profileName || user.username || 'User';
+      document.getElementById('uamDisplayName').textContent = displayName;
+      document.getElementById('uamUsername').textContent = `@${user.username}`;
+      document.getElementById('uamDepartment').textContent = (user.department || 'general').toUpperCase();
+      document.getElementById('uamOrganization').textContent = user.organization || 'Startek India';
+      
+      const roleBadge = document.getElementById('uamRoleBadge');
+      if (roleBadge) roleBadge.textContent = (user.role || 'user').toUpperCase();
+
+      const statusTextBadge = document.getElementById('uamStatusTextBadge');
+      if (statusTextBadge) {
+        statusTextBadge.textContent = statusLabel;
+        statusTextBadge.className = `uam-status-text-badge ${status}`;
+      }
+
+      const liveDot = document.getElementById('uamLiveStatusDot');
+      if (liveDot) {
+        liveDot.className = `uam-status-badge ${status}`;
+        liveDot.title = statusLabel;
+      }
+
+      // Avatar
+      const avatarEl = document.getElementById('uamAvatar');
+      if (avatarEl) {
+        const pic = (p && p.profilePic) || user.image || user.profilePic;
+        if (pic) {
+          avatarEl.innerHTML = pic;
+        } else {
+          avatarEl.textContent = (displayName.charAt(0) || user.username.charAt(0) || '?').toUpperCase();
+        }
+        avatarEl.style.background = user.bgColor || '#e2e8f0';
+      }
+
+      // 3. Populate Action Buttons with user IDs
+      const btnResetPwd = document.getElementById('uamBtnResetPassword');
+      const btnDefPwd = document.getElementById('uamBtnDefaultPassword');
+      const btnDel = document.getElementById('uamBtnDeleteUser');
+
+      const canEditPassword = ['admin', 'vendor'].includes(window.currentUserRole);
+      const isAdmin = window.currentUserRole === 'admin';
+
+      if (btnResetPwd) {
+        btnResetPwd.dataset.userId = user._id;
+        btnResetPwd.dataset.username = user.username;
+        btnResetPwd.style.display = canEditPassword ? 'inline-flex' : 'none';
+      }
+      if (btnDefPwd) {
+        btnDefPwd.dataset.userId = user._id;
+        btnDefPwd.dataset.username = user.username;
+        btnDefPwd.style.display = canEditPassword ? 'inline-flex' : 'none';
+      }
+      if (btnDel) {
+        btnDel.dataset.userId = user._id;
+        btnDel.dataset.username = user.username;
+        btnDel.style.display = (isAdmin && user.role !== 'admin') ? 'inline-flex' : 'none';
+      }
+
+      // 4. Populate Profile Stats
+      document.getElementById('uamStatEmpId').textContent = user.employeeId || '—';
+      document.getElementById('uamStatTeam').textContent = user.teamId ? (user.teamId.name || 'Assigned') : 'None';
+      document.getElementById('uamStatEmail').textContent = user.email || 'Not provided';
+      document.getElementById('uamStatSession').textContent = hasSession ? '🟢 Active Session (Logged In)' : '⚪ Inactive (Logged Out)';
+      document.getElementById('uamStatIp').textContent = user.lastActiveIp || '—';
+      document.getElementById('uamStatCreated').textContent = user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+
+      // 5. Populate Google / Instagram Activity Stream Timeline
+      const countEl = document.getElementById('uamActivityCount');
+      if (countEl) countEl.textContent = `${logs.length} ${logs.length === 1 ? 'event' : 'events'}`;
+
+      const timelineEl = document.getElementById('uamTimeline');
+      if (timelineEl) {
+        if (logs.length === 0) {
+          timelineEl.innerHTML = `
+            <div class="uam-empty-state">
+              <i class="bi bi-clock-history"></i>
+              <p>No recent activity events recorded for @${user.username}.</p>
+            </div>
+          `;
+        } else {
+          timelineEl.innerHTML = logs.map(l => {
+            const dateStr = l.createdAt ? new Date(l.createdAt).toLocaleString(undefined, {
+              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : 'Just now';
+
+            const rawAction = (l.action || 'system').toLowerCase();
+            let actionCategory = 'system';
+            if (rawAction.includes('login') || rawAction.includes('auth')) actionCategory = 'login';
+            else if (rawAction.includes('logout')) actionCategory = 'logout';
+            else if (rawAction.includes('update') || rawAction.includes('edit')) actionCategory = 'update';
+            else if (rawAction.includes('create') || rawAction.includes('add') || rawAction.includes('register')) actionCategory = 'create';
+
+            const actionLabel = l.action || 'Action';
+            const message = l.message || l.description || 'System event recorded';
+            const resource = l.resource ? `<strong>Resource:</strong> ${l.resource}` : '';
+            const ip = l.ip ? `<span><i class="bi bi-geo-alt"></i> ${l.ip}</span>` : '';
+
+            return `
+              <div class="uam-timeline-item">
+                <span class="uam-timeline-dot"></span>
+                <div class="uam-tl-header">
+                  <span class="uam-tl-badge ${actionCategory}">${actionLabel}</span>
+                  <span class="uam-tl-time">${dateStr}</span>
+                </div>
+                <div class="uam-tl-desc">${message}</div>
+                <div class="uam-tl-meta">
+                  ${resource}
+                  ${ip}
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+    } catch (err) {
+      console.error('[User Activity Modal Error]:', err);
+      showToast('Could not load user activity details', 'error');
+      closeUserActivityDashboard();
     }
   }
 
@@ -625,16 +837,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   if (searchInput) searchInput.addEventListener('input', renderUsersTable);
 
-  // Delegated actions on users table
+  // Delegated actions on users table and activity modal
   document.body.addEventListener('click', async (e) => {
-    const target = e.target;
     // reset password to username
-    if (target.matches('.btn-reset-password')) {
-      const id = target.dataset.userId;
-      const username = target.closest('tr')?.firstElementChild?.textContent || 'this user';
+    const resetBtn = e.target.closest('.btn-reset-password');
+    if (resetBtn) {
+      const id = resetBtn.dataset.userId;
+      const username = resetBtn.dataset.username || resetBtn.closest('tr')?.firstElementChild?.textContent?.trim() || 'this user';
       if (!confirm(`Reset password for "${username}"? This will set their password to be the same as their username.`)) return;
       try {
-        // *** FIX 2: Changed res.tempPassword to res.newPassword ***
         const res = await api(`/api/admin/users/${id}/reset-password`, 'POST');
         modalTitle.textContent = `Password Reset for ${username}`;
         modalForm.innerHTML = `
@@ -653,8 +864,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // set password (opens modal form)
-    if (target.matches('.btn-set-password')) {
-      const id = target.dataset.userId;
+    const setPwdBtn = e.target.closest('.btn-set-password');
+    if (setPwdBtn) {
+      const id = setPwdBtn.dataset.userId;
       modalTitle.textContent = 'Set New Password';
       modalForm.innerHTML = `
         <div class="form-group">
@@ -669,13 +881,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const pwd = document.getElementById('adminNewPassword')?.value || '';
         if (pwd.length < 6) return showToast('Password must be at least 6 chars', 'error');
         try {
-          // *** FIX 3: Changed body from { newPassword: pwd } to { password: pwd } ***
           await api(`/api/admin/users/${id}/password`, 'PUT', { newPassword: pwd });
           showToast('Password updated', 'success');
           closeModal();
         } catch (err) { 
             showToast(err.message,'error');
-            // This is a common error, so let's add a hint.
             if (err.message.includes('Not Found')) {
                 showToast('Hint: Make sure the /api/admin/users/:id/password PUT route is defined in adminRoutes.js', 'info');
             }
@@ -683,7 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
               showToast('ERR: 400, Password is required')
             }
             else {
-              showToast(err.message, 'error'); // This now shows a useful error!
+              showToast(err.message, 'error');
             }
         }
       };
@@ -691,9 +901,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // delete user
-    if (target.matches('.btn-delete-user')) {
-      const id = target.dataset.userId;
-      const username = target.dataset.username || 'this user';
+    const delBtn = e.target.closest('.btn-delete-user');
+    if (delBtn) {
+      const id = delBtn.dataset.userId;
+      const username = delBtn.dataset.username || 'this user';
       
       const confirmUser = prompt(`To delete user "${username}", please type their username to confirm:`);
       if (confirmUser !== username) {
@@ -704,6 +915,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         await api(`/api/admin/users/${id}`, 'DELETE');
         showToast('User deleted', 'success');
+        closeUserActivityDashboard();
         renderUsersTable();
       } catch (err) { showToast(err.message,'error'); }
       return;
