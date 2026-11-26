@@ -113,16 +113,39 @@ const publicDirs = [
   path.join(__dirname, '../../public')
 ];
 publicDirs.forEach(dir => app.use(express.static(dir)));
+// Session store configuration: Persist sessions in MongoDB so deployments/restarts on Render do not log users out
+let sessionStore;
+if (process.env.MONGO_URI) {
+  try {
+    const connectMongo = require('connect-mongo');
+    const MongoStore = connectMongo.default || connectMongo.MongoStore || connectMongo;
+    sessionStore = MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      collectionName: 'sessions',
+      ttl: 14 * 24 * 60 * 60, // 14 days
+      touchAfter: 24 * 3600 // Lazy update: touch only once per 24 hours unless session modified to minimize DB load
+    });
+    sessionStore.on('error', (err) => {
+      console.warn('[SessionStore] MongoStore error (non-fatal):', err.message);
+    });
+    console.log('[Session] Persistent MongoDB session store enabled');
+  } catch (err) {
+    console.warn('[Session] Failed to initialize MongoStore, falling back to MemoryStore:', err.message);
+  }
+}
+
 // Ensure session is initialized before requestLogger so user info is available for logs
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'supporthub_stable_session_secret_2026',
+    store: sessionStore,
     resave: false,
     saveUninitialized: false, // avoid creating sessions for anonymous requests
-    rolling: true, // reset cookie expiration on every response
+    proxy: true, // trust reverse proxy (Render, Vercel, Netlify) for secure cookies
+    rolling: true, // reset cookie expiration on active usage
     cookie: {
         secure: process.env.NODE_ENV === 'production', // only send over HTTPS in prod
         sameSite: 'lax',
-        maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+        maxAge: 1000 * 60 * 60 * 24 * 14 // 14 days
     }
 }));
 

@@ -120,7 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     lastActivityCheck = now;
                     fetch('/api/ping', { cache: 'no-store' }).then(res => {
                         if (res.status === 401) {
-                            window.location.href = '/login?reason=single_device';
+                            res.json().then(data => {
+                                if (data && data.message === 'logged_in_elsewhere') {
+                                    window.location.href = '/login?reason=single_device';
+                                }
+                            }).catch(() => {});
                         }
                     }).catch(() => {});
                 }

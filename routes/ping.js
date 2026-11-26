@@ -39,9 +39,12 @@ const getUserPublicIP = () => {
     return ipPromise; // Return the promise
 };
 // GET /api/ping
-// Touches session to extend cookie and tracks active users
-router.get('/ping', isAuthenticated, (req, res) => {
-  if (!req.session) return res.status(200).json({ ok: true });
+// Touches session to extend cookie and tracks active users.
+// Also serves as the zero-downtime live health check for CI/CD and Render deploys without forcing login.
+router.get('/ping', (req, res) => {
+  if (!req.session || !req.session.user) {
+    return res.status(200).json({ ok: true, timestamp: new Date().toISOString(), authenticated: false });
+  }
 
   try {
     // extend expiry

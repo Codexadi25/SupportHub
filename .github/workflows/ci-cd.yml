@@ -187,6 +187,7 @@ jobs:
         run: |
           node -e "
             const modules = [
+              'connect-mongo',
               './models/User',
               './models/Message',
               './models/PrivateNote',
@@ -199,7 +200,8 @@ jobs:
               './routes/api/candRoutes',
               './routes/api/pnRoutes',
               './routes/api/feedbackRoutes',
-              './routes/sopRoutes'
+              './routes/sopRoutes',
+              './routes/ping'
             ];
             let ok = 0, fail = 0;
             for (const m of modules) {
