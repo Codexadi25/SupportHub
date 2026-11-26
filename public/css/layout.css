@@ -1618,42 +1618,125 @@ body.night-mode .uam-timeline-dot {
     text-transform: uppercase;
 }
 
-.uam-tl-badge.login { background: #dcfce7; color: #16a34a; }
-.uam-tl-badge.logout { background: #fee2e2; color: #dc2626; }
-.uam-tl-badge.update { background: #e0f2fe; color: #0284c7; }
-.uam-tl-badge.create { background: #f3e8ff; color: #9333ea; }
-.uam-tl-badge.system { background: #f1f5f9; color: #475569; }
+.uam-tl-badge.routine { background: #f1f5f9; color: #475569; }
+.uam-tl-badge.content { background: #e0f2fe; color: #0369a1; }
+.uam-tl-badge.danger { background: #fee2e2; color: #b91c1c; }
+.uam-tl-badge.profile { background: #f3e8ff; color: #7e22ce; }
+.uam-tl-badge.security { background: #dcfce7; color: #15803d; }
 
-body.night-mode .uam-tl-badge.login { background: #14532d; color: #86efac; }
-body.night-mode .uam-tl-badge.logout { background: #7f1d1d; color: #fca5a5; }
-body.night-mode .uam-tl-badge.update { background: #0c4a6e; color: #38bdf8; }
-body.night-mode .uam-tl-badge.create { background: #581c87; color: #d8b4fe; }
-body.night-mode .uam-tl-badge.system { background: #334155; color: #cbd5e1; }
+body.night-mode .uam-tl-badge.routine { background: #334155; color: #cbd5e1; }
+body.night-mode .uam-tl-badge.content { background: #0c4a6e; color: #38bdf8; }
+body.night-mode .uam-tl-badge.danger { background: #7f1d1d; color: #fca5a5; }
+body.night-mode .uam-tl-badge.profile { background: #581c87; color: #d8b4fe; }
+body.night-mode .uam-tl-badge.security { background: #14532d; color: #86efac; }
 
-.uam-tl-time {
-    font-size: 11px;
-    color: #94a3b8;
-    font-weight: 500;
+.uam-timeline-dot.routine { background: #94a3b8; }
+.uam-timeline-dot.content { background: #0284c7; }
+.uam-timeline-dot.danger { background: #dc2626; }
+.uam-timeline-dot.profile { background: #9333ea; }
+.uam-timeline-dot.security { background: #16a34a; }
+
+/* Thread & Chip Styles */
+.uam-thread-card {
+    border-left: 3px solid #94a3b8 !important;
+    background: #fafafa;
+}
+body.night-mode .uam-thread-card {
+    background: #182234;
+    border-color: #475569 !important;
 }
 
-.uam-tl-desc {
-    font-size: 13px;
-    color: #334155;
-    margin-bottom: 6px;
-    font-weight: 500;
-}
-
-body.night-mode .uam-tl-desc {
-    color: #e2e8f0;
-}
-
-.uam-tl-meta {
+.uam-thread-footer {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.uam-thread-toggle-btn {
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+.uam-thread-toggle-btn:hover {
+    background: #cbd5e1;
+}
+body.night-mode .uam-thread-toggle-btn {
+    background: #334155;
+    border-color: #475569;
+    color: #f8fafc;
+}
+body.night-mode .uam-thread-toggle-btn:hover {
+    background: #475569;
+}
+
+.uam-thread-sublist {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #cbd5e1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+body.night-mode .uam-thread-sublist {
+    border-color: #334155;
+}
+
+.uam-thread-subitem {
+    font-size: 11px;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+body.night-mode .uam-thread-subitem {
+    color: #cbd5e1;
+}
+
+.uam-thread-bullet {
+    color: #94a3b8;
+}
+.uam-thread-subtime {
+    font-weight: 600;
+    color: #64748b;
+}
+body.night-mode .uam-thread-subtime {
+    color: #94a3b8;
+}
+
+.uam-meta-chip {
+    font-size: 11px;
+    background: #f1f5f9;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+body.night-mode .uam-meta-chip {
+    background: #334155;
+    color: #cbd5e1;
+}
+
+.uam-full-timestamp {
+    margin-left: auto;
     font-size: 11px;
     color: #94a3b8;
-    flex-wrap: wrap;
 }
 
 .uam-empty-state {

@@ -816,6 +816,7 @@
     <script src="/js/main.js" defer></script>
 
     <% if (user.role === 'admin' || user.role === 'vendor' || user.role === 'team_lead' || user.role === 'editor' || user.role === 'quality_analyst' || user.hasAdminPanelAccess) { %>
+        <script src="/js/userActivityTimeline.js" defer></script>
         <script src="/js/admin.js" defer></script>
     <% } %>
     <!-- Feature Guide — loads last so all UI elements are in DOM -->

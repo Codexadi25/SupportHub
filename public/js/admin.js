@@ -767,53 +767,21 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('uamStatIp').textContent = user.lastActiveIp || '—';
       document.getElementById('uamStatCreated').textContent = user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 
-      // 5. Populate Google / Instagram Activity Stream Timeline
-      const countEl = document.getElementById('uamActivityCount');
-      if (countEl) countEl.textContent = `${logs.length} ${logs.length === 1 ? 'event' : 'events'}`;
-
+      // 5. Populate Google / Instagram Activity Stream Timeline via UserActivityTimeline module
       const timelineEl = document.getElementById('uamTimeline');
-      if (timelineEl) {
-        if (logs.length === 0) {
-          timelineEl.innerHTML = `
-            <div class="uam-empty-state">
-              <i class="bi bi-clock-history"></i>
-              <p>No recent activity events recorded for @${user.username}.</p>
-            </div>
-          `;
-        } else {
-          timelineEl.innerHTML = logs.map(l => {
-            const dateStr = l.createdAt ? new Date(l.createdAt).toLocaleString(undefined, {
-              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-            }) : 'Just now';
-
-            const rawAction = (l.action || 'system').toLowerCase();
-            let actionCategory = 'system';
-            if (rawAction.includes('login') || rawAction.includes('auth')) actionCategory = 'login';
-            else if (rawAction.includes('logout')) actionCategory = 'logout';
-            else if (rawAction.includes('update') || rawAction.includes('edit')) actionCategory = 'update';
-            else if (rawAction.includes('create') || rawAction.includes('add') || rawAction.includes('register')) actionCategory = 'create';
-
-            const actionLabel = l.action || 'Action';
-            const message = l.message || l.description || 'System event recorded';
-            const resource = l.resource ? `<strong>Resource:</strong> ${l.resource}` : '';
-            const ip = l.ip ? `<span><i class="bi bi-geo-alt"></i> ${l.ip}</span>` : '';
-
-            return `
-              <div class="uam-timeline-item">
-                <span class="uam-timeline-dot"></span>
-                <div class="uam-tl-header">
-                  <span class="uam-tl-badge ${actionCategory}">${actionLabel}</span>
-                  <span class="uam-tl-time">${dateStr}</span>
-                </div>
-                <div class="uam-tl-desc">${message}</div>
-                <div class="uam-tl-meta">
-                  ${resource}
-                  ${ip}
-                </div>
-              </div>
-            `;
-          }).join('');
+      const countEl = document.getElementById('uamActivityCount');
+      
+      if (window.UserActivityTimeline && typeof window.UserActivityTimeline.renderTimeline === 'function') {
+        const grouped = window.UserActivityTimeline.groupLogs(logs, 25);
+        if (countEl) {
+          countEl.textContent = `${grouped.length} ${grouped.length === 1 ? 'recent item' : 'recent items'} (${logs.length} raw)`;
         }
+        window.UserActivityTimeline.renderTimeline(timelineEl, logs, user.username);
+      } else if (timelineEl) {
+        if (countEl) countEl.textContent = `${logs.length} events`;
+        timelineEl.innerHTML = logs.length === 0
+          ? `<div class="uam-empty-state"><i class="bi bi-clock-history"></i><p>No recent activity events recorded for @${user.username}.</p></div>`
+          : logs.slice(0, 25).map(l => `<div class="uam-timeline-item"><div class="uam-tl-desc">${l.message || l.description || l.action}</div></div>`).join('');
       }
 
     } catch (err) {
