@@ -595,9 +595,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <span style="font-weight:600;color:#334155;">${u.employeeId || '—'}</span>
           </td>
           <td style="padding:10px 8px">
-            <span class="masked-pass" data-user-id="${u._id}">••••••••</span>
-          </td>
-          <td style="padding:10px 8px">
             ${roleHtml}
           </td>
           <td style="padding:10px 8px">
