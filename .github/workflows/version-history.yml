@@ -1,0 +1,97 @@
+# ════════════════════════════════════════════════════════════════════════════════
+#  SupportHub — Dedicated Version History & In-App UI Changelog Tracker
+#  Author : Aditya Sahu (Aditya Tech. & Devoops)
+# 
+#  Purpose:
+#  Automatically keeps package.json, public/versionHistory.json, and CHANGELOG.md
+#  synchronized on every commit so the in-app Version History Modal always reflects
+#  the latest updates without being blocked by external deploy or health-check hooks.
+# ════════════════════════════════════════════════════════════════════════════════
+
+name: "Track Version History & UI Changelog"
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - "public/versionHistory.json"
+      - "package.json"
+      - "CHANGELOG.md"
+
+  workflow_dispatch:
+    inputs:
+      sync_only:
+        description: "Sync current version without incrementing patch"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: version-history-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  track-version:
+    name: "📋 Update Version History & UI"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+      - name: "⬇ Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "⚙ Setup Node.js 20"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: "📈 Update Version History & Changelog"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
+          LOB: ${{ secrets.APP_LOB || 'zomato' }}
+        run: |
+          if [ "${{ github.event.inputs.sync_only }}" = "true" ]; then
+            echo "▶ Running in sync-only mode..."
+            node scripts/updateVersionHistory.js --sync
+          else
+            echo "▶ Updating version history..."
+            node scripts/updateVersionHistory.js
+          fi
+
+      - name: "📤 Commit and push version update"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json public/versionHistory.json CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "No version changes to commit."
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            git commit -m "chore: update version history to v${VERSION} [skip ci]"
+            git push
+            echo "✅ Successfully pushed version history update for v${VERSION}"
+          fi
+
+      - name: "📊 Pipeline Summary"
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "### 🚀 Version History Updated" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Current Version** | \`v${VERSION}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered By** | \`${{ github.actor }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The in-app Version History Modal file (\`public/versionHistory.json\`) is fully up to date." >> $GITHUB_STEP_SUMMARY

@@ -2,21 +2,13 @@
 /**
  * updateVersionHistory.js
  * ─────────────────────────────────────────────────────────────────────────────
- * Runs after every GitHub push (via Actions) to:
- *  1. Read the latest Git commit metadata
- *  2. Parse CHANGELOG.md to extract release notes for the new version
- *  3. Bump the patch version in package.json
- *  4. Prepend a structured entry (with changelog[]) into public/versionHistory.json
- *  5. POST a broadcast-update notification to the live app API so all users
- *     receive an in-app message about the new release
+ * Synchronizes package.json, CHANGELOG.md, and public/versionHistory.json.
+ * Triggered automatically by GitHub Actions (.github/workflows/version-history.yml)
+ * or can be run manually locally.
  *
- * Local usage:
- *   node scripts/updateVersionHistory.js
- *
- * CI usage (GitHub Actions sets env vars):
- *   APP_URL=https://your-app.example.com DEPLOY_SECRET=xxx LOB=zomato
- *   node scripts/updateVersionHistory.js
- * ─────────────────────────────────────────────────────────────────────────────
+ * Usage:
+ *   node scripts/updateVersionHistory.js           # Bumps patch & updates versionHistory.json
+ *   node scripts/updateVersionHistory.js --sync    # Syncs versionHistory.json with current version without bumping
  */
 
 'use strict';
@@ -35,9 +27,10 @@ const CHLOG_PATH  = path.join(ROOT, 'CHANGELOG.md');
 const MAX_ENTRIES = 50;
 
 // ── Environment ───────────────────────────────────────────────────────────────
-const APP_URL      = process.env.APP_URL      || '';          // e.g. https://myapp.com
-const DEPLOY_SECRET= process.env.DEPLOY_SECRET || '';         // must match server env
+const APP_URL      = process.env.APP_URL      || '';
+const DEPLOY_SECRET= process.env.DEPLOY_SECRET || '';
 const LOB          = (process.env.LOB || 'zomato').toLowerCase();
+const IS_SYNC_ONLY = process.argv.includes('--sync') || process.argv.includes('--no-bump');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function runGit(cmd) {
@@ -50,14 +43,13 @@ function runGit(cmd) {
 
 function bumpPatch(version) {
     const parts = String(version).split('.').map(Number);
-    if (parts.length !== 3 || parts.some(isNaN)) return '2.5.1';
+    if (parts.length !== 3 || parts.some(isNaN)) return '3.1.1';
     parts[2] += 1;
     return parts.join('.');
 }
 
 /**
- * Parse CHANGELOG.md and extract bullet-point lines under the first ## heading.
- * Returns an array of clean strings.
+ * Parse CHANGELOG.md and extract bullet-point lines under the target ## [version] heading.
  */
 function parseChangelog(targetVersion) {
     if (!fs.existsSync(CHLOG_PATH)) return [];
@@ -68,14 +60,12 @@ function parseChangelog(targetVersion) {
     const bullets = [];
 
     for (const line of lines) {
-        // Detect version headings like: ## [2.5.0] — 2026-05-30
         if (/^##\s+\[/.test(line)) {
-            if (inSection) break; // Past our section — stop
+            if (inSection) break;
             if (targetVersion && line.includes(`[${targetVersion}]`)) {
                 inSection = true;
                 continue;
             }
-            // If no targetVersion, take the first section
             if (!targetVersion) {
                 inSection = true;
                 continue;
@@ -84,7 +74,7 @@ function parseChangelog(targetVersion) {
 
         if (inSection) {
             const stripped = line.replace(/^[-*•]\s+/, '').trim();
-            if (stripped && !stripped.startsWith('#') && !stripped.startsWith('###')) {
+            if (stripped && !stripped.startsWith('#') && !stripped.startsWith('---') && stripped !== '---') {
                 bullets.push(stripped);
             }
         }
@@ -97,53 +87,38 @@ function parseChangelog(targetVersion) {
  * Fire-and-forget HTTP/S POST to broadcast the update notification.
  */
 function broadcastUpdate(version, changelog) {
-    if (!APP_URL || !DEPLOY_SECRET) {
-        console.log('[updateVersionHistory] Skipping broadcast (APP_URL or DEPLOY_SECRET not set)');
-        return;
-    }
+    if (!APP_URL || !DEPLOY_SECRET) return;
 
-    const body = JSON.stringify({ version, changelog, secret: DEPLOY_SECRET });
-    const url  = `${APP_URL}/api/${LOB}/messages/broadcast-update`;
+    try {
+        const body = JSON.stringify({ version, changelog, secret: DEPLOY_SECRET });
+        const url  = `${APP_URL}/api/${LOB}/messages/broadcast-update`;
+        const parsedUrl = new URL(url);
+        const transport = parsedUrl.protocol === 'https:' ? https : http;
 
-    console.log(`[updateVersionHistory] Broadcasting update to ${url}`);
+        const options = {
+            hostname: parsedUrl.hostname,
+            port    : parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+            path    : parsedUrl.pathname,
+            method  : 'POST',
+            headers : {
+                'Content-Type'  : 'application/json',
+                'Content-Length': Buffer.byteLength(body)
+            }
+        };
 
-    const parsedUrl = new URL(url);
-    const transport = parsedUrl.protocol === 'https:' ? https : http;
-
-    const options = {
-        hostname: parsedUrl.hostname,
-        port    : parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
-        path    : parsedUrl.pathname,
-        method  : 'POST',
-        headers : {
-            'Content-Type'  : 'application/json',
-            'Content-Length': Buffer.byteLength(body)
-        }
-    };
-
-    const req = transport.request(options, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
+        const req = transport.request(options, (res) => {
             if (res.statusCode === 201) {
                 console.log(`[updateVersionHistory] ✅ Broadcast sent — status ${res.statusCode}`);
-            } else {
-                console.warn(`[updateVersionHistory] ⚠️  Broadcast returned ${res.statusCode}: ${data}`);
             }
         });
-    });
-
-    req.on('error', (err) => {
-        console.warn('[updateVersionHistory] ⚠️  Broadcast failed (non-critical):', err.message);
-    });
-
-    req.write(body);
-    req.end();
+        req.on('error', () => {});
+        req.write(body);
+        req.end();
+    } catch {}
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 (function main() {
-    // 1. Read package.json
     let pkg;
     try {
         pkg = JSON.parse(fs.readFileSync(PKG_PATH, 'utf8'));
@@ -152,31 +127,29 @@ function broadcastUpdate(version, changelog) {
         process.exit(1);
     }
 
-    // 2. Git metadata for the latest commit
-    const hash     = runGit('rev-parse --short HEAD')       || 'unknown';
-    const fullHash = runGit('rev-parse HEAD')               || 'unknown';
-    const author   = runGit('log -1 --pretty=format:%an')  || 'Unknown Author';
-    const email    = runGit('log -1 --pretty=format:%ae')  || '';
+    const hash     = runGit('rev-parse --short HEAD')       || 'manual';
+    const fullHash = runGit('rev-parse HEAD')               || 'manual-commit';
+    const author   = runGit('log -1 --pretty=format:%an')  || 'Codexadi25';
+    const email    = runGit('log -1 --pretty=format:%ae')  || 'contactaditya25@gmail.com';
     const date     = runGit('log -1 --pretty=format:%aI')  || new Date().toISOString();
-    const message  = runGit('log -1 --pretty=format:%s')   || 'Update';
+    const message  = runGit('log -1 --pretty=format:%s')   || 'Update release';
     const branch   = runGit('rev-parse --abbrev-ref HEAD') || 'main';
 
-    // 3. Bump patch version
-    const oldVersion = pkg.version || '2.5.0';
-    const newVersion = bumpPatch(oldVersion);
-    pkg.version = newVersion;
+    let version = pkg.version || '3.1.0';
+    if (!IS_SYNC_ONLY) {
+        const oldVersion = version;
+        version = bumpPatch(oldVersion);
+        pkg.version = version;
+        fs.writeFileSync(PKG_PATH, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+        console.log(`[updateVersionHistory] Version bumped: ${oldVersion} → ${version}`);
+    } else {
+        console.log(`[updateVersionHistory] Syncing existing version: ${version}`);
+    }
 
-    // 4. Write updated package.json (preserve formatting)
-    fs.writeFileSync(PKG_PATH, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
-    console.log(`[updateVersionHistory] Version bumped: ${oldVersion} → ${newVersion}`);
-
-    // 5. Parse changelog for the new version
-    //    First try exact match; fall back to first section in file
-    let changelog = parseChangelog(newVersion);
+    let changelog = parseChangelog(version);
     if (!changelog.length) changelog = parseChangelog(null);
     if (!changelog.length) changelog = [message];
 
-    // 6. Read or initialize versionHistory.json
     let history = [];
     if (fs.existsSync(HIST_PATH)) {
         try {
@@ -187,10 +160,9 @@ function broadcastUpdate(version, changelog) {
         }
     }
 
-    // 7. Build new entry
     const entry = {
-        version  : newVersion,
-        label    : `v${newVersion}`,
+        version,
+        label: `LTS · v${version}`,
         hash,
         fullHash,
         branch,
@@ -201,19 +173,21 @@ function broadcastUpdate(version, changelog) {
         changelog
     };
 
-    // 8. Prepend and cap at MAX_ENTRIES
-    history.unshift(entry);
+    // Replace if same version exists, or prepend
+    const existingIdx = history.findIndex(e => e.version === version);
+    if (existingIdx >= 0) {
+        history[existingIdx] = entry;
+    } else {
+        history.unshift(entry);
+    }
+
     if (history.length > MAX_ENTRIES) history = history.slice(0, MAX_ENTRIES);
 
-    // 9. Ensure public/ exists and write file
     const publicDir = path.join(ROOT, 'public');
     if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
     fs.writeFileSync(HIST_PATH, JSON.stringify(history, null, 2) + '\n', 'utf8');
 
-    console.log(`[updateVersionHistory] Wrote entry for ${newVersion} (${hash}) to versionHistory.json`);
-    console.log(`[updateVersionHistory] Changelog entries: ${changelog.length}`);
+    console.log(`[updateVersionHistory] Updated versionHistory.json for v${version} (${hash})`);
     console.log(`[updateVersionHistory] Total history entries: ${history.length}`);
-
-    // 10. Broadcast update notification to all in-app users (non-blocking)
-    broadcastUpdate(newVersion, changelog);
+    broadcastUpdate(version, changelog);
 })();

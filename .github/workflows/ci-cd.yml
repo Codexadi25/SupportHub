@@ -383,48 +383,31 @@ jobs:
           echo "::warning ::Live health check timed out after $MAX_RETRIES attempts"
 
   # ═════════════════════════════════════════════════════════════════════════════
-  #  JOB 5 — VERSION & IN-APP BROADCAST
+  #  JOB 5 — BROADCAST UPDATE NOTIFICATION
   # ═════════════════════════════════════════════════════════════════════════════
-  version-history:
-    name: "📋 Version Bump & In-App Broadcast"
+  broadcast-notification:
+    name: "📢 In-App Broadcast Notification"
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: health-check
+    needs: deploy
 
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
       - name: "⬇ Checkout repository"
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "⚙ Setup Node.js 20"
         uses: actions/setup-node@v4
         with:
           node-version: "20.x"
 
-      - name: "📈 Bump Version & Record History"
+      - name: "📢 Broadcast release update to active users"
         env:
           APP_URL: ${{ secrets.APP_URL }}
           DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
           LOB: ${{ secrets.APP_LOB || 'zomato' }}
-        run: node scripts/updateVersionHistory.js
-
-      - name: "📤 Commit and push version bump"
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json public/versionHistory.json
-          if git diff --cached --quiet; then
-            echo "No version changes to commit."
-          else
-            VERSION=$(node -p "require('./package.json').version")
-            git commit -m "chore: bump version to v${VERSION} [skip ci]"
-            git push
-            echo "✅ Pushed version bump v${VERSION}"
-          fi
+        run: node scripts/updateVersionHistory.js --sync
 
   # ═════════════════════════════════════════════════════════════════════════════
   #  JOB 6 — SUMMARY
@@ -433,7 +416,7 @@ jobs:
     name: "📊 Pipeline Summary"
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [validate, test, deploy, health-check, version-history]
+    needs: [validate, test, deploy, health-check, broadcast-notification]
     if: always()
 
     steps:
@@ -443,7 +426,7 @@ jobs:
           TEST_RES: ${{ needs.test.result }}
           DEPLOY_RES: ${{ needs.deploy.result }}
           HEALTH_RES: ${{ needs.health-check.result }}
-          VERSION_RES: ${{ needs.version-history.result }}
+          BROADCAST_RES: ${{ needs.broadcast-notification.result }}
           COMMIT_SHA: ${{ github.sha }}
           BRANCH: ${{ github.ref_name }}
         run: |
@@ -464,7 +447,7 @@ jobs:
           echo "| 🧪 **Smoke & Module Tests** | $(status_icon $TEST_RES) |" >> $GITHUB_STEP_SUMMARY
           echo "| 🚀 **Multi-Cloud Deploy** | $(status_icon $DEPLOY_RES) |" >> $GITHUB_STEP_SUMMARY
           echo "| ❤️ **Live Health Check** | $(status_icon $HEALTH_RES) |" >> $GITHUB_STEP_SUMMARY
-          echo "| 📋 **Version Bump & Broadcast** | $(status_icon $VERSION_RES) |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📢 **In-App Broadcast** | $(status_icon $BROADCAST_RES) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "$VALIDATE_RES" = "failure" ] || [ "$TEST_RES" = "failure" ] || [ "$DEPLOY_RES" = "failure" ]; then

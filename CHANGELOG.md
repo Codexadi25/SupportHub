@@ -5,6 +5,35 @@ Format: `## [version] — YYYY-MM-DD`
 
 ---
 
+## [3.1.0] — 2026-11-26
+
+### 🆕 New Features
+- **4-Tier Realtime Presence System** — Fully real-time presence lifecycle powered directly by Firebase Realtime Database (RTDB) and WebSocket connections: `Online`, `Idle` (after 3 minutes of inactivity), `On Break`, `Unresponsive` (automatic WebSocket `onDisconnect()` transition on tab/browser close), and `Offline` (on explicit logout).
+- **User Profile & Activity Dashboard Pop-up** — Clicking any user row in the Admin Users table opens a full-screen interactive modal with user profile details, live presence badges, session stats, and real-time activity history stream.
+- **Instagram-Style Infinite Scroll ('Doomscrolling')** — User activity history automatically loads older pages (25 events per batch) as the user scrolls down, complete with a clean "You're all caught up" completion state.
+- **Skeleton Shimmer Animation** — Custom CSS shimmer animation (`@keyframes uam-shimmer`) displaying pulsing skeleton cards during modal loading and paginated scroll requests.
+- **Smart Activity Categorization & Collapsible Threads** — Modular client timeline engine (`userActivityTimeline.js`) that groups repetitive background pings and heartbeats into collapsible accordion threads while isolating distinct data events, profile edits, and logins.
+- **Render Zero-Downtime Session Persistence** — Integrated `connect-mongo` session storage with 14-day retention and lazy updating (`touchAfter: 24h`), ensuring container rollouts and restarts on Render never log active users out.
+
+### ✨ Improvements
+- **Zero-DB Heartbeat Architecture** — Removed high-frequency database writes on `/api/ping` and `/api/heartbeat`; active users are cached in-memory with 60s TTL to prevent MongoDB connection exhaustion.
+- **Admin Table Streamline** — Removed redundant Password and Actions columns from the main users table, relocating password resets, defaults, and account deletions into the dedicated user profile dashboard.
+- **Health Check Resilience** — Updated `/api/ping` to respond with `200 OK` for unauthenticated deployment monitors and CI/CD health checks without forcing logins.
+
+---
+
+## [3.0.0] — 2026-11-15
+
+### 🆕 New Features
+- **Multi-Cloud Continuous Deployment** — Production deployment configurations for Render (`render.yaml`), Vercel (`vercel.json`), Netlify (`netlify.toml`), and self-hosted VPS servers.
+- **Serverless Express Adapters** — Integrated `serverless-http` with specialized serverless entrypoints (`api/index.js`, `netlify/functions/server.js`) for serverless cloud hosting.
+- **Performance Pulse Suite** — Comprehensive shift management, break tracking, and roster imports with automated KPI scorecard calculations.
+- **Department Briefings Feed** — Real-time announcement feed with instant notifications and department filtering.
+- **Gemini AI Integration** — Enhanced customer service AI response generation utilizing Gemini models.
+- **Audio Translation & Voice Tools** — Real-time audio translation and voice canned responses for support agents.
+
+---
+
 ## [2.6.0] — 2026-06-29
 
 ### 🆕 New Features

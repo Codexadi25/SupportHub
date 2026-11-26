@@ -1,5 +1,46 @@
 [
   {
+    "version": "3.1.0",
+    "label": "LTS · v3.1.0",
+    "hash": "4495bed",
+    "fullHash": "4495bedfc061e55e686a134215f65b8f4cf816c3",
+    "branch": "main",
+    "author": "Codexadi25",
+    "email": "contactaditya25@gmail.com",
+    "date": "2026-11-26T18:04:05+05:30",
+    "message": "feat: instagram-style infinite scroll doomscrolling with skeleton shimmer loaders for user activity history",
+    "changelog": [
+      "**4-Tier Realtime Presence System** — Fully real-time presence lifecycle powered directly by Firebase Realtime Database (RTDB) and WebSocket connections: `Online`, `Idle` (after 3 minutes of inactivity), `On Break`, `Unresponsive` (automatic WebSocket `onDisconnect()` transition on tab/browser close), and `Offline` (on explicit logout).",
+      "**User Profile & Activity Dashboard Pop-up** — Clicking any user row in the Admin Users table opens a full-screen interactive modal with user profile details, live presence badges, session stats, and real-time activity history stream.",
+      "**Instagram-Style Infinite Scroll ('Doomscrolling')** — User activity history automatically loads older pages (25 events per batch) as the user scrolls down, complete with a clean \"You're all caught up\" completion state.",
+      "**Skeleton Shimmer Animation** — Custom CSS shimmer animation (`@keyframes uam-shimmer`) displaying pulsing skeleton cards during modal loading and paginated scroll requests.",
+      "**Smart Activity Categorization & Collapsible Threads** — Modular client timeline engine (`userActivityTimeline.js`) that groups repetitive background pings and heartbeats into collapsible accordion threads while isolating distinct data events, profile edits, and logins.",
+      "**Render Zero-Downtime Session Persistence** — Integrated `connect-mongo` session storage with 14-day retention and lazy updating (`touchAfter: 24h`), ensuring container rollouts and restarts on Render never log active users out.",
+      "**Zero-DB Heartbeat Architecture** — Removed high-frequency database writes on `/api/ping` and `/api/heartbeat`; active users are cached in-memory with 60s TTL to prevent MongoDB connection exhaustion.",
+      "**Admin Table Streamline** — Removed redundant Password and Actions columns from the main users table, relocating password resets, defaults, and account deletions into the dedicated user profile dashboard.",
+      "**Health Check Resilience** — Updated `/api/ping` to respond with `200 OK` for unauthenticated deployment monitors and CI/CD health checks without forcing logins."
+    ]
+  },
+  {
+    "version": "3.0.0",
+    "label": "LTS · v3.0.0",
+    "hash": "62b109f",
+    "fullHash": "62b109f8c6ebf21051fa6a47aebffcfcb059e69f",
+    "branch": "main",
+    "author": "Codexadi25",
+    "email": "contactaditya25@gmail.com",
+    "date": "2026-11-15T18:00:00+05:30",
+    "message": "feat: v3.0.0 — Multi-Cloud Deployment Suite, Serverless Adapters, Performance Pulse Analytics & Briefings Feed",
+    "changelog": [
+      "🚀 **Multi-Cloud Continuous Deployment** — Fully configured automated deployment blueprints for Render (`render.yaml`), Vercel (`vercel.json`), Netlify (`netlify.toml`), and self-hosted VPS environments.",
+      "🌐 **Serverless Express Architecture** — Added `serverless-http` integration and dedicated serverless handlers (`api/index.js`, `netlify/functions/server.js`) for rapid cold-starts.",
+      "📊 **Performance Pulse Analytics Suite** — Roster management, automated shift tracking, break recording, and Excel batch uploads with composite KPI scorecard calculations.",
+      "📢 **Department Briefings Feed** — Real-time team announcement board with priority badges and broadcast notifications across all departments.",
+      "🤖 **Gemini AI Integration** — Upgraded to modern `@google/genai` models with contextual response generation for customer service workflows.",
+      "🎙️ **Audio Translation & Voice Tools** — Added support for audio translation and voice canned responses for agents."
+    ]
+  },
+  {
     "version": "2.6.0",
     "label": "LTS · v2.6.0",
     "hash": "manual",
