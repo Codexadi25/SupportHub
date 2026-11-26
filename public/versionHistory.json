@@ -41,6 +41,46 @@
     ]
   },
   {
+    "version": "3.1.0",
+    "label": "LTS · v3.1.0",
+    "hash": "4495bed",
+    "fullHash": "4495bed7bb65e0984920b7eb42323c28ee413e1c",
+    "branch": "main",
+    "author": "Codexadi25",
+    "email": "contactaditya25@gmail.com",
+    "date": "2026-11-26T18:00:00+05:30",
+    "message": "feat: v3.1.0 — Real-Time Presence Lifecycle, User Activity Dashboard, Infinite Scroll & Render Session Persistence",
+    "changelog": [
+      "🟢 **4-Tier Realtime Presence System** — Powered by Firebase Realtime Database with sub-second accuracy across Online, Idle (3m inactivity), On Break, Unresponsive (tab/browser disconnect), and Offline (logout).",
+      "⚡ **Zero-DB Heartbeat Architecture** — Replaced recurring database ping writes with Firebase WebSocket tracking and in-memory TTL caching, slashing MongoDB load.",
+      "👤 **User Profile & Activity Dashboard** — Clicking any user in the Admin Panel opens an Instagram/Google My Activity style modal with full account stats, session details, and activity logs.",
+      "📜 **Instagram-Style Infinite Scroll ('Doomscrolling')** — User activity logs automatically load in 25-item pages as you scroll down, with an end-of-history indicator when caught up.",
+      "✨ **Skeleton Shimmer Animation** — Polished skeleton loading state with smooth shimmering gradient animations during initial load and paginated fetching.",
+      "📂 **Smart Activity Categorization & Collapsible Threads** — Routine heartbeats and background pings are grouped into collapsible summary threads, while meaningful edits, logins, and profile changes stand out as distinct cards.",
+      "🛡️ **Render Zero-Downtime Session Persistence** — Integrated `connect-mongo` session storage with 14-day TTL and lazy updates (`touchAfter: 24h`) so cloud redeployments and container restarts on Render never log active users out.",
+      "🧹 **Admin Table Streamline** — Removed redundant Password and Actions columns from the main users table, moving all user operations into the profile modal."
+    ]
+  },
+  {
+    "version": "3.0.0",
+    "label": "LTS · v3.0.0",
+    "hash": "62b109f",
+    "fullHash": "62b109f8c6ebf21051fa6a47aebffcfcb059e69f",
+    "branch": "main",
+    "author": "Codexadi25",
+    "email": "contactaditya25@gmail.com",
+    "date": "2026-11-15T18:00:00+05:30",
+    "message": "feat: v3.0.0 — Multi-Cloud Deployment Suite, Serverless Adapters, Performance Pulse Analytics & Briefings Feed",
+    "changelog": [
+      "🚀 **Multi-Cloud Continuous Deployment** — Fully configured automated deployment blueprints for Render (`render.yaml`), Vercel (`vercel.json`), Netlify (`netlify.toml`), and self-hosted VPS environments.",
+      "🌐 **Serverless Express Architecture** — Added `serverless-http` integration and dedicated serverless handlers (`api/index.js`, `netlify/functions/server.js`) for rapid cold-starts.",
+      "📊 **Performance Pulse Analytics Suite** — Roster management, automated shift tracking, break recording, and Excel batch uploads with composite KPI scorecard calculations.",
+      "📢 **Department Briefings Feed** — Real-time team announcement board with priority badges and broadcast notifications across all departments.",
+      "🤖 **Gemini AI Integration** — Upgraded to modern `@google/genai` models with contextual response generation for customer service workflows.",
+      "🎙️ **Audio Translation & Voice Tools** — Added support for audio translation and voice canned responses for agents."
+    ]
+  },
+  {
     "version": "2.6.0",
     "label": "LTS · v2.6.0",
     "hash": "manual",
