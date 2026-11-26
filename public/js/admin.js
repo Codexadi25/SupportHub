@@ -363,7 +363,8 @@ document.addEventListener('DOMContentLoaded', () => {
                   status: u.status || 'offline',
                   profilePic: u.profilePic || '',
                   profileName: u.profileName || '',
-                  bgColor: u.bgColor || ''
+                  bgColor: u.bgColor || '',
+                  ts: u.ts || 0
                 });
               }
             });
@@ -463,27 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const modified = u.updatedAt ? new Date(u.updatedAt).toLocaleString() : '';
         
         const p = presenceMap.get((u.username || '').toLowerCase());
-        const hasSession = !!u.currentSessionId;
-        
-        let status = 'offline';
-        if (p) {
-          const isStale = (Date.now() - (p.ts || p.lastUpdated || 0)) > 5 * 60 * 1000;
-          if (p.status === 'online') {
-            status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'online';
-          } else if (p.status === 'idle') {
-            status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'idle';
-          } else if (p.status === 'on_break') {
-            status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'on_break';
-          } else if (p.status === 'unresponsive') {
-            status = hasSession ? 'unresponsive' : 'offline';
-          } else if (p.status === 'offline') {
-            status = 'offline';
-          } else {
-            status = p.status || (hasSession ? 'unresponsive' : 'offline');
-          }
-        } else {
-          status = hasSession ? 'unresponsive' : 'offline';
-        }
+        const status = p ? (p.status || 'offline') : 'offline';
         
         const livePic = p ? p.profilePic : '';
         const liveProfileName = p ? p.profileName : '';
@@ -669,28 +650,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const logs = res.logs || [];
       currentModalUser = user;
 
-      // 1. Resolve live status from Firebase presence map + session
+      // 1. Resolve live status directly from Firebase RTDB presence
       const p = presenceMap.get((user.username || '').toLowerCase());
-      const hasSession = !!user.currentSessionId;
-      let status = 'offline';
-      if (p) {
-        const isStale = (Date.now() - (p.ts || p.lastUpdated || 0)) > 5 * 60 * 1000;
-        if (p.status === 'online') {
-          status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'online';
-        } else if (p.status === 'idle') {
-          status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'idle';
-        } else if (p.status === 'on_break') {
-          status = isStale ? (hasSession ? 'unresponsive' : 'offline') : 'on_break';
-        } else if (p.status === 'unresponsive') {
-          status = hasSession ? 'unresponsive' : 'offline';
-        } else if (p.status === 'offline') {
-          status = 'offline';
-        } else {
-          status = p.status || (hasSession ? 'unresponsive' : 'offline');
-        }
-      } else {
-        status = hasSession ? 'unresponsive' : 'offline';
-      }
+      const status = p ? (p.status || 'offline') : 'offline';
 
       const statusLabels = {
         online: 'Online',
