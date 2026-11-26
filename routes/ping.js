@@ -11,6 +11,11 @@ const ACTIVE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes window for active user
 // In-memory active users (by userId) and last seen
 const activeUsers = new Map();
 
+// In-memory cache for DB users to minimize MongoDB load
+let cachedDbUsers = [];
+let lastDbUsersFetch = 0;
+const DB_USERS_CACHE_TTL = 60 * 1000; // 60s cache
+
 // --- NEW: Client Public IP Fetcher (Cached) ---
 // This promise will hold the IP address once it's fetched.
 let ipPromise = null;
@@ -135,18 +140,22 @@ router.get('/active-users', async (req, res) => {
     const cutoff = Date.now() - IDLE_THRESHOLD;
     const byId = new Map();
 
-    // 1. Fetch recent active users from MongoDB
+    // 1. Fetch recent active users with in-memory caching to eliminate MongoDB load
     try {
-      const recentWindow = new Date(Date.now() - ACTIVE_THRESHOLD_MS);
-      const dbUsers = await User.find({
-        $or: [
-          { lastActiveAt: { $gte: recentWindow } },
-          { updatedAt: { $gte: recentWindow } }
-        ],
-        role: { $ne: 'new' }
-      }).select('_id username role department displayName profileName image profilePic bgColor lastActiveAt').lean();
+      const now = Date.now();
+      if (now - lastDbUsersFetch > DB_USERS_CACHE_TTL) {
+        const recentWindow = new Date(now - ACTIVE_THRESHOLD_MS);
+        cachedDbUsers = await User.find({
+          $or: [
+            { lastActiveAt: { $gte: recentWindow } },
+            { updatedAt: { $gte: recentWindow } }
+          ],
+          role: { $ne: 'new' }
+        }).select('_id username role department displayName profileName image profilePic bgColor lastActiveAt').lean();
+        lastDbUsersFetch = now;
+      }
 
-      dbUsers.forEach(u => {
+      cachedDbUsers.forEach(u => {
         const id = String(u._id);
         const lastActiveMs = u.lastActiveAt ? new Date(u.lastActiveAt).getTime() : Date.now();
         const isOnline = (Date.now() - lastActiveMs) < IDLE_THRESHOLD;

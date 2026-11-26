@@ -849,14 +849,18 @@ async function getUserActivityHistory(req, res) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Fetch user activity logs from Log collection
+        // Fetch user activity logs from Log collection (lightweight projection, zero heavy computation on server)
         const Log = require('../models/Log');
         const logs = await Log.find({
             $or: [
                 { user: user._id },
                 { username: (user.username || '').toLowerCase() }
             ]
-        }).sort({ createdAt: -1 }).limit(100).lean();
+        })
+        .select('action message description resource createdAt ip userAgent')
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .lean();
 
         res.json({
             success: true,
