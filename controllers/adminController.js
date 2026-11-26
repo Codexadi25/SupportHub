@@ -838,34 +838,50 @@ async function createUnknownEmployee(req, res) {
     }
 }
 
-// @desc    Get detailed user profile and activity history for activity dashboard modal
+// @desc    Get detailed user profile and activity history for activity dashboard modal (with pagination)
 // @route   GET /api/admin/users/:id/activity
 // @access  UserManager roles
 async function getUserActivityHistory(req, res) {
     try {
         const userId = req.params.id;
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
+        const skip = (page - 1) * limit;
+
         const user = await User.findById(userId).select('-password').populate('teamId', 'name').lean();
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Fetch user activity logs from Log collection (lightweight projection, zero heavy computation on server)
+        // Fetch user activity logs from Log collection (lightweight projection, paginated)
         const Log = require('../models/Log');
-        const logs = await Log.find({
+        const filter = {
             $or: [
                 { user: user._id },
                 { username: (user.username || '').toLowerCase() }
             ]
-        })
-        .select('action message description resource createdAt ip userAgent')
-        .sort({ createdAt: -1 })
-        .limit(100)
-        .lean();
+        };
+
+        const [logs, totalLogs] = await Promise.all([
+            Log.find(filter)
+                .select('action message description resource createdAt ip userAgent')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Log.countDocuments(filter)
+        ]);
+
+        const hasMore = (skip + (logs ? logs.length : 0)) < totalLogs;
 
         res.json({
             success: true,
             user,
-            logs: logs || []
+            logs: logs || [],
+            page,
+            limit,
+            totalLogs,
+            hasMore
         });
     } catch (error) {
         console.error('Get user activity history error:', error);

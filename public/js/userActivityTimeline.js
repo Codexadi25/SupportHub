@@ -211,14 +211,60 @@
     // Flush any trailing routine items
     flushRoutineGroup();
 
-    // Return the top 25 most recent activity entries/threads
-    return grouped.slice(0, maxItems);
+    // Return the grouped list, optionally sliced to maxItems
+    return maxItems ? grouped.slice(0, maxItems) : grouped;
+  }
+
+  /**
+   * Generate Instagram-style skeleton shimmer cards HTML
+   */
+  function getSkeletonHtml(count = 3) {
+    let out = '';
+    for (let i = 0; i < count; i++) {
+      out += `
+        <div class="uam-skeleton-card">
+          <div class="uam-skeleton-header">
+            <div class="uam-skeleton-bar uam-skeleton-badge"></div>
+            <div class="uam-skeleton-bar uam-skeleton-time"></div>
+          </div>
+          <div class="uam-skeleton-bar uam-skeleton-text"></div>
+          <div class="uam-skeleton-meta">
+            <div class="uam-skeleton-bar uam-skeleton-chip"></div>
+            <div class="uam-skeleton-bar uam-skeleton-chip"></div>
+          </div>
+        </div>
+      `;
+    }
+    return out;
+  }
+
+  /**
+   * Append skeleton shimmer loader to the container
+   */
+  function showSkeleton(container, count = 3) {
+    if (!container) return;
+    let wrapper = container.querySelector('.uam-skeleton-wrapper');
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.className = 'uam-skeleton-wrapper';
+      wrapper.innerHTML = getSkeletonHtml(count);
+      container.appendChild(wrapper);
+    }
+  }
+
+  /**
+   * Remove skeleton shimmer loader from the container
+   */
+  function hideSkeleton(container) {
+    if (!container) return;
+    const wrapper = container.querySelector('.uam-skeleton-wrapper');
+    if (wrapper) wrapper.remove();
   }
 
   /**
    * Render the activity timeline into container element
    */
-  function renderTimeline(container, rawLogs, username) {
+  function renderTimeline(container, rawLogs, username, options = {}) {
     if (!container) return;
 
     if (!rawLogs || rawLogs.length === 0) {
@@ -231,7 +277,7 @@
       return;
     }
 
-    const groupedItems = groupLogs(rawLogs, 25);
+    const groupedItems = groupLogs(rawLogs, options.maxItems || rawLogs.length);
 
     let html = '';
     groupedItems.forEach((entry, idx) => {
@@ -308,6 +354,14 @@
       }
     });
 
+    if (options.hasMore === false && rawLogs.length > 0) {
+      html += `
+        <div class="uam-end-message">
+          <i class="bi bi-check-circle-fill" style="color:#22c55e;"></i> You're all caught up • No older activity
+        </div>
+      `;
+    }
+
     container.innerHTML = html;
 
     // Attach click events to thread toggle buttons
@@ -333,6 +387,9 @@
     categorizeLog,
     groupLogs,
     renderTimeline,
+    getSkeletonHtml,
+    showSkeleton,
+    hideSkeleton,
     formatTimeAgo,
     formatFullDateTime
   };

@@ -608,15 +608,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // USER ACTIVITY & PROFILE DASHBOARD MODAL LOGIC (Google / Instagram Style)
+  // USER ACTIVITY & PROFILE DASHBOARD MODAL LOGIC (Instagram / Google Style Infinite Scroll)
   // ═══════════════════════════════════════════════════════════════════
   const uamBackdrop = document.getElementById('userActivityModalBackdrop');
   const uamCloseBtn = document.getElementById('uamCloseBtn');
+  const uamBodyEl = document.querySelector('.uam-body');
   let currentModalUser = null;
+  let currentModalUserId = null;
+  let currentActivityPage = 1;
+  let isLoadingMoreActivity = false;
+  let hasMoreActivity = false;
+  let modalAllLogs = [];
+  let modalUsername = '';
 
   function closeUserActivityDashboard() {
     if (uamBackdrop) uamBackdrop.style.display = 'none';
     currentModalUser = null;
+    currentModalUserId = null;
+    currentActivityPage = 1;
+    isLoadingMoreActivity = false;
+    hasMoreActivity = false;
+    modalAllLogs = [];
+    modalUsername = '';
   }
 
   if (uamCloseBtn) {
@@ -633,24 +646,98 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Infinite Scroll / Doomscrolling Handler for Activity History
+  async function loadMoreUserActivity() {
+    if (!currentModalUserId || isLoadingMoreActivity || !hasMoreActivity) return;
+    isLoadingMoreActivity = true;
+
+    const timelineEl = document.getElementById('uamTimeline');
+    const countEl = document.getElementById('uamActivityCount');
+
+    // Display smooth skeleton shimmer loader at the bottom of the feed
+    if (window.UserActivityTimeline && typeof window.UserActivityTimeline.showSkeleton === 'function') {
+      window.UserActivityTimeline.showSkeleton(timelineEl, 3);
+    }
+
+    try {
+      const nextPage = currentActivityPage + 1;
+      const res = await api(`/api/admin/users/${currentModalUserId}/activity?page=${nextPage}&limit=25`);
+
+      if (res && Array.isArray(res.logs) && res.logs.length > 0) {
+        currentActivityPage = nextPage;
+        modalAllLogs = modalAllLogs.concat(res.logs);
+        hasMoreActivity = !!res.hasMore;
+      } else {
+        hasMoreActivity = false;
+      }
+
+      // Hide skeleton shimmer and re-render aggregated timeline
+      if (window.UserActivityTimeline) {
+        window.UserActivityTimeline.hideSkeleton(timelineEl);
+        window.UserActivityTimeline.renderTimeline(timelineEl, modalAllLogs, modalUsername, { hasMore: hasMoreActivity });
+        if (countEl) {
+          const grouped = window.UserActivityTimeline.groupLogs(modalAllLogs);
+          countEl.textContent = `${grouped.length} items (${modalAllLogs.length} raw events)`;
+        }
+      }
+    } catch (err) {
+      console.warn('[Activity Doomscroll Error]:', err);
+      if (window.UserActivityTimeline) {
+        window.UserActivityTimeline.hideSkeleton(timelineEl);
+      }
+    } finally {
+      isLoadingMoreActivity = false;
+    }
+  }
+
+  // Attach scroll listener to modal body for automatic doomscrolling
+  if (uamBodyEl) {
+    uamBodyEl.addEventListener('scroll', () => {
+      // Trigger load when scrolled within 180px of bottom
+      if (uamBodyEl.scrollTop + uamBodyEl.clientHeight >= uamBodyEl.scrollHeight - 180) {
+        loadMoreUserActivity();
+      }
+    }, { passive: true });
+  }
+
   async function openUserActivityDashboard(userId) {
     if (!uamBackdrop) return;
     
-    // Open backdrop and display loading state
+    // Reset state for new modal session
+    currentModalUserId = userId;
+    currentActivityPage = 1;
+    isLoadingMoreActivity = false;
+    hasMoreActivity = false;
+    modalAllLogs = [];
+    modalUsername = '';
+
+    // Open backdrop and scroll body to top
     uamBackdrop.style.display = 'flex';
+    if (uamBodyEl) uamBodyEl.scrollTop = 0;
+
     const nameEl = document.getElementById('uamDisplayName');
     if (nameEl) nameEl.textContent = 'Loading profile…';
     const userEl = document.getElementById('uamUsername');
     if (userEl) userEl.textContent = '@…';
     const timelineEl = document.getElementById('uamTimeline');
-    if (timelineEl) timelineEl.innerHTML = '<div class="uam-empty-state"><i class="bi bi-arrow-repeat bi-spin"></i><p>Loading activity history…</p></div>';
+    const countEl = document.getElementById('uamActivityCount');
+    if (countEl) countEl.textContent = 'Loading events…';
+
+    // Display initial skeleton animation
+    if (timelineEl) {
+      timelineEl.innerHTML = window.UserActivityTimeline && typeof window.UserActivityTimeline.getSkeletonHtml === 'function'
+        ? window.UserActivityTimeline.getSkeletonHtml(3)
+        : '<div class="uam-empty-state"><i class="bi bi-arrow-repeat bi-spin"></i><p>Loading activity history…</p></div>';
+    }
 
     try {
-      const res = await api(`/api/admin/users/${userId}/activity`);
+      const res = await api(`/api/admin/users/${userId}/activity?page=1&limit=25`);
       if (!res || !res.user) throw new Error('User data not found');
 
       const user = res.user;
-      const logs = res.logs || [];
+      modalAllLogs = res.logs || [];
+      hasMoreActivity = !!res.hasMore;
+      modalUsername = user.username || '';
       currentModalUser = user;
 
       // 1. Resolve live status directly from Firebase RTDB presence
@@ -747,19 +834,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (statCreated) statCreated.textContent = user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 
       // 5. Populate Google / Instagram Activity Stream Timeline via UserActivityTimeline module
-      const countEl = document.getElementById('uamActivityCount');
-      
       if (window.UserActivityTimeline && typeof window.UserActivityTimeline.renderTimeline === 'function') {
-        const grouped = window.UserActivityTimeline.groupLogs(logs, 25);
+        const grouped = window.UserActivityTimeline.groupLogs(modalAllLogs);
         if (countEl) {
-          countEl.textContent = `${grouped.length} ${grouped.length === 1 ? 'recent item' : 'recent items'} (${logs.length} raw)`;
+          countEl.textContent = `${grouped.length} items (${modalAllLogs.length} raw events)`;
         }
-        window.UserActivityTimeline.renderTimeline(timelineEl, logs, user.username);
+        window.UserActivityTimeline.renderTimeline(timelineEl, modalAllLogs, user.username, { hasMore: hasMoreActivity });
       } else if (timelineEl) {
-        if (countEl) countEl.textContent = `${logs.length} events`;
-        timelineEl.innerHTML = logs.length === 0
+        if (countEl) countEl.textContent = `${modalAllLogs.length} events`;
+        timelineEl.innerHTML = modalAllLogs.length === 0
           ? `<div class="uam-empty-state"><i class="bi bi-clock-history"></i><p>No recent activity events recorded for @${user.username}.</p></div>`
-          : logs.slice(0, 25).map(l => `<div class="uam-timeline-item"><div class="uam-tl-desc">${l.message || l.description || l.action}</div></div>`).join('');
+          : modalAllLogs.map(l => `<div class="uam-timeline-item"><div class="uam-tl-desc">${l.message || l.description || l.action}</div></div>`).join('');
       }
 
     } catch (err) {
