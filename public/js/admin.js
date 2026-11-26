@@ -638,9 +638,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Open backdrop and display loading state
     uamBackdrop.style.display = 'flex';
-    document.getElementById('uamDisplayName').textContent = 'Loading profile…';
-    document.getElementById('uamUsername').textContent = '@…';
-    document.getElementById('uamTimeline').innerHTML = '<div class="uam-empty-state"><i class="bi bi-arrow-repeat bi-spin"></i><p>Loading activity history…</p></div>';
+    const nameEl = document.getElementById('uamDisplayName');
+    if (nameEl) nameEl.textContent = 'Loading profile…';
+    const userEl = document.getElementById('uamUsername');
+    if (userEl) userEl.textContent = '@…';
+    const timelineEl = document.getElementById('uamTimeline');
+    if (timelineEl) timelineEl.innerHTML = '<div class="uam-empty-state"><i class="bi bi-arrow-repeat bi-spin"></i><p>Loading activity history…</p></div>';
 
     try {
       const res = await api(`/api/admin/users/${userId}/activity`);
@@ -665,10 +668,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 2. Populate Header
       const displayName = user.displayName || user.profileName || user.username || 'User';
-      document.getElementById('uamDisplayName').textContent = displayName;
-      document.getElementById('uamUsername').textContent = `@${user.username}`;
-      document.getElementById('uamDepartment').textContent = (user.department || 'general').toUpperCase();
-      document.getElementById('uamOrganization').textContent = user.organization || 'Startek India';
+      if (nameEl) nameEl.textContent = displayName;
+      if (userEl) userEl.textContent = `@${user.username}`;
+      const deptEl = document.getElementById('uamDepartment');
+      if (deptEl) deptEl.textContent = (user.department || 'general').toUpperCase();
+      const orgEl = document.getElementById('uamOrganization');
+      if (orgEl) orgEl.textContent = user.organization || 'Startek India';
       
       const roleBadge = document.getElementById('uamRoleBadge');
       if (roleBadge) roleBadge.textContent = (user.role || 'user').toUpperCase();
@@ -722,15 +727,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // 4. Populate Profile Stats
-      document.getElementById('uamStatEmpId').textContent = user.employeeId || '—';
-      document.getElementById('uamStatTeam').textContent = user.teamId ? (user.teamId.name || 'Assigned') : 'None';
-      document.getElementById('uamStatEmail').textContent = user.email || 'Not provided';
-      document.getElementById('uamStatSession').textContent = hasSession ? '🟢 Active Session (Logged In)' : '⚪ Inactive (Logged Out)';
-      document.getElementById('uamStatIp').textContent = user.lastActiveIp || '—';
-      document.getElementById('uamStatCreated').textContent = user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+      const hasSession = !!user.currentSessionId;
+      const statEmpId = document.getElementById('uamStatEmpId');
+      if (statEmpId) statEmpId.textContent = user.employeeId || '—';
+
+      const statTeam = document.getElementById('uamStatTeam');
+      if (statTeam) statTeam.textContent = user.teamId ? (user.teamId.name || 'Assigned') : 'None';
+
+      const statEmail = document.getElementById('uamStatEmail');
+      if (statEmail) statEmail.textContent = user.email || 'Not provided';
+
+      const statSession = document.getElementById('uamStatSession');
+      if (statSession) statSession.textContent = hasSession ? '🟢 Active Session (Logged In)' : '⚪ Inactive (Logged Out)';
+
+      const statIp = document.getElementById('uamStatIp');
+      if (statIp) statIp.textContent = user.lastActiveIp || '—';
+
+      const statCreated = document.getElementById('uamStatCreated');
+      if (statCreated) statCreated.textContent = user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 
       // 5. Populate Google / Instagram Activity Stream Timeline via UserActivityTimeline module
-      const timelineEl = document.getElementById('uamTimeline');
       const countEl = document.getElementById('uamActivityCount');
       
       if (window.UserActivityTimeline && typeof window.UserActivityTimeline.renderTimeline === 'function') {
