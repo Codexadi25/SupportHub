@@ -1355,7 +1355,7 @@
         <span class="vp-count-chip" id="vpCountChip">0</span>
     </div>
     <div class="vp-list" id="vpList"></div>
-    <div class="vp-firebase-setup" id="vpFirebaseSetup">
+    <div class="vp-firebase-setup" id="vpFirebaseSetup" style="display:none;">
         <strong>⚙️ Demo Mode Active</strong><br>
         You're only visible to yourself. To sync across all devices, add your
         <code>FIREBASE_CONFIG</code> at the bottom of this file.<br>
@@ -2020,7 +2020,7 @@ function startPresence() {
     if (firebaseMode && fbRefs) {
         startFirebase();
     } else {
-        startDemoMode();
+        startDynamicHttpPresence();
     }
 }
 
@@ -2116,15 +2116,66 @@ function startFirebase() {
     });
 }
 
-function startDemoMode() {
-    localMap = {};
-    localMap[myProfile.id] = { ...myProfile, lastSeen: Date.now(), status: 'online' };
-    renderAll(Object.values(localMap));
-
-    setInterval(() => {
-        localMap[myProfile.id].lastSeen = Date.now();
+let httpPollTimer = null;
+async function fetchAndRenderActiveUsers() {
+    try {
+        const res = await fetch('/api/active-users');
+        if (res.ok) {
+            const users = await res.json();
+            if (Array.isArray(users) && users.length > 0) {
+                const now = Date.now();
+                const viewers = users.map(u => ({
+                    id: u.username,
+                    name: u.username,
+                    role: mapRole(u.role),
+                    color: u.bgColor || nameToColor(u.username),
+                    initials: getInitials(u.displayName || u.username),
+                    joinedAt: u.lastPingAt || now,
+                    lastSeen: u.lastPingAt || now,
+                    status: u.status || 'online',
+                    image: u.image || u.profilePic || '',
+                    profilePic: u.profilePic || '',
+                    displayName: u.displayName || u.username
+                }));
+                // Ensure current user is present
+                if (myProfile && !viewers.some(v => v.name === myProfile.name)) {
+                    viewers.unshift({
+                        id: myProfile.name,
+                        name: myProfile.name,
+                        role: myProfile.role || 'User',
+                        color: myProfile.color || nameToColor(myProfile.name),
+                        initials: myProfile.initials || getInitials(myProfile.name),
+                        joinedAt: now,
+                        lastSeen: now,
+                        status: 'online',
+                        image: myProfile.image || '',
+                        profilePic: myProfile.profilePic || '',
+                        displayName: myProfile.displayName || myProfile.name
+                    });
+                }
+                setLiveStatus("online");
+                const setupEl = document.getElementById("vpFirebaseSetup");
+                if (setupEl) setupEl.style.display = "none";
+                renderAll(viewers);
+                return;
+            }
+        }
+    } catch(err) {
+        console.warn("[WIMO] Active users fetch error:", err.message);
+    }
+    // Fallback to local profile
+    if (myProfile) {
+        localMap = {};
+        localMap[myProfile.id] = { ...myProfile, lastSeen: Date.now(), status: 'online' };
         renderAll(Object.values(localMap));
-    }, HEARTBEAT_MS);
+    }
+}
+
+function startDynamicHttpPresence() {
+    fetchAndRenderActiveUsers();
+    if (!httpPollTimer) {
+        httpPollTimer = setInterval(fetchAndRenderActiveUsers, 10000);
+    }
 }
 
 function renderAll(viewers) {
@@ -2232,7 +2283,7 @@ function setLiveStatus(state) {
     const text = document.getElementById("pbLiveText");
     const map  = {
         online:  { dotCls: "online",  color: "#24963F", label: "Live"         },
-        pending: { dotCls: "pending", color: "#F5A623", label: "Demo mode"    },
+        pending: { dotCls: "online",  color: "#24963F", label: "Live"         },
         offline: { dotCls: "offline", color: "#ccc",    label: "Disconnected" }
     };
     const s = map[state] || map.pending;

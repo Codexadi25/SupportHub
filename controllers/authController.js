@@ -315,28 +315,41 @@ exports.getAppPage = async (req, res) => {
         
         // Resolve dynamic SOP URL
         let sopUrl = '';
-            if (userDoc.role === 'admin') {
-                sopUrl = '/sop';
-            } else {
+        if (userDoc.role === 'admin') {
+            sopUrl = '/sop';
+        } else if (userDoc.role === 'new') {
+            sopUrl = '';
+        } else {
+            try {
                 const { SopTemplate } = require('../models/Sop');
                 const template = await SopTemplate.findOne({ lob: new RegExp(`^${userLob}$`, 'i') });
-                const parentDept = (template?.department || userDept).toLowerCase().trim();
-                
+                const parentDept = (template?.department || userDoc.department || userLob || 'general').toLowerCase().trim();
                 const modeSegment = ['quality_analyst', 'editor'].includes(userDoc.role) ? 'edit' : 'view';
                 sopUrl = `/sop/${parentDept}/${userLob}/${modeSegment}`;
+            } catch (sopErr) {
+                console.warn("[getAppPage] Could not resolve dynamic sopUrl:", sopErr.message);
+                sopUrl = `/sop/${(userDoc.department || 'general').toLowerCase().trim()}/${userLob}/view`;
             }
+        }
         
         // Render the main page with all the necessary data
         res.render('index', {
-            categories: categories,
-            privateNotes: privateNotes,
+            categories: categories || [],
+            privateNotes: privateNotes || [],
             allTags: [...allTags].sort(),
             user: userDoc,
-            users: users,
+            users: users || [],
             sopUrl: sopUrl
         });
     } catch (error) {
         console.error("Error loading application page:", error);
-        res.status(500).send("Could not load application data. Please try again later.");
+        // If render 500 fails, fallback gracefully
+        res.status(500);
+        return res.render('500', { error: 'Could not load application data. Please try again later.' }, (viewErr, html) => {
+            if (viewErr || !html) {
+                return res.send("Could not load application data. Please try again later.");
+            }
+            res.send(html);
+        });
     }
 };

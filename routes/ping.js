@@ -3,8 +3,10 @@ const router = express.Router();
 const { isAuthenticated, isNotNew } = require('../middleware/authMiddleware');
 const { getOnlineUsers } = require('../utils/webSocketServer');
 const firebaseService = require('../services/firebaseService');
+const User = require('../models/User');
 
 const IDLE_THRESHOLD = 3 * 60 * 1000; // 3 minutes for idle status
+const ACTIVE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes window for active users
 
 // In-memory active users (by userId) and last seen
 const activeUsers = new Map();
@@ -53,6 +55,9 @@ router.get('/ping', isAuthenticated, (req, res) => {
         lastPingAt: now,
         status: 'online'
       });
+
+      // Update last active in MongoDB
+      User.updateOne({ _id: user._id }, { $set: { lastActiveAt: new Date() } }).catch(() => {});
 
       // Sync status to Firebase
       firebaseService.updateUserStatus(user.username, user.department || 'general', 'online').catch(err => {
@@ -105,6 +110,9 @@ router.post('/heartbeat', isAuthenticated, (req, res) => {
       status: 'online'
     });
 
+    // Update last active in MongoDB
+    User.updateOne({ _id: user._id }, { $set: { lastActiveAt: new Date() } }).catch(() => {});
+
     // Sync status to Firebase
     firebaseService.updateUserStatus(user.username, user.department || 'general', 'online').catch(err => {
       console.warn('[Heartbeat] Firebase status sync failed:', err.message);
@@ -126,60 +134,102 @@ router.post('/heartbeat', isAuthenticated, (req, res) => {
   }
 });
 
-// GET /api/active-users (returns users with status based on last 3 min)
-// Made this endpoint more lenient - doesn't require strict authentication
-router.get('/active-users', (req, res) => {
+// GET /api/active-users (returns users with status based on real activity)
+// Made this endpoint lenient - doesn't require strict authentication
+router.get('/active-users', async (req, res) => {
   try {
     const cutoff = Date.now() - IDLE_THRESHOLD;
     const byId = new Map();
 
-    // include socket-online users as online
+    // 1. Fetch recent active users from MongoDB
+    try {
+      const recentWindow = new Date(Date.now() - ACTIVE_THRESHOLD_MS);
+      const dbUsers = await User.find({
+        $or: [
+          { lastActiveAt: { $gte: recentWindow } },
+          { updatedAt: { $gte: recentWindow } }
+        ],
+        role: { $ne: 'new' }
+      }).select('_id username role department displayName profileName image profilePic bgColor lastActiveAt').lean();
+
+      dbUsers.forEach(u => {
+        const id = String(u._id);
+        const lastActiveMs = u.lastActiveAt ? new Date(u.lastActiveAt).getTime() : Date.now();
+        const isOnline = (Date.now() - lastActiveMs) < IDLE_THRESHOLD;
+        byId.set(id, {
+          userId: id,
+          username: u.username,
+          displayName: u.displayName || u.profileName || u.username,
+          role: u.role || 'user',
+          department: u.department || 'general',
+          profilePic: u.profilePic || u.image || '',
+          image: u.image || u.profilePic || '',
+          bgColor: u.bgColor || '',
+          lastPingAt: lastActiveMs,
+          status: isOnline ? 'online' : 'idle'
+        });
+      });
+    } catch (dbErr) {
+      console.warn('Error fetching active users from DB:', dbErr.message);
+    }
+
+    // 2. include socket-online users as online
     try {
       const socketUsers = getOnlineUsers ? getOnlineUsers() : [];
       socketUsers.forEach(u => {
         if (!u || !u.userId) return;
-        byId.set(String(u.userId), { 
-          userId: String(u.userId), 
-          username: u.username, 
-          role: u.role, 
-          lastPingAt: Date.now(), 
-          lastActivity: u.lastActivity,
-          status: u.status || 'online' 
+        const id = String(u.userId);
+        const existing = byId.get(id) || {};
+        byId.set(id, {
+          ...existing,
+          userId: id,
+          username: u.username || existing.username,
+          displayName: u.displayName || existing.displayName || u.username,
+          role: u.role || existing.role || 'user',
+          department: u.department || existing.department || 'general',
+          profilePic: u.profilePic || existing.profilePic || '',
+          image: u.image || existing.image || '',
+          bgColor: u.bgColor || existing.bgColor || '',
+          lastPingAt: Date.now(),
+          status: 'online'
         });
       });
     } catch(err) {
       console.error('Error getting socket users:', err);
     }
 
-    // merge ping-tracked users
+    // 3. merge ping-tracked users
     activeUsers.forEach((u, k) => {
       const id = String(u.userId);
       const isOnline = u.lastPingAt >= cutoff || byId.has(id);
-      const existing = byId.get(id);
-      if (existing) {
-        // keep online status; update lastPingAt if newer
-        existing.lastPingAt = Math.max(existing.lastPingAt || 0, u.lastPingAt || 0);
-        byId.set(id, existing);
-      } else {
-        byId.set(id, { ...u, status: isOnline ? 'online' : 'idle' });
-      }
+      const existing = byId.get(id) || {};
+      byId.set(id, {
+        ...existing,
+        ...u,
+        lastPingAt: Math.max(existing.lastPingAt || 0, u.lastPingAt || 0),
+        status: isOnline ? 'online' : 'idle'
+      });
     });
 
-    // ensure requester is shown (helps first-load UX) - only if authenticated
+    // 4. ensure requester is shown (helps first-load UX)
     try {
       const me = req.session?.user;
-      if (me && me._id) {
-        const id = String(me._id);
-        if (!byId.has(id)) {
-          byId.set(id, { 
-            userId: id, 
-            username: me.username, 
-            role: me.role, 
-            lastPingAt: Date.now(), 
-            lastActivity: Date.now(),
-            status: 'online' 
-          });
-        }
+      if (me && (me._id || me.id)) {
+        const id = String(me._id || me.id);
+        const existing = byId.get(id) || {};
+        byId.set(id, {
+          ...existing,
+          userId: id,
+          username: me.username,
+          displayName: me.displayName || me.profileName || me.username,
+          role: me.role,
+          department: me.department || 'general',
+          profilePic: me.profilePic || me.image || '',
+          image: me.image || me.profilePic || '',
+          bgColor: me.bgColor || '',
+          lastPingAt: Date.now(),
+          status: 'online'
+        });
       }
     } catch(err) {
       console.error('Error adding requester:', err);

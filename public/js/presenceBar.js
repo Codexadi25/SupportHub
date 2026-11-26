@@ -40,17 +40,16 @@ class PresenceBar {
       // Fetch Firebase config from server
       const response = await fetch('/api/user-activity/firebase-config');
       if (!response.ok) {
-        console.warn('[PresenceBar] Firebase config not available');
-        this.updateLiveStatus('pending');
+        console.warn('[PresenceBar] Firebase config not available, using dynamic HTTP presence');
+        this.startHttpPolling();
         return;
       }
 
       const { config } = await response.json();
       if (!config.databaseURL) {
-        console.warn('[PresenceBar] Firebase database URL not configured — running in local mode');
-        // Still populate the You chip and show a sensible status
+        console.warn('[PresenceBar] Firebase database URL not configured — using dynamic HTTP presence');
         this.updateYouChip();
-        this.updateLiveStatus('localonly');
+        this.startHttpPolling();
         return;
       }
 
@@ -71,10 +70,70 @@ class PresenceBar {
       // Setup UI event listeners
       this.setupEventListeners();
 
-      // console.log('[PresenceBar] Initialized successfully');
+      // Hide demo setup banner if present
+      const setupEl = document.getElementById('vpFirebaseSetup');
+      if (setupEl) setupEl.style.display = 'none';
     } catch (error) {
-      console.error('[PresenceBar] Initialization failed:', error);
-      this.updateLiveStatus('offline');
+      console.warn('[PresenceBar] Firebase connection skipped/failed, using dynamic HTTP presence:', error.message);
+      this.updateYouChip();
+      this.startHttpPolling();
+    }
+  }
+
+  /**
+   * Fallback / Direct dynamic HTTP polling for active users
+   */
+  startHttpPolling() {
+    this.updateLiveStatus('online');
+    const setupEl = document.getElementById('vpFirebaseSetup');
+    if (setupEl) setupEl.style.display = 'none';
+
+    this.setupEventListeners();
+    this.pollActiveUsers();
+    if (!this.httpPollInterval) {
+      this.httpPollInterval = setInterval(() => {
+        this.pollActiveUsers();
+      }, 10000);
+    }
+  }
+
+  async pollActiveUsers() {
+    try {
+      const res = await fetch('/api/active-users');
+      if (res.ok) {
+        const users = await res.json();
+        if (Array.isArray(users)) {
+          const peers = users.map(u => ({
+            username: u.username,
+            displayName: u.displayName || u.profileName || u.username,
+            role: u.role || 'user',
+            dept: u.department || 'general',
+            profilePic: u.profilePic || u.image || '',
+            image: u.image || u.profilePic || '',
+            bgColor: u.bgColor || '',
+            status: u.status || 'online',
+            ts: u.lastPingAt || Date.now()
+          }));
+
+          const statusOrder = { online: 3, on_break: 2, idle: 1 };
+          const sortedPeers = peers.sort((a, b) => {
+            const aIsYou = a.username === this.username ? 1 : 0;
+            const bIsYou = b.username === this.username ? 1 : 0;
+            if (aIsYou !== bIsYou) return bIsYou - aIsYou;
+
+            const aOrder = statusOrder[a.status] || 0;
+            const bOrder = statusOrder[b.status] || 0;
+            if (aOrder !== bOrder) return bOrder - aOrder;
+
+            return (a.displayName || a.username).localeCompare(b.displayName || b.username);
+          });
+
+          this.renderPresenceBar(sortedPeers);
+          this.updateLiveStatus('online');
+        }
+      }
+    } catch (err) {
+      console.warn('[PresenceBar] HTTP poll error:', err.message);
     }
   }
 
@@ -518,6 +577,10 @@ class PresenceBar {
    * Destroy presence (on logout)
    */
   destroy() {
+    if (this.httpPollInterval) {
+      clearInterval(this.httpPollInterval);
+      this.httpPollInterval = null;
+    }
     if (this.presenceRef) {
       this.presenceRef.remove();
     }
