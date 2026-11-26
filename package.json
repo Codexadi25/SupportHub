@@ -1,6 +1,6 @@
 {
   "name": "supporthub",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "A real-time canned response and private notes application.",
   "main": "app.js",
   "scripts": {
